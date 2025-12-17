@@ -35,8 +35,7 @@ mightyzap_handle_t g_actuator = NULL;
 // Actuator configuration
 #define ACTUATOR_SLAVE_ID   1   // mightyZAP default ID
 
-// Remote ESP32 Slave configuration
-#define REMOTE_SLAVE_ID     2
+// Remote ESP32 Slave register addresses (slave ID from config)
 #define REG_LED_STATE       0x0000
 #define REG_BLINK_MODE      0x0001
 #define REG_BLINK_PERIOD    0x0002
@@ -155,7 +154,7 @@ static esp_err_t test_slave_connection(void)
     if (g_modbus == NULL) return ESP_ERR_INVALID_STATE;
 
     uint16_t device_id;
-    esp_err_t ret = modbus_read_holding_registers(g_modbus, REMOTE_SLAVE_ID,
+    esp_err_t ret = modbus_read_holding_registers(g_modbus, config_get_modbus_slave_id(),
                                                    REG_DEVICE_ID, 1, &device_id);
 
     if (ret == ESP_OK) {

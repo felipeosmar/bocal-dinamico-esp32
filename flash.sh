@@ -55,7 +55,7 @@ flash_www() {
         echo "Error: www.bin not found. Run 'idf.py build' first."
         exit 1
     fi
-    esptool.py -p "$PORT" -b "$BAUD" write_flash 0x1E0000 build/www.bin
+    esptool.py -p "$PORT" -b "$BAUD" write_flash 0x1D0000 build/www.bin
 }
 
 flash_update() {
@@ -69,7 +69,7 @@ flash_update() {
     # Flash www partition
     if [ -f "build/www.bin" ]; then
         echo "Flashing web interface..."
-        esptool.py -p "$PORT" -b "$BAUD" write_flash 0x1E0000 build/www.bin
+        esptool.py -p "$PORT" -b "$BAUD" write_flash 0x1D0000 build/www.bin
     fi
 
     echo "=== Update Complete ==="

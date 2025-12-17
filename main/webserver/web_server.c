@@ -1,8 +1,11 @@
 #include "web_server.h"
 #include <string.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "esp_log.h"
-#include "esp_spiffs.h"
+#include "esp_littlefs.h"
 #include "cJSON.h"
 
 #include "wifi_manager.h"
@@ -21,8 +24,7 @@ static httpd_handle_t s_server = NULL;
 static web_server_config_t s_config;
 static bool s_running = false;
 
-// Remote slave configuration
-#define REMOTE_SLAVE_ID     2
+// Remote slave register addresses
 #define REG_LED_STATE       0x0000
 #define REG_BLINK_MODE      0x0001
 #define REG_BLINK_PERIOD    0x0002
@@ -112,6 +114,675 @@ static esp_err_t js_handler(httpd_req_t *req)
 static esp_err_t favicon_handler(httpd_req_t *req)
 {
     return serve_file(req, "/www/favicon.ico", "image/x-icon");
+}
+
+// ============================================================================
+// API Handlers - File Manager
+// ============================================================================
+
+// Helper: Get partition base path from query parameter
+static const char* get_partition_path(httpd_req_t *req, char *buf, size_t buf_len)
+{
+    char param[16] = {0};
+    if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
+        if (httpd_query_key_value(buf, "partition", param, sizeof(param)) == ESP_OK) {
+            if (strcmp(param, "userdata") == 0) {
+                return "/userdata";
+            }
+        }
+    }
+    return "/www";
+}
+
+// Helper: URL decode in place
+static void url_decode(char *str)
+{
+    char *src = str;
+    char *dst = str;
+    while (*src) {
+        if (*src == '%' && src[1] && src[2]) {
+            int val;
+            char hex[3] = {src[1], src[2], 0};
+            if (sscanf(hex, "%x", &val) == 1) {
+                *dst++ = (char)val;
+                src += 3;
+                continue;
+            }
+        } else if (*src == '+') {
+            *dst++ = ' ';
+            src++;
+            continue;
+        }
+        *dst++ = *src++;
+    }
+    *dst = '\0';
+}
+
+// Helper: Validate path (security check)
+static bool is_valid_path(const char *path)
+{
+    if (!path || strlen(path) == 0) return false;
+    if (path[0] != '/') return false;
+    if (strstr(path, "..") != NULL) return false;  // No path traversal
+    if (strlen(path) > 128) return false;
+    return true;
+}
+
+// Helper: Build full path
+static void build_full_path(char *dest, size_t dest_size, const char *base, const char *path)
+{
+    if (strcmp(path, "/") == 0) {
+        snprintf(dest, dest_size, "%s", base);
+    } else {
+        snprintf(dest, dest_size, "%s%s", base, path);
+    }
+}
+
+// GET /api/files/list - List files in directory
+static esp_err_t api_files_list_handler(httpd_req_t *req)
+{
+    char query_buf[256] = {0};
+    char dir_param[128] = "/";
+
+    const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    // Get dir parameter
+    if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) == ESP_OK) {
+        httpd_query_key_value(query_buf, "dir", dir_param, sizeof(dir_param));
+        url_decode(dir_param);
+    }
+
+    if (!is_valid_path(dir_param)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
+        return ESP_FAIL;
+    }
+
+    char full_path[160];
+    build_full_path(full_path, sizeof(full_path), base_path, dir_param);
+
+    DIR *dir = opendir(full_path);
+    if (!dir) {
+        // If directory doesn't exist, return empty list
+        cJSON *root = cJSON_CreateObject();
+        cJSON *files = cJSON_CreateArray();
+        cJSON_AddItemToObject(root, "files", files);
+
+        char *json_str = cJSON_PrintUnformatted(root);
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, json_str, strlen(json_str));
+        free(json_str);
+        cJSON_Delete(root);
+        return ESP_OK;
+    }
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON *files = cJSON_CreateArray();
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        cJSON *file_obj = cJSON_CreateObject();
+        cJSON_AddStringToObject(file_obj, "name", entry->d_name);
+
+        // Get file info
+        char file_path[320];
+        snprintf(file_path, sizeof(file_path), "%.159s/%.159s", full_path, entry->d_name);
+
+        struct stat st;
+        if (stat(file_path, &st) == 0) {
+            cJSON_AddNumberToObject(file_obj, "size", st.st_size);
+            cJSON_AddBoolToObject(file_obj, "isDir", S_ISDIR(st.st_mode));
+        } else {
+            cJSON_AddNumberToObject(file_obj, "size", 0);
+            cJSON_AddBoolToObject(file_obj, "isDir", entry->d_type == DT_DIR);
+        }
+
+        cJSON_AddItemToArray(files, file_obj);
+    }
+    closedir(dir);
+
+    cJSON_AddItemToObject(root, "files", files);
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+// GET /api/files/info - Get storage info for all partitions
+static esp_err_t api_files_info_handler(httpd_req_t *req)
+{
+    cJSON *root = cJSON_CreateObject();
+
+    size_t total, used;
+
+    // WWW partition info
+    if (esp_littlefs_info("www", &total, &used) == ESP_OK) {
+        cJSON *www = cJSON_CreateObject();
+        cJSON_AddNumberToObject(www, "total", total);
+        cJSON_AddNumberToObject(www, "used", used);
+        cJSON_AddItemToObject(root, "www", www);
+    }
+
+    // Userdata partition info
+    if (esp_littlefs_info("userdata", &total, &used) == ESP_OK) {
+        cJSON *userdata = cJSON_CreateObject();
+        cJSON_AddNumberToObject(userdata, "total", total);
+        cJSON_AddNumberToObject(userdata, "used", used);
+        cJSON_AddItemToObject(root, "userdata", userdata);
+    }
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+// GET /api/files/download - Download a file
+static esp_err_t api_files_download_handler(httpd_req_t *req)
+{
+    char query_buf[256] = {0};
+    char file_param[128] = {0};
+
+    const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) != ESP_OK ||
+        httpd_query_key_value(query_buf, "file", file_param, sizeof(file_param)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing file parameter");
+        return ESP_FAIL;
+    }
+    url_decode(file_param);
+
+    if (!is_valid_path(file_param)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
+        return ESP_FAIL;
+    }
+
+    char full_path[160];
+    build_full_path(full_path, sizeof(full_path), base_path, file_param);
+
+    FILE *f = fopen(full_path, "r");
+    if (!f) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File not found");
+        return ESP_FAIL;
+    }
+
+    // Get filename for Content-Disposition
+    const char *filename = strrchr(file_param, '/');
+    filename = filename ? filename + 1 : file_param;
+
+    char header[256];
+    snprintf(header, sizeof(header), "attachment; filename=\"%.200s\"", filename);
+    httpd_resp_set_hdr(req, "Content-Disposition", header);
+    httpd_resp_set_type(req, "application/octet-stream");
+
+    char buf[512];
+    size_t read_bytes;
+    while ((read_bytes = fread(buf, 1, sizeof(buf), f)) > 0) {
+        httpd_resp_send_chunk(req, buf, read_bytes);
+    }
+    fclose(f);
+    httpd_resp_send_chunk(req, NULL, 0);
+
+    return ESP_OK;
+}
+
+// GET /api/files/view - View file content inline
+static esp_err_t api_files_view_handler(httpd_req_t *req)
+{
+    char query_buf[256] = {0};
+    char file_param[128] = {0};
+
+    const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) != ESP_OK ||
+        httpd_query_key_value(query_buf, "file", file_param, sizeof(file_param)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing file parameter");
+        return ESP_FAIL;
+    }
+    url_decode(file_param);
+
+    if (!is_valid_path(file_param)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
+        return ESP_FAIL;
+    }
+
+    char full_path[160];
+    build_full_path(full_path, sizeof(full_path), base_path, file_param);
+
+    return serve_file(req, full_path, "text/plain");
+}
+
+// GET /api/files/read - Read file content for editing
+static esp_err_t api_files_read_handler(httpd_req_t *req)
+{
+    char query_buf[256] = {0};
+    char file_param[128] = {0};
+
+    const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) != ESP_OK ||
+        httpd_query_key_value(query_buf, "file", file_param, sizeof(file_param)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing file parameter");
+        return ESP_FAIL;
+    }
+    url_decode(file_param);
+
+    if (!is_valid_path(file_param)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
+        return ESP_FAIL;
+    }
+
+    char full_path[160];
+    build_full_path(full_path, sizeof(full_path), base_path, file_param);
+
+    FILE *f = fopen(full_path, "r");
+    if (!f) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File not found");
+        return ESP_FAIL;
+    }
+
+    // Get file size
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    // Limit to 50KB
+    if (fsize > 50 * 1024) {
+        fclose(f);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large (max 50KB)");
+        return ESP_FAIL;
+    }
+
+    char *content = malloc(fsize + 1);
+    if (!content) {
+        fclose(f);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
+
+    fread(content, 1, fsize, f);
+    content[fsize] = '\0';
+    fclose(f);
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "status", "ok");
+    cJSON_AddStringToObject(root, "content", content);
+    cJSON_AddNumberToObject(root, "size", fsize);
+
+    free(content);
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+// POST /api/files/write - Write file content
+static esp_err_t api_files_write_handler(httpd_req_t *req)
+{
+    char query_buf[64] = {0};
+    const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    // Read POST data
+    int total_len = req->content_len;
+    if (total_len > 60 * 1024) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Content too large");
+        return ESP_FAIL;
+    }
+
+    char *buf = malloc(total_len + 1);
+    if (!buf) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
+
+    int received = 0;
+    while (received < total_len) {
+        int ret = httpd_req_recv(req, buf + received, total_len - received);
+        if (ret <= 0) {
+            free(buf);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+            return ESP_FAIL;
+        }
+        received += ret;
+    }
+    buf[total_len] = '\0';
+
+    // Parse multipart form data (simple parser)
+    char file_param[128] = {0};
+    char *content_start = NULL;
+    size_t content_len = 0;
+
+    // Find file parameter
+    char *file_field = strstr(buf, "name=\"file\"");
+    if (file_field) {
+        char *value_start = strstr(file_field, "\r\n\r\n");
+        if (value_start) {
+            value_start += 4;
+            char *value_end = strstr(value_start, "\r\n--");
+            if (value_end) {
+                size_t len = value_end - value_start;
+                if (len < sizeof(file_param)) {
+                    strncpy(file_param, value_start, len);
+                    file_param[len] = '\0';
+                }
+            }
+        }
+    }
+
+    // Find content parameter
+    char *content_field = strstr(buf, "name=\"content\"");
+    if (content_field) {
+        content_start = strstr(content_field, "\r\n\r\n");
+        if (content_start) {
+            content_start += 4;
+            char *content_end = strstr(content_start, "\r\n--");
+            if (content_end) {
+                content_len = content_end - content_start;
+            } else {
+                content_len = strlen(content_start);
+            }
+        }
+    }
+
+    if (!file_param[0] || !content_start) {
+        free(buf);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing parameters");
+        return ESP_FAIL;
+    }
+
+    if (!is_valid_path(file_param)) {
+        free(buf);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
+        return ESP_FAIL;
+    }
+
+    char full_path[160];
+    build_full_path(full_path, sizeof(full_path), base_path, file_param);
+
+    FILE *f = fopen(full_path, "w");
+    if (!f) {
+        free(buf);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open file");
+        return ESP_FAIL;
+    }
+
+    fwrite(content_start, 1, content_len, f);
+    fclose(f);
+    free(buf);
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "status", "ok");
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+// POST /api/files/delete - Delete file or folder
+static esp_err_t api_files_delete_handler(httpd_req_t *req)
+{
+    char query_buf[64] = {0};
+    const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    char buf[256];
+    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
+    if (ret <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No data");
+        return ESP_FAIL;
+    }
+    buf[ret] = '\0';
+
+    // Parse file parameter from form data
+    char file_param[128] = {0};
+    char *file_field = strstr(buf, "name=\"file\"");
+    if (file_field) {
+        char *value_start = strstr(file_field, "\r\n\r\n");
+        if (value_start) {
+            value_start += 4;
+            char *value_end = strstr(value_start, "\r\n");
+            if (value_end) {
+                size_t len = value_end - value_start;
+                if (len < sizeof(file_param)) {
+                    strncpy(file_param, value_start, len);
+                    file_param[len] = '\0';
+                }
+            }
+        }
+    }
+
+    if (!file_param[0]) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing file parameter");
+        return ESP_FAIL;
+    }
+
+    if (!is_valid_path(file_param)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
+        return ESP_FAIL;
+    }
+
+    char full_path[160];
+    build_full_path(full_path, sizeof(full_path), base_path, file_param);
+
+    struct stat st;
+    if (stat(full_path, &st) != 0) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File not found");
+        return ESP_FAIL;
+    }
+
+    int result;
+    if (S_ISDIR(st.st_mode)) {
+        result = rmdir(full_path);
+    } else {
+        result = unlink(full_path);
+    }
+
+    if (result != 0) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to delete");
+        return ESP_FAIL;
+    }
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "status", "ok");
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+// POST /api/files/mkdir - Create directory
+static esp_err_t api_files_mkdir_handler(httpd_req_t *req)
+{
+    char query_buf[64] = {0};
+    const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    char buf[256];
+    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
+    if (ret <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No data");
+        return ESP_FAIL;
+    }
+    buf[ret] = '\0';
+
+    // Parse dir parameter from form data
+    char dir_param[128] = {0};
+    char *dir_field = strstr(buf, "name=\"dir\"");
+    if (dir_field) {
+        char *value_start = strstr(dir_field, "\r\n\r\n");
+        if (value_start) {
+            value_start += 4;
+            char *value_end = strstr(value_start, "\r\n");
+            if (value_end) {
+                size_t len = value_end - value_start;
+                if (len < sizeof(dir_param)) {
+                    strncpy(dir_param, value_start, len);
+                    dir_param[len] = '\0';
+                }
+            }
+        }
+    }
+
+    if (!dir_param[0]) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing dir parameter");
+        return ESP_FAIL;
+    }
+
+    if (!is_valid_path(dir_param)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
+        return ESP_FAIL;
+    }
+
+    char full_path[160];
+    build_full_path(full_path, sizeof(full_path), base_path, dir_param);
+
+    if (mkdir(full_path, 0755) != 0) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create directory");
+        return ESP_FAIL;
+    }
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "status", "ok");
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+// POST /api/files/upload - Upload file
+static esp_err_t api_files_upload_handler(httpd_req_t *req)
+{
+    char query_buf[256] = {0};
+    char dir_param[128] = "/";
+
+    const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    // Get dir parameter
+    if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) == ESP_OK) {
+        httpd_query_key_value(query_buf, "dir", dir_param, sizeof(dir_param));
+        url_decode(dir_param);
+    }
+
+    if (!is_valid_path(dir_param)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
+        return ESP_FAIL;
+    }
+
+    // Read multipart data
+    int total_len = req->content_len;
+    if (total_len > 100 * 1024) {  // 100KB max
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large (max 100KB)");
+        return ESP_FAIL;
+    }
+
+    char *buf = malloc(total_len + 1);
+    if (!buf) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
+
+    int received = 0;
+    while (received < total_len) {
+        int ret = httpd_req_recv(req, buf + received, total_len - received);
+        if (ret <= 0) {
+            free(buf);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+            return ESP_FAIL;
+        }
+        received += ret;
+    }
+    buf[total_len] = '\0';
+
+    // Parse filename from Content-Disposition
+    char filename[64] = {0};
+    char *filename_start = strstr(buf, "filename=\"");
+    if (filename_start) {
+        filename_start += 10;
+        char *filename_end = strchr(filename_start, '"');
+        if (filename_end && (filename_end - filename_start) < sizeof(filename)) {
+            strncpy(filename, filename_start, filename_end - filename_start);
+        }
+    }
+
+    if (!filename[0]) {
+        free(buf);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No filename");
+        return ESP_FAIL;
+    }
+
+    // Find file content (after double CRLF)
+    char *content_start = strstr(buf, "\r\n\r\n");
+    if (!content_start) {
+        free(buf);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid format");
+        return ESP_FAIL;
+    }
+    content_start += 4;
+
+    // Find end boundary
+    char *content_end = NULL;
+    char *boundary_pos = content_start;
+    while ((boundary_pos = strstr(boundary_pos, "\r\n--")) != NULL) {
+        content_end = boundary_pos;
+        boundary_pos += 4;
+    }
+
+    size_t content_len = content_end ? (content_end - content_start) : (buf + total_len - content_start);
+
+    // Build full file path
+    char full_path[192];
+    if (strcmp(dir_param, "/") == 0) {
+        snprintf(full_path, sizeof(full_path), "%s/%s", base_path, filename);
+    } else {
+        snprintf(full_path, sizeof(full_path), "%s%s/%s", base_path, dir_param, filename);
+    }
+
+    FILE *f = fopen(full_path, "w");
+    if (!f) {
+        free(buf);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create file");
+        return ESP_FAIL;
+    }
+
+    fwrite(content_start, 1, content_len, f);
+    fclose(f);
+    free(buf);
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "status", "ok");
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+
+    ESP_LOGI(TAG, "File uploaded: %s", full_path);
+    return ESP_OK;
 }
 
 // ============================================================================
@@ -271,7 +942,7 @@ static esp_err_t api_led_status_handler(httpd_req_t *req)
         cJSON_AddStringToObject(root, "message", "Modbus not initialized");
     } else {
         uint16_t values[4];
-        esp_err_t ret = modbus_read_holding_registers(g_modbus, REMOTE_SLAVE_ID,
+        esp_err_t ret = modbus_read_holding_registers(g_modbus, config_get_modbus_slave_id(),
                                                        REG_LED_STATE, 4, values);
         if (ret == ESP_OK) {
             cJSON_AddBoolToObject(root, "error", false);
@@ -320,14 +991,14 @@ static esp_err_t api_led_control_handler(httpd_req_t *req)
         // Check for LED state
         cJSON *led_on = cJSON_GetObjectItem(root, "led_on");
         if (cJSON_IsBool(led_on)) {
-            err = modbus_write_single_register(g_modbus, REMOTE_SLAVE_ID,
+            err = modbus_write_single_register(g_modbus, config_get_modbus_slave_id(),
                                                REG_LED_STATE, cJSON_IsTrue(led_on) ? 1 : 0);
         }
 
         // Check for blink mode
         cJSON *blink = cJSON_GetObjectItem(root, "blink_mode");
         if (cJSON_IsBool(blink)) {
-            err = modbus_write_single_register(g_modbus, REMOTE_SLAVE_ID,
+            err = modbus_write_single_register(g_modbus, config_get_modbus_slave_id(),
                                                REG_BLINK_MODE, cJSON_IsTrue(blink) ? 1 : 0);
         }
 
@@ -336,7 +1007,7 @@ static esp_err_t api_led_control_handler(httpd_req_t *req)
         if (cJSON_IsNumber(period)) {
             int val = period->valueint;
             if (val >= 100 && val <= 10000) {
-                err = modbus_write_single_register(g_modbus, REMOTE_SLAVE_ID,
+                err = modbus_write_single_register(g_modbus, config_get_modbus_slave_id(),
                                                    REG_BLINK_PERIOD, val);
             }
         }
@@ -811,23 +1482,23 @@ esp_err_t web_server_init(const web_server_config_t *config)
         return ESP_OK;
     }
 
-    // Initialize SPIFFS for www partition (web interface files)
-    esp_vfs_spiffs_conf_t www_conf = {
+    // Initialize LittleFS for www partition (web interface files)
+    esp_vfs_littlefs_conf_t www_conf = {
         .base_path = "/www",
         .partition_label = "www",
-        .max_files = 5,
-        .format_if_mount_failed = false  // Don't format - should have files from flash
+        .format_if_mount_failed = false,  // Don't format - should have files from flash
+        .dont_mount = false
     };
 
-    esp_err_t ret = esp_vfs_spiffs_register(&www_conf);
+    esp_err_t ret = esp_vfs_littlefs_register(&www_conf);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to mount www partition: %s", esp_err_to_name(ret));
         return ret;
     }
 
     size_t total = 0, used = 0;
-    esp_spiffs_info("www", &total, &used);
-    ESP_LOGI(TAG, "SPIFFS www: total=%d, used=%d", total, used);
+    esp_littlefs_info("www", &total, &used);
+    ESP_LOGI(TAG, "LittleFS www: total=%d, used=%d", total, used);
 
     if (config) {
         memcpy(&s_config, config, sizeof(web_server_config_t));
@@ -876,6 +1547,70 @@ esp_err_t web_server_init(const web_server_config_t *config)
         .handler = favicon_handler,
     };
     httpd_register_uri_handler(s_server, &favicon_uri);
+
+    // API - File Manager
+    httpd_uri_t files_list_uri = {
+        .uri = "/api/files/list",
+        .method = HTTP_GET,
+        .handler = api_files_list_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_list_uri);
+
+    httpd_uri_t files_info_uri = {
+        .uri = "/api/files/info",
+        .method = HTTP_GET,
+        .handler = api_files_info_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_info_uri);
+
+    httpd_uri_t files_download_uri = {
+        .uri = "/api/files/download",
+        .method = HTTP_GET,
+        .handler = api_files_download_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_download_uri);
+
+    httpd_uri_t files_view_uri = {
+        .uri = "/api/files/view",
+        .method = HTTP_GET,
+        .handler = api_files_view_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_view_uri);
+
+    httpd_uri_t files_read_uri = {
+        .uri = "/api/files/read",
+        .method = HTTP_GET,
+        .handler = api_files_read_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_read_uri);
+
+    httpd_uri_t files_write_uri = {
+        .uri = "/api/files/write",
+        .method = HTTP_POST,
+        .handler = api_files_write_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_write_uri);
+
+    httpd_uri_t files_delete_uri = {
+        .uri = "/api/files/delete",
+        .method = HTTP_POST,
+        .handler = api_files_delete_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_delete_uri);
+
+    httpd_uri_t files_mkdir_uri = {
+        .uri = "/api/files/mkdir",
+        .method = HTTP_POST,
+        .handler = api_files_mkdir_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_mkdir_uri);
+
+    httpd_uri_t files_upload_uri = {
+        .uri = "/api/files/upload",
+        .method = HTTP_POST,
+        .handler = api_files_upload_handler,
+    };
+    httpd_register_uri_handler(s_server, &files_upload_uri);
 
     // API - System
     httpd_uri_t status_uri = {
@@ -991,7 +1726,7 @@ void web_server_deinit(void)
         httpd_stop(s_server);
         s_server = NULL;
     }
-    esp_vfs_spiffs_unregister("www");
+    esp_vfs_littlefs_unregister("www");
     s_running = false;
 }
 

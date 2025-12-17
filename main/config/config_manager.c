@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "esp_log.h"
-#include "esp_spiffs.h"
+#include "esp_littlefs.h"
 #include "cJSON.h"
 
 static const char *TAG = "CONFIG";
@@ -38,36 +38,36 @@ static config_t s_config;
 static bool s_initialized = false;
 
 // ============================================================================
-// SPIFFS Setup
+// LittleFS Setup
 // ============================================================================
 
-static esp_err_t init_spiffs(void)
+static esp_err_t init_littlefs(void)
 {
-    ESP_LOGI(TAG, "Initializing SPIFFS (userdata partition)");
+    ESP_LOGI(TAG, "Initializing LittleFS (userdata partition)");
 
-    esp_vfs_spiffs_conf_t conf = {
+    esp_vfs_littlefs_conf_t conf = {
         .base_path = "/userdata",
         .partition_label = "userdata",
-        .max_files = 5,
-        .format_if_mount_failed = true
+        .format_if_mount_failed = true,
+        .dont_mount = false
     };
 
-    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+    esp_err_t ret = esp_vfs_littlefs_register(&conf);
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
             ESP_LOGE(TAG, "Failed to mount or format filesystem");
         } else if (ret == ESP_ERR_NOT_FOUND) {
-            ESP_LOGE(TAG, "Failed to find SPIFFS partition 'userdata'");
+            ESP_LOGE(TAG, "Failed to find LittleFS partition 'userdata'");
         } else {
-            ESP_LOGE(TAG, "Failed to initialize SPIFFS: %s", esp_err_to_name(ret));
+            ESP_LOGE(TAG, "Failed to initialize LittleFS: %s", esp_err_to_name(ret));
         }
         return ret;
     }
 
     size_t total = 0, used = 0;
-    ret = esp_spiffs_info("userdata", &total, &used);
+    ret = esp_littlefs_info("userdata", &total, &used);
     if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "SPIFFS userdata: total=%d, used=%d", total, used);
+        ESP_LOGI(TAG, "LittleFS userdata: total=%d, used=%d", total, used);
     }
 
     return ESP_OK;
@@ -95,7 +95,7 @@ void config_reset_defaults(void)
     s_config.rs485_de_pin = 18;
 
     // Modbus defaults
-    s_config.modbus_slave_id = 10;
+    s_config.modbus_slave_id = 2;      // Remote ESP32 Slave ID
     s_config.modbus_timeout = 500;
 
     // Web defaults
@@ -281,7 +281,7 @@ esp_err_t config_init(void)
 
     config_reset_defaults();
 
-    esp_err_t ret = init_spiffs();
+    esp_err_t ret = init_littlefs();
     if (ret != ESP_OK) {
         return ret;
     }
@@ -293,7 +293,7 @@ esp_err_t config_init(void)
 
 void config_deinit(void)
 {
-    esp_vfs_spiffs_unregister("userdata");
+    esp_vfs_littlefs_unregister("userdata");
     s_initialized = false;
 }
 

@@ -1,0 +1,25 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "rs485/rs485_driver.c"
+        "modbus/modbus_rtu.c"
+        "mightyzap/mightyzap.c"
+        "wifi/wifi_manager.c"
+        "webserver/web_server.c"
+        "config/config_manager.c"
+    INCLUDE_DIRS
+        "."
+        "rs485"
+        "modbus"
+        "mightyzap"
+        "wifi"
+        "webserver"
+        "config"
+    REQUIRES
+        driver
+        nvs_flash
+        esp_wifi
+        esp_http_server
+        spiffs
+        json
+)

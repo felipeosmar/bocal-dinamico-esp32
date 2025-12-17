@@ -1,0 +1,2 @@
+source /home/felipe/work/bocal-dinamico-esp32/build/gdbinit/symbols
+source /home/felipe/work/bocal-dinamico-esp32/build/gdbinit/connect

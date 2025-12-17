@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Control</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>ESP32</h1>
+        <div class="status">
+            <span id="wifi-badge" class="badge">WiFi</span>
+            <span id="modbus-badge" class="badge">Modbus</span>
+        </div>
+    </header>
+
+    <nav>
+        <button class="nav-btn active" data-tab="actuators">Actuators</button>
+        <button class="nav-btn" data-tab="system">System</button>
+        <button class="nav-btn" data-tab="config">Config</button>
+    </nav>
+
+    <main>
+        <!-- Actuators Tab -->
+        <section id="tab-actuators" class="tab active">
+            <div class="toolbar">
+                <button onclick="scanActuators()" class="btn-icon" title="Scan">
+                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                </button>
+                <button onclick="addActuatorPrompt()" class="btn-icon" title="Add">
+                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+                <button onclick="refreshActuators()" class="btn-icon" title="Refresh">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                </button>
+            </div>
+
+            <div id="actuators-container">
+                <div class="empty-state">
+                    <p>No actuators</p>
+                    <button onclick="scanActuators()" class="btn">Scan for devices</button>
+                </div>
+            </div>
+
+            <!-- Actuator Control Modal -->
+            <div id="actuator-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Actuator <span id="modal-act-id">--</span></h3>
+                        <button onclick="closeModal()" class="btn-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="control-row">
+                            <label>Force</label>
+                            <div class="toggle">
+                                <button onclick="setForce(true)" id="btn-force-on">ON</button>
+                                <button onclick="setForce(false)" id="btn-force-off">OFF</button>
+                            </div>
+                        </div>
+                        <div class="control-row">
+                            <label>Position</label>
+                            <input type="range" id="modal-pos" min="0" max="4095" value="2048">
+                            <input type="number" id="modal-pos-val" min="0" max="4095" value="2048">
+                        </div>
+                        <div class="control-row">
+                            <label>Speed</label>
+                            <input type="range" id="modal-spd" min="0" max="1023" value="512">
+                            <input type="number" id="modal-spd-val" min="0" max="1023" value="512">
+                        </div>
+                        <div class="control-row">
+                            <label>Current</label>
+                            <input type="range" id="modal-cur" min="0" max="800" value="400">
+                            <input type="number" id="modal-cur-val" min="0" max="800" value="400">
+                        </div>
+                        <div class="quick-pos">
+                            <button onclick="quickPos(0)">0%</button>
+                            <button onclick="quickPos(1024)">25%</button>
+                            <button onclick="quickPos(2048)">50%</button>
+                            <button onclick="quickPos(3072)">75%</button>
+                            <button onclick="quickPos(4095)">100%</button>
+                        </div>
+                        <button onclick="sendCommand()" class="btn btn-primary full">Send Command</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Tab -->
+        <section id="tab-system" class="tab">
+            <div class="card">
+                <h3>Status</h3>
+                <div class="info-row"><span>IP</span><span id="sys-ip">--</span></div>
+                <div class="info-row"><span>SSID</span><span id="sys-ssid">--</span></div>
+                <div class="info-row"><span>RSSI</span><span id="sys-rssi">--</span></div>
+                <div class="info-row"><span>Uptime</span><span id="sys-uptime">--</span></div>
+                <div class="info-row"><span>Heap</span><span id="sys-heap">--</span></div>
+            </div>
+            <div class="card">
+                <h3>LED Control (Slave ID: 2)</h3>
+                <div class="led-ctrl">
+                    <div class="led-indicator" id="led-ind"></div>
+                    <div class="toggle">
+                        <button onclick="setLED(true)" id="btn-led-on">ON</button>
+                        <button onclick="setLED(false)" id="btn-led-off">OFF</button>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <label>Blink</label>
+                    <div class="toggle">
+                        <button onclick="setBlink(true)" id="btn-blink-on">Yes</button>
+                        <button onclick="setBlink(false)" id="btn-blink-off">No</button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="restartDevice()" class="btn btn-danger full">Restart Device</button>
+        </section>
+
+        <!-- Config Tab -->
+        <section id="tab-config" class="tab">
+            <div class="card">
+                <h3>WiFi</h3>
+                <div class="form-row">
+                    <select id="wifi-select">
+                        <option value="">Select network...</option>
+                    </select>
+                    <button onclick="scanWiFi()" class="btn">Scan</button>
+                </div>
+                <input type="password" id="wifi-pass" placeholder="Password">
+                <button onclick="connectWiFi()" class="btn btn-primary full">Connect</button>
+            </div>
+            <div class="card">
+                <h3>RS485</h3>
+                <div class="form-row">
+                    <label>Baud</label>
+                    <select id="rs485-baud">
+                        <option value="9600">9600</option>
+                        <option value="19200">19200</option>
+                        <option value="38400">38400</option>
+                        <option value="57600">57600</option>
+                        <option value="115200">115200</option>
+                    </select>
+                </div>
+                <div class="info-row"><span>TX</span><span id="rs485-tx">--</span></div>
+                <div class="info-row"><span>RX</span><span id="rs485-rx">--</span></div>
+                <div class="info-row"><span>DE</span><span id="rs485-de">--</span></div>
+                <button onclick="saveRS485()" class="btn full">Save & Restart</button>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast"></div>
+    <script src="app.js"></script>
+</body>
+</html>

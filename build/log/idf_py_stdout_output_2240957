@@ -1,0 +1,1293 @@
+Command: /home/felipe/.espressif/python_env/idf5.5_py3.12_env/bin/python /home/felipe/esp/esp-idf/tools/idf_monitor.py -p /dev/ttyUSB0 -b 115200 --toolchain-prefix xtensa-esp32-elf- --target esp32 --revision 0 /home/felipe/work/bocal-dinamico-esp32/build/bocal-dinamico.elf /home/felipe/work/bocal-dinamico-esp32/build/bootloader/bootloader.elf -m '/home/felipe/.espressif/python_env/idf5.5_py3.12_env/bin/python' '/home/felipe/esp/esp-idf/tools/idf.py' '-p' '/dev/ttyUSB0'
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6380
+ho 0 tail 12 room 4
+load:0x40078000,len:15916
+load:0x40080400,len:3860
+entry 0x40080638
+[0;32mI (29) boot: ESP-IDF v5.5 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time Dec 15 2025 15:02:20[0m
+[0;32mI (29) boot: Multicore bootloader[0m
+[0;32mI (30) boot: chip revision: v3.1[0m
+[0;32mI (33) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (37) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (40) boot.esp32: SPI Flash Size : 2MB[0m
+[0;32mI (44) boot: Enabling RNG early entropy source...[0m
+[0;32mI (49) boot: Partition Table:[0m
+[0;32mI (51) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (57) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (64) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (71) boot:  2 factory          factory app      00 00 00010000 001e0000[0m
+[0;32mI (77) boot:  3 storage          Unknown data     01 82 001f0000 00010000[0m
+[0;32mI (84) boot: End of partition table[0m
+[0;32mI (87) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1ebf8h (125944) map[0m
+[0;32mI (137) esp_image: segment 1: paddr=0002ec20 vaddr=3ff80000 size=00020h (    32) load[0m
+[0;32mI (138) esp_image: segment 2: paddr=0002ec48 vaddr=3ffb0000 size=013d0h (  5072) load[0m
+[0;32mI (143) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=a0ef0h (659184) map[0m
+[0;32mI (374) esp_image: segment 4: paddr=000d0f18 vaddr=3ffb13d0 size=02cdch ( 11484) load[0m
+[0;32mI (378) esp_image: segment 5: paddr=000d3bfc vaddr=40080000 size=19c9ch (105628) load[0m
+[0;32mI (432) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (432) boot: Disabling RNG early entropy source...[0m
+[0;32mI (443) cpu_start: Multicore app[0m
+[0;32mI (451) cpu_start: Pro cpu start user code[0m
+[0;32mI (451) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (451) app_init: Application information:[0m
+[0;32mI (451) app_init: Project name:     bocal-dinamico[0m
+[0;32mI (456) app_init: App version:      1[0m
+[0;32mI (459) app_init: Compile time:     Dec 15 2025 15:02:12[0m
+[0;32mI (464) app_init: ELF file SHA256:  6a9ed8aee...[0m
+[0;32mI (469) app_init: ESP-IDF:          v5.5[0m
+[0;32mI (472) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (476) efuse_init: Max chip rev:     v3.99 [0m
+[0;32mI (480) efuse_init: Chip rev:         v3.1[0m
+[0;32mI (484) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (490) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (495) heap_init: At 3FFB83D8 len 00027C28 (159 KiB): DRAM[0m
+[0;32mI (500) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (506) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (511) heap_init: At 40099C9C len 00006364 (24 KiB): IRAM[0m
+[0;33mW (518) spi_flash: boya detected but related driver is not linked, please check option `SPI_FLASH_SUPPORT_BOYA_CHIP`[0m
+[0;32mI (527) spi_flash: detected chip: generic[0m
+[0;32mI (531) spi_flash: flash io: dio[0m
+[0;33mW (533) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;32mI (547) main_task: Started on CPU0[0m
+[0;32mI (550) main_task: Calling app_main()[0m
+[0;32mI (552) MASTER: ==========================================[0m
+[0;32mI (557) MASTER:   ESP32 Master - RS485 + Web Interface[0m
+[0;32mI (562) MASTER: ==========================================[0m
+[0;32mI (567) MASTER: Initializing configuration...[0m
+[0;32mI (571) CONFIG: Configuration reset to defaults[0m
+[0;32mI (576) CONFIG: Initializing SPIFFS[0m
+[0;32mI (585) CONFIG: SPIFFS: total=52961, used=41917[0m
+[0;32mI (592) CONFIG: Configuration loaded[0m
+[0;32mI (592) MASTER: Initializing RS485/Modbus...[0m
+[0;32mI (592) MASTER: RS485 Config: TX=17, RX=5, DE=18, Baud=57600[0m
+[0;32mI (596) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated[0m
+[0;32mI (605) RS485: RS485 initialized: UART1, TX=17, RX=5, DE=18, Baud=57600[0m
+[0;32mI (611) MODBUS: Modbus RTU master initialized, timeout=500 ms[0m
+[0;32mI (616) MASTER: RS485/Modbus communication initialized[0m
+[0;32mI (621) MIGHTYZAP: mightyZAP initialized, ID=1[0m
+[0;32mI (625) MASTER: mightyZAP actuator initialized (ID=1)[0m
+[0;32mI (630) MASTER: Initializing WiFi...[0m
+[0;32mI (647) wifi:wifi driver task: 3ffc17bc, prio:23, stack:6656, core=0[0m
+[0;32mI (654) wifi:wifi firmware version: f3dbad7[0m
+[0;32mI (654) wifi:wifi certification version: v7.0[0m
+[0;32mI (655) wifi:config NVS flash: enabled[0m
+[0;32mI (656) wifi:config nano formatting: disabled[0m
+[0;32mI (660) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (665) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (669) wifi:Init management short buffer num: 32[0m
+[0;32mI (673) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (678) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (682) wifi:Init static rx buffer num: 10[0m
+[0;32mI (685) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (690) wifi_init: rx ba win: 6[0m
+[0;32mI (692) wifi_init: accept mbox: 6[0m
+[0;32mI (695) wifi_init: tcpip mbox: 32[0m
+[0;32mI (698) wifi_init: udp mbox: 6[0m
+[0;32mI (701) wifi_init: tcp mbox: 6[0m
+[0;32mI (704) wifi_init: tcp tx win: 5760[0m
+[0;32mI (707) wifi_init: tcp rx win: 5760[0m
+[0;32mI (710) wifi_init: tcp mss: 1440[0m
+[0;32mI (713) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (717) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (721) WIFI_MGR: WiFi manager initialized[0m
+[0;32mI (724) MASTER: Starting AP mode: ESP32-Master[0m
+[0;32mI (728) WIFI_MGR: Starting AP: ESP32-Master[0m
+[0;32mI (984) phy_init: phy_version 4860,6b7a6e5,Feb  6 2025,14:47:07[0m
+[0;32mI (1067) wifi:mode : softAP (c0:5d:89:b0:d9:39)[0m
+[0;32mI (1072) wifi:Total power save buffer number: 16[0m
+[0;32mI (1073) wifi:Init max length of beacon: 752/752[0m
+[0;32mI (1074) wifi:Init max length of beacon: 752/752[0m
+[0;32mI (1078) WIFI_MGR: AP IP: 192.168.4.1[0m
+[0;32mI (1079) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1[0m
+[0;32mI (1088) WIFI_MGR: AP started[0m
+[0;32mI (2091) MASTER: Starting web server...[0m
+[0;32mI (2091) WEB_SRV: Starting server on port 80[0m
+[0;32mI (2096) WEB_SRV: Web server started[0m
+[0;32mI (2096) MASTER: ==========================================[0m
+[0;32mI (2097) MASTER:   Web Interface: http://192.168.4.1[0m
+[0;32mI (2101) MASTER: ==========================================[0m
+[0;32mI (2106) MASTER: Modbus polling task started[0m
+[0;32mI (2110) MASTER: System ready![0m
+[0;32mI (2113) main_task: Returned from app_main()[0m
+[1;31mE (4613) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6380
+ho 0 tail 12 room 4
+load:0x40078000,len:15916
+load:0x40080400,len:3860
+entry 0x40080638
+[0;32mI (29) boot: ESP-IDF v5.5 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time Dec 15 2025 15:02:20[0m
+[0;32mI (29) boot: Multicore bootloader[0m
+[0;32mI (30) boot: chip revision: v3.1[0m
+[0;32mI (33) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (37) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (40) boot.esp32: SPI Flash Size : 2MB[0m
+[0;32mI (44) boot: Enabling RNG early entropy source...[0m
+[0;32mI (49) boot: Partition Table:[0m
+[0;32mI (51) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (57) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (64) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (71) boot:  2 factory          factory app      00 00 00010000 001e0000[0m
+[0;32mI (77) boot:  3 storage          Unknown data     01 82 001f0000 00010000[0m
+[0;32mI (84) boot: End of partition table[0m
+[0;32mI (87) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1ebf8h (125944) map[0m
+[0;32mI (137) esp_image: segment 1: paddr=0002ec20 vaddr=3ff80000 size=00020h (    32) load[0m
+[0;32mI (138) esp_image: segment 2: paddr=0002ec48 vaddr=3ffb0000 size=013d0h (  5072) load[0m
+[0;32mI (143) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=a0ef0h (659184) map[0m
+[0;32mI (374) esp_image: segment 4: paddr=000d0f18 vaddr=3ffb13d0 size=02cdch ( 11484) load[0m
+[0;32mI (378) esp_image: segment 5: paddr=000d3bfc vaddr=40080000 size=19c9ch (105628) load[0m
+[0;32mI (432) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (432) boot: Disabling RNG early entropy source...[0m
+[0;32mI (443) cpu_start: Multicore app[0m
+[0;32mI (451) cpu_start: Pro cpu start user code[0m
+[0;32mI (451) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (451) app_init: Application information:[0m
+[0;32mI (451) app_init: Project name:     bocal-dinamico[0m
+[0;32mI (456) app_init: App version:      1[0m
+[0;32mI (459) app_init: Compile time:     Dec 15 2025 15:02:12[0m
+[0;32mI (464) app_init: ELF file SHA256:  6a9ed8aee...[0m
+[0;32mI (469) app_init: ESP-IDF:          v5.5[0m
+[0;32mI (472) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (476) efuse_init: Max chip rev:     v3.99 [0m
+[0;32mI (480) efuse_init: Chip rev:         v3.1[0m
+[0;32mI (484) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (490) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (495) heap_init: At 3FFB83D8 len 00027C28 (159 KiB): DRAM[0m
+[0;32mI (500) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (506) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (511) heap_init: At 40099C9C len 00006364 (24 KiB): IRAM[0m
+[0;33mW (518) spi_flash: boya detected but related driver is not linked, please check option `SPI_FLASH_SUPPORT_BOYA_CHIP`[0m
+[0;32mI (527) spi_flash: detected chip: generic[0m
+[0;32mI (531) spi_flash: flash io: dio[0m
+[0;33mW (533) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;32mI (547) main_task: Started on CPU0[0m
+[0;32mI (550) main_task: Calling app_main()[0m
+[0;32mI (552) MASTER: ==========================================[0m
+[0;32mI (557) MASTER:   ESP32 Master - RS485 + Web Interface[0m
+[0;32mI (562) MASTER: ==========================================[0m
+[0;32mI (567) MASTER: Initializing configuration...[0m
+[0;32mI (571) CONFIG: Configuration reset to defaults[0m
+[0;32mI (576) CONFIG: Initializing SPIFFS[0m
+[0;32mI (585) CONFIG: SPIFFS: total=52961, used=41917[0m
+[0;32mI (592) CONFIG: Configuration loaded[0m
+[0;32mI (592) MASTER: Initializing RS485/Modbus...[0m
+[0;32mI (592) MASTER: RS485 Config: TX=17, RX=5, DE=18, Baud=57600[0m
+[0;32mI (596) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated[0m
+[0;32mI (605) RS485: RS485 initialized: UART1, TX=17, RX=5, DE=18, Baud=57600[0m
+[0;32mI (611) MODBUS: Modbus RTU master initialized, timeout=500 ms[0m
+[0;32mI (616) MASTER: RS485/Modbus communication initialized[0m
+[0;32mI (621) MIGHTYZAP: mightyZAP initialized, ID=1[0m
+[0;32mI (625) MASTER: mightyZAP actuator initialized (ID=1)[0m
+[0;32mI (630) MASTER: Initializing WiFi...[0m
+[0;32mI (647) wifi:wifi driver task: 3ffc17bc, prio:23, stack:6656, core=0[0m
+[0;32mI (654) wifi:wifi firmware version: f3dbad7[0m
+[0;32mI (654) wifi:wifi certification version: v7.0[0m
+[0;32mI (655) wifi:config NVS flash: enabled[0m
+[0;32mI (656) wifi:config nano formatting: disabled[0m
+[0;32mI (660) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (665) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (669) wifi:Init management short buffer num: 32[0m
+[0;32mI (673) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (678) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (682) wifi:Init static rx buffer num: 10[0m
+[0;32mI (685) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (690) wifi_init: rx ba win: 6[0m
+[0;32mI (692) wifi_init: accept mbox: 6[0m
+[0;32mI (695) wifi_init: tcpip mbox: 32[0m
+[0;32mI (698) wifi_init: udp mbox: 6[0m
+[0;32mI (701) wifi_init: tcp mbox: 6[0m
+[0;32mI (704) wifi_init: tcp tx win: 5760[0m
+[0;32mI (707) wifi_init: tcp rx win: 5760[0m
+[0;32mI (710) wifi_init: tcp mss: 1440[0m
+[0;32mI (713) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (717) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (721) WIFI_MGR: WiFi manager initialized[0m
+[0;32mI (724) MASTER: Starting AP mode: ESP32-Master[0m
+[0;32mI (728) WIFI_MGR: Starting AP: ESP32-Master[0m
+[0;32mI (984) phy_init: phy_version 4860,6b7a6e5,Feb  6 2025,14:47:07[0m
+[0;32mI (1069) wifi:mode : softAP (c0:5d:89:b0:d9:39)[0m
+[0;32mI (1074) wifi:Total power save buffer number: 16[0m
+[0;32mI (1075) wifi:Init max length of beacon: 752/752[0m
+[0;32mI (1076) wifi:Init max length of beacon: 752/752[0m
+[0;32mI (1080) WIFI_MGR: AP IP: 192.168.4.1[0m
+[0;32mI (1081) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1[0m
+[0;32mI (1090) WIFI_MGR: AP started[0m
+[0;32mI (2092) MASTER: Starting web server...[0m
+[0;32mI (2092) WEB_SRV: Starting server on port 80[0m
+[0;32mI (2097) WEB_SRV: Web server started[0m
+[0;32mI (2098) MASTER: ==========================================[0m
+[0;32mI (2098) MASTER:   Web Interface: http://192.168.4.1[0m
+[0;32mI (2102) MASTER: ==========================================[0m
+[0;32mI (2107) MASTER: Modbus polling task started[0m
+[0;32mI (2111) MASTER: System ready![0m
+[0;32mI (2114) main_task: Returned from app_main()[0m
+[1;31mE (4614) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (8835) wifi:new:<1,1>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (8837) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (8858) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (8916) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (9521) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:9, winSize:64[0m
+[1;31mE (10117) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (15620) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (21123) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (26626) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (32129) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (37632) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (43135) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (48638) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (54141) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (59644) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (65147) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (70650) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (76153) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (81656) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (87159) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (92662) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (98165) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (103668) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (109171) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (114674) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (120177) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (125680) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (131183) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (136686) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (142189) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (147692) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (153195) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (158698) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (164201) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (169704) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (175207) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (180710) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (186213) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (191716) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (197219) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (202722) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (208225) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (213728) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (219231) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (224734) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (230237) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (235740) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (241243) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (246746) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (252249) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (257752) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (263255) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (268758) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (274261) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (279764) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (285267) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (290770) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (296273) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (301776) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (307279) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (312782) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (318285) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (323788) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (329291) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (334794) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (340298) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (345801) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (351304) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (356807) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (362310) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (367813) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (373316) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (378819) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (384322) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (389825) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (395328) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (400831) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (406334) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (411837) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (416434) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (416435) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (416442) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (416444) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[1;31mE (417340) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (419796) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (419799) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (419839) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (419882) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (420276) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:7, winSize:64[0m
+[0;32mI (421886) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (422843) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (425059) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (425060) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (425067) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (425069) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[0;32mI (427821) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (427824) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (427876) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (427929) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (428346) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (429161) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:9, winSize:64[0m
+[0;32mI (429977) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (431898) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (431899) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (431906) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (431908) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[1;31mE (433849) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (434840) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (434842) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (434889) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (434988) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (437441) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:8, winSize:64[0m
+[0;32mI (437645) wifi:[ADDBA]RX DELBA, reason:37, delete tid:0, initiator:1(originator)[0m
+[0;32mI (437645) wifi:<ba-del>idx:2, tid:0[0m
+[1;31mE (439352) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (440805) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (440806) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (440814) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[0;32mI (443351) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (443353) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (444404) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (444477) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (444855) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (446354) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (446355) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (446362) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[0;32mI (448619) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (448621) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[1;31mE (450358) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (451257) wifi:new:<1,1>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (451258) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (451307) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (451376) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (452700) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:7, winSize:64[0m
+[0;32mI (453430) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (454190) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (454191) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (454198) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (454202) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[1;31mE (455861) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (456573) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (456575) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (456599) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (456674) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (458166) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:5, winSize:64[0m
+[0;32mI (461123) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (461124) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (461131) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (461133) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[1;31mE (461364) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (463545) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (463548) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (464585) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (464638) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (466867) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (470049) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:24, winSize:64[0m
+[0;32mI (470251) wifi:[ADDBA]RX DELBA, reason:37, delete tid:0, initiator:1(originator)[0m
+[0;32mI (470252) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (470254) wifi:[ADDBA]RX DELBA, reason:37, delete tid:0, initiator:1(originator)[0m
+[1;31mE (472370) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (477873) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (483376) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (488879) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (493444) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (493446) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (493453) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[1;31mE (494382) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (496360) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (496362) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (496436) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (496469) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (499885) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (500819) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (500820) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (500828) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[0;32mI (503154) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (503156) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (503322) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (503375) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (505388) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (506239) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (506240) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (506247) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[0;32mI (508204) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (508206) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (509229) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (509299) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (510863) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:13, winSize:64[0m
+[1;31mE (510891) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (511312) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (512124) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (512125) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (512132) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (512134) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[0;32mI (514625) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (514627) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (515675) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (515732) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (516394) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (516897) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (517740) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (517742) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (517749) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[0;32mI (519906) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (519908) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (519979) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (520033) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (520384) WEB_SRV: Scanning for mightyZAP actuators...[0m
+[1;31mE (520888) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (521441) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (521529) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:9, winSize:64[0m
+[1;31mE (521944) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (522063) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;32mI (522449) WEB_SRV: Found actuator at ID 3, model: 41514[0m
+[1;31mE (523002) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (523555) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (524108) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (524477) wifi:station: e8:62:be:ce:4e:6f leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3ffb978c[0m
+[0;32mI (524478) wifi:new:<1,0>, old:<1,1>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (524485) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (524487) WIFI_MGR: Station disconnected: e8:62:be:ce:4e:6f[0m
+[1;31mE (524661) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (525214) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (525767) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (526320) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (526896) wifi:new:<1,1>, old:<1,0>, ap:<1,1>, sta:<255,255>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (526898) wifi:station: e8:62:be:ce:4e:6f join, AID=1, bgn, 40U[0m
+[0;32mI (526924) WIFI_MGR: Station connected: e8:62:be:ce:4e:6f[0m
+[0;32mI (527012) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (527447) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (527776) WEB_SRV: Scanning for mightyZAP actuators...[0m
+[1;31mE (528280) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (528505) wifi:<ba-add>idx:2 (ifx:1, e8:62:be:ce:4e:6f), tid:0, ssn:10, winSize:64[0m
+[1;31mE (528833) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (529388) WEB_SRV: Found actuator at ID 3, model: 41514[0m
+[1;31mE (529941) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (530494) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (531047) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (531600) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (532153) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (532706) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (533209) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (533711) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (533781) MIGHTYZAP: mightyZAP initialized, ID=3[0m
+[0;32mI (533782) WEB_SRV: Actuator reinitialized with ID 3[0m
+[1;31mE (534308) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (534821) MODBUS: Modbus exception: 0x02[0m
+[0;32mI (537559) MIGHTYZAP: mightyZAP initialized, ID=3[0m
+[0;32mI (537559) WEB_SRV: Actuator reinitialized with ID 3[0m
+[1;31mE (538081) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (538712) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (544215) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (546595) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (548011) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (549718) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (555221) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (560724) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (566227) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (571730) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (571996) WEB_SRV: Scanning for mightyZAP actuators...[0m
+[0;32mI (572502) WEB_SRV: Found actuator at ID 1, model: 41234[0m
+[1;31mE (573055) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (573610) WEB_SRV: Found actuator at ID 3, model: 41514[0m
+[1;31mE (574163) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (574716) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (575269) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (575822) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (576375) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (576928) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (577431) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (577933) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (579468) MIGHTYZAP: mightyZAP initialized, ID=2[0m
+[0;32mI (579468) WEB_SRV: Actuator reinitialized with ID 2[0m
+[1;31mE (580004) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (580451) WEB_SRV: Scanning for mightyZAP actuators...[0m
+[0;32mI (580958) WEB_SRV: Found actuator at ID 1, model: 41234[0m
+[1;31mE (581511) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (582066) WEB_SRV: Found actuator at ID 3, model: 41514[0m
+[1;31mE (582619) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (583122) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (583624) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (584177) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (584730) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (585283) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (585836) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (586389) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (586448) MIGHTYZAP: mightyZAP initialized, ID=1[0m
+[0;32mI (586449) WEB_SRV: Actuator reinitialized with ID 1[0m
+[1;31mE (586997) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (588625) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (591916) WEB_SRV: Scanning for mightyZAP actuators...[0m
+[0;32mI (592423) WEB_SRV: Found actuator at ID 1, model: 41234[0m
+[1;31mE (592976) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (593531) WEB_SRV: Found actuator at ID 3, model: 41514[0m
+[1;31mE (594084) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (594587) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (595090) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (595643) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (596196) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (596749) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (597302) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (597855) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (598419) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (600090) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (605593) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (611096) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (611601) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (616599) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (622102) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (627605) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (633108) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (638611) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (644114) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (649617) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (655120) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (660623) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (666126) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (671629) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (677132) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (682635) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (688138) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (693641) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (699144) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (704647) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (710150) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (715653) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (721156) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (726659) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (732162) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (737665) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (743168) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (748671) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (754174) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (759677) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (765180) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (770683) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (776186) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (781689) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (787192) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (792695) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (798198) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (803701) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (809204) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (814707) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (820210) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (825713) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (831216) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (836719) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (842222) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (847725) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (853228) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (858731) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (864234) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (869737) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (875240) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (880743) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (886246) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (891749) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (897252) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (902755) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (908258) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (913762) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (919265) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (924771) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (930277) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (931374) WEB_SRV: Scanning for mightyZAP actuators...[0m
+[0;32mI (931881) WEB_SRV: Found actuator at ID 1, model: 41234[0m
+[0;32mI (932436) WEB_SRV: Found actuator at ID 2, model: 41234[0m
+[0;32mI (932991) WEB_SRV: Found actuator at ID 3, model: 41514[0m
+[1;31mE (933544) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (934097) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (934650) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (935203) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (935756) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (936262) MASTER: Slave connected, Device ID: 32[0m
+[1;31mE (936764) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (937317) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (941767) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (947273) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (952779) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (953561) MIGHTYZAP: mightyZAP initialized, ID=1[0m
+[0;32mI (953562) WEB_SRV: Actuator reinitialized with ID 1[0m
+[1;31mE (954083) MODBUS: Modbus exception: 0x02[0m
+[0;32mI (958285) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (963791) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (969297) MASTER: Slave connected, Device ID: 32[0m
+[1;31mE (970963) MODBUS: Modbus exception: 0x02[0m
+[0;32mI (974803) MASTER: Slave connected, Device ID: 32[0m
+[1;31mE (976295) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (977259) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (978131) MODBUS: Modbus exception: 0x02[0m
+[1;31mE (978650) MODBUS: Modbus exception: 0x02[0m
+[0;32mI (980309) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (985815) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (991321) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (996827) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1002332) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1007837) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1013343) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1018849) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1024355) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1029861) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1035367) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1040873) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1046379) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1051884) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1057389) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1062894) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1068400) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1073906) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1079411) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1084917) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1090423) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1095928) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1101434) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1106940) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1112445) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1117951) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1123457) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1128962) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1134468) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1139974) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1145480) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1150986) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1156492) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1161998) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1167504) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1173009) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1178514) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1184019) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1189524) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1195029) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1200534) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1206039) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1211544) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1217049) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1222554) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1228059) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1233564) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1239069) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1244574) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1250079) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1255584) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1261089) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1266594) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1272099) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1277604) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1283109) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1288614) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1294119) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1299624) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1305129) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1310634) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1316139) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1321644) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1327149) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1332654) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1338159) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1343664) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1349169) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1354674) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1360179) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1365684) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1371189) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1376694) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1382199) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1387704) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1393209) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1398714) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1404219) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1409725) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1415231) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1420736) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1426242) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1431748) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1437254) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1442760) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1448266) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1453772) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1459278) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1464783) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1470289) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1475795) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1481301) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1486807) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1492312) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1497818) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1503324) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1508829) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1514335) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1519841) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1525346) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1530852) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1536357) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1541862) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1547367) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1552873) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1558379) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1563885) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1569390) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1574895) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1580401) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1585906) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1591411) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1596917) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1602423) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1607928) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1613434) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1618940) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1624446) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1629951) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1635457) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1640963) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1646469) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1651974) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1657480) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1662986) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1668491) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1673996) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1679501) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1685006) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1690511) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1696016) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1701521) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1707026) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1712531) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1718036) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1723541) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1729046) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1734551) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1740056) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1745561) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1751066) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1756571) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1762076) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1767581) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1773086) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1778591) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1784096) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1789601) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1795106) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1800611) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1806116) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1811621) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1817126) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1822631) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1828136) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1833641) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1839146) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1844651) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1850156) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1855661) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1861166) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1866671) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1872176) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1877681) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1883186) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1888691) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1894197) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1899702) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1905207) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1910712) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1916217) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1921722) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1927227) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1932733) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1938239) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1943745) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1949251) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1954757) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1960262) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1965767) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1971273) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1976779) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1982285) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1987791) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1993297) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (1998803) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2004308) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2009814) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2015320) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2020826) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2026331) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2031837) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2037343) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2042849) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2048355) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2053861) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2059366) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2064872) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2070378) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2075884) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2081389) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2086894) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2092400) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2097906) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2103412) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2108917) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2114423) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2119929) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2125435) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2130941) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2136447) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2141952) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2147457) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2152963) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2158469) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2163975) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2169481) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2174987) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2180492) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2185997) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2191503) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2197009) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2202515) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2208021) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2213526) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2219031) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2224537) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2230043) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2235549) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2241055) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2246561) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2252067) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2257572) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2263077) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2268582) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2274087) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2279592) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2285097) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2290602) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2296107) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2301612) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2307117) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2312622) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2318127) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2323632) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2329138) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2334643) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2340148) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2345653) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2351158) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2356663) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2362168) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2367673) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2373178) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2378683) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2384188) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2389693) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2395198) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2400703) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2406208) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2411713) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2417218) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2422723) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2428228) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2433733) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2439238) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2444743) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2450248) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2455753) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2461258) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2466763) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2472268) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2477773) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2483278) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2488783) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2494288) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2499793) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2505298) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2510803) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2516308) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2521813) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2527318) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2532823) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2538328) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2543833) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2549338) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2554843) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2560348) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2565853) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2571359) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2576865) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2582370) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2587875) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2593381) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2598887) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2604392) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2609898) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2615404) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2620909) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2626415) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2631920) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2637426) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2642931) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2648437) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2653943) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2659448) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2664954) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2670460) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2675965) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2681471) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2686976) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2692482) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2697987) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2703492) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2708997) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2714503) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2720009) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2725515) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2731021) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2736526) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2742031) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2747536) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2753042) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2758548) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2764053) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2769559) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2775065) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2780571) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2786077) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2791583) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2797088) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2802594) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2808100) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2813605) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2819110) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2824615) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2830120) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2835626) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2841132) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2846638) MASTER: Slave connected, Device ID: 32[0m
+[0;32mI (2852144) MASTER: Slave connected, Device ID: 32[0m
+[1;31mE (2857647) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2863150) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2868653) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2874156) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2879659) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2885162) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2890665) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2896168) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2901671) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2907174) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2912677) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2918180) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2923683) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2929186) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2934689) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2940192) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2945695) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2951198) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2956701) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2962204) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2967707) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2973210) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2978713) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2984216) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2989719) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (2995222) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3000725) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3006228) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3011731) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3017234) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3022737) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3028240) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3033743) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3039246) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3044749) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3050252) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3055755) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3061258) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3066761) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3072264) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3077767) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3083270) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3088773) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3094276) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3099780) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3105283) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3110786) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3116289) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3121792) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3127295) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3132798) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3138301) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3143804) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3149307) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3154810) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3160313) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3165816) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3171319) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3176822) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3182325) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3187828) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3193331) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3198834) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3204337) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3209840) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3215343) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3220846) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3226349) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3231852) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3237355) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3242858) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3248362) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3253865) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3259368) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3264871) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3270374) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3275877) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3281380) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3286883) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3292386) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3297889) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3303392) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3308895) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3314398) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3319901) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3325404) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3330907) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3336410) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3341913) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3347416) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3352919) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3358422) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3363925) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3369428) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3374931) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3380434) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3385937) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3391440) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3396943) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3402446) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3407949) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3413452) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3418955) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3424458) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3429961) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3435464) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3440967) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3446470) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3451973) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3457476) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3462979) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3468482) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3473985) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3479488) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3484991) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3490494) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3495997) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3501500) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3507003) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3512506) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3518009) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3523512) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3529015) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3534518) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3540021) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3545524) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3551027) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3556530) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3562033) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3567536) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3573039) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3578542) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3584045) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3589548) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3595051) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3600554) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3606057) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3611560) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3617063) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3622566) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3628069) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3633572) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3639075) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3644578) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3650081) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3655584) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3661087) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3666590) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3672093) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3677596) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3683099) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3688602) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3694105) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3699608) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3705111) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3710614) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3716117) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3721620) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3727123) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3732626) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3738129) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3743632) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3749135) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3754638) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3760141) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3765644) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3771147) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3776650) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3782153) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3787656) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3793159) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3798662) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3804165) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3809668) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3815171) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3820674) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3826177) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3831680) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3837183) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3842686) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3848189) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3853692) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3859195) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3864698) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3870201) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3875704) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3881207) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3886710) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3892213) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3897716) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3903219) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3908722) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3914225) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3919728) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3925231) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3930734) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3936237) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3941740) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3947243) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3952746) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3958249) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3963752) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3969255) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3974758) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3980261) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3985764) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3991267) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (3996770) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4002273) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4007776) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4013279) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4018782) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4024285) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4029788) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4035291) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4040794) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4046297) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4051800) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4057303) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4062806) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4068309) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4073812) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4079315) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4084818) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4090321) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4095825) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4101328) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4106831) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4112334) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4117837) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4123340) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[0;32mI (4126946) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[1;31mE (4128843) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4134346) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4139849) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4145352) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4150855) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4156358) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4161861) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4167364) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4172867) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4178370) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4183873) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4189376) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4194879) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4200382) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4205885) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4211388) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4216891) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4222394) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4227897) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4233400) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4238903) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4244406) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4249909) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4255412) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4260915) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4266418) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4271921) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4277424) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4282927) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4288430) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4293933) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4299436) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4304939) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4310442) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4315945) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4321448) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4326951) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4332454) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4337957) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4343460) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4348963) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4354466) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4359969) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4365472) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4370975) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4376478) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4381981) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4387484) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4392987) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4398490) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4403993) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4409496) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4414999) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4420502) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4426005) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4431508) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4437011) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4442514) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4448017) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4453520) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4459023) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4464527) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4470030) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4475533) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4481036) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4486539) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4492042) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4497545) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4503048) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4508551) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4514054) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4519557) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4525060) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4530563) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4536066) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4541569) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4547072) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4552575) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4558078) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4563581) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4569084) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4574587) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4580090) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4585593) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4591096) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4596599) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4602102) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4607605) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4613108) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+[1;31mE (4618611) MODBUS: RS485 transaction failed: ESP_ERR_TIMEOUT[0m
+�����������������������������������

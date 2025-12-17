@@ -842,7 +842,7 @@ esp_err_t web_server_init(const web_server_config_t *config)
 
     ESP_LOGI(TAG, "Starting server on port %d", http_config.server_port);
 
-    esp_err_t ret = httpd_start(&s_server, &http_config);
+    ret = httpd_start(&s_server, &http_config);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start server: %s", esp_err_to_name(ret));
         return ret;

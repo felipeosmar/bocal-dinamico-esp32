@@ -39,7 +39,6 @@ mightyzap_handle_t g_actuator = NULL;
 #define REG_LED_STATE       0x0000
 #define REG_BLINK_MODE      0x0001
 #define REG_BLINK_PERIOD    0x0002
-#define REG_DEVICE_ID       0x0003
 
 /**
  * @brief Initialize RS485 and Modbus using config
@@ -153,12 +152,12 @@ static esp_err_t test_slave_connection(void)
 {
     if (g_modbus == NULL) return ESP_ERR_INVALID_STATE;
 
-    uint16_t device_id;
+    uint16_t led_state;
     esp_err_t ret = modbus_read_holding_registers(g_modbus, config_get_modbus_slave_id(),
-                                                   REG_DEVICE_ID, 1, &device_id);
+                                                   REG_LED_STATE, 1, &led_state);
 
     if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Slave connected, Device ID: %u", device_id);
+        ESP_LOGI(TAG, "Slave connected, LED state: %u", led_state);
     } else {
         ESP_LOGD(TAG, "Slave not responding");
     }

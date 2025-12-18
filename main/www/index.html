@@ -18,6 +18,7 @@
 
     <nav>
         <button class="nav-btn active" data-tab="actuators">Actuators</button>
+        <button class="nav-btn" data-tab="ledmodbus">LED-Modbus</button>
         <button class="nav-btn" data-tab="system">System</button>
         <button class="nav-btn" data-tab="config">Config</button>
         <button class="nav-btn" data-tab="files">Files</button>
@@ -88,6 +89,62 @@
             </div>
         </section>
 
+        <!-- LED-Modbus Tab -->
+        <section id="tab-ledmodbus" class="tab">
+            <div class="card">
+                <h3>Slave Connection</h3>
+                <div class="form-row">
+                    <label>Slave ID</label>
+                    <input type="number" id="led-slave-id" min="1" max="247" value="2" style="width:80px">
+                    <button onclick="ledModbusRefresh()" class="btn">Connect</button>
+                </div>
+                <div class="info-row"><span>Status</span><span id="led-conn-status">Disconnected</span></div>
+                <div class="info-row"><span>FW Version</span><span id="led-fw-version">--</span></div>
+            </div>
+
+            <div class="card">
+                <h3>LED Control</h3>
+                <div class="led-ctrl">
+                    <div class="led-indicator" id="led-ind"></div>
+                    <div class="toggle">
+                        <button onclick="ledSetState(true)" id="btn-led-on">ON</button>
+                        <button onclick="ledSetState(false)" id="btn-led-off">OFF</button>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <label>Blink Mode</label>
+                    <div class="toggle">
+                        <button onclick="ledSetBlink(true)" id="btn-blink-on">ON</button>
+                        <button onclick="ledSetBlink(false)" id="btn-blink-off">OFF</button>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <label>Blink Period (ms)</label>
+                    <input type="range" id="led-period-slider" min="100" max="10000" value="500" step="100">
+                    <input type="number" id="led-period-val" min="100" max="10000" value="500" style="width:80px">
+                </div>
+                <button onclick="ledSetPeriod()" class="btn btn-primary full">Set Period</button>
+            </div>
+
+            <div class="card">
+                <h3>Slave Configuration</h3>
+                <div class="form-row">
+                    <label>Change Slave ID</label>
+                    <input type="number" id="led-new-slave-id" min="1" max="247" value="2" style="width:80px">
+                    <button onclick="ledChangeSlaveId()" class="btn btn-danger">Change</button>
+                </div>
+                <p class="help-text">Warning: Device will reboot after ID change</p>
+            </div>
+
+            <div class="card">
+                <h3>System Commands</h3>
+                <div class="btn-group">
+                    <button onclick="ledSaveConfig()" class="btn full">Save Config to Flash</button>
+                    <button onclick="ledRebootSlave()" class="btn btn-danger full">Reboot Slave</button>
+                </div>
+            </div>
+        </section>
+
         <!-- System Tab -->
         <section id="tab-system" class="tab">
             <div class="card">
@@ -97,23 +154,6 @@
                 <div class="info-row"><span>RSSI</span><span id="sys-rssi">--</span></div>
                 <div class="info-row"><span>Uptime</span><span id="sys-uptime">--</span></div>
                 <div class="info-row"><span>Heap</span><span id="sys-heap">--</span></div>
-            </div>
-            <div class="card">
-                <h3>LED Control (Slave ID: 2)</h3>
-                <div class="led-ctrl">
-                    <div class="led-indicator" id="led-ind"></div>
-                    <div class="toggle">
-                        <button onclick="setLED(true)" id="btn-led-on">ON</button>
-                        <button onclick="setLED(false)" id="btn-led-off">OFF</button>
-                    </div>
-                </div>
-                <div class="control-row">
-                    <label>Blink</label>
-                    <div class="toggle">
-                        <button onclick="setBlink(true)" id="btn-blink-on">Yes</button>
-                        <button onclick="setBlink(false)" id="btn-blink-off">No</button>
-                    </div>
-                </div>
             </div>
             <button onclick="restartDevice()" class="btn btn-danger full">Restart Device</button>
         </section>

@@ -2,10 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 static const char *TAG = "MODBUS";
 
 #define MODBUS_MAX_PDU_SIZE 256
+#define MODBUS_RETRY_COUNT 3
+#define MODBUS_RETRY_BASE_DELAY_MS 100
 
 /**
  * @brief Internal Modbus RTU structure
@@ -15,6 +19,9 @@ struct modbus_rtu {
     uint32_t response_timeout;
     modbus_exception_t last_exception;
 };
+
+// Global statistics for diagnostics
+static modbus_stats_t s_modbus_stats = {0};
 
 // CRC16 lookup table for Modbus
 static const uint16_t crc_table[256] = {
@@ -104,6 +111,16 @@ modbus_exception_t modbus_get_last_exception(modbus_handle_t handle)
     return handle->last_exception;
 }
 
+const modbus_stats_t* modbus_get_stats(void)
+{
+    return &s_modbus_stats;
+}
+
+void modbus_reset_stats(void)
+{
+    memset(&s_modbus_stats, 0, sizeof(s_modbus_stats));
+}
+
 static esp_err_t modbus_send_receive(modbus_handle_t handle,
                                      const uint8_t *request, size_t req_len,
                                      uint8_t *response, size_t *resp_len,
@@ -111,6 +128,8 @@ static esp_err_t modbus_send_receive(modbus_handle_t handle,
 {
     esp_err_t ret;
     size_t received = 0;
+
+    s_modbus_stats.tx_count++;
 
     // Send request and receive response
     ret = rs485_transaction(handle->rs485,
@@ -120,12 +139,17 @@ static esp_err_t modbus_send_receive(modbus_handle_t handle,
 
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "RS485 transaction failed: %s", esp_err_to_name(ret));
+        s_modbus_stats.error_count++;
+        if (ret == ESP_ERR_TIMEOUT) {
+            s_modbus_stats.timeout_count++;
+        }
         return ret;
     }
 
     // Check minimum response length (addr + fc + crc)
     if (received < 4) {
         ESP_LOGE(TAG, "Response too short: %u bytes", received);
+        s_modbus_stats.error_count++;
         return ESP_ERR_INVALID_RESPONSE;
     }
 
@@ -135,6 +159,8 @@ static esp_err_t modbus_send_receive(modbus_handle_t handle,
 
     if (recv_crc != calc_crc) {
         ESP_LOGE(TAG, "CRC mismatch: recv=0x%04X, calc=0x%04X", recv_crc, calc_crc);
+        s_modbus_stats.error_count++;
+        s_modbus_stats.crc_error_count++;
         return ESP_ERR_INVALID_CRC;
     }
 
@@ -142,10 +168,12 @@ static esp_err_t modbus_send_receive(modbus_handle_t handle,
     if (response[1] & 0x80) {
         handle->last_exception = response[2];
         ESP_LOGE(TAG, "Modbus exception: 0x%02X", response[2]);
+        s_modbus_stats.error_count++;
         return ESP_ERR_INVALID_RESPONSE;
     }
 
     handle->last_exception = MODBUS_EX_NONE;
+    s_modbus_stats.rx_count++;
     *resp_len = received;
     return ESP_OK;
 }

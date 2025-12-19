@@ -1,0 +1,28 @@
+<div class="card">
+    <h3>WiFi</h3>
+    <div class="form-row">
+        <select id="wifi-select">
+            <option value="">Select network...</option>
+        </select>
+        <button onclick="scanWiFi()" class="btn">Scan</button>
+    </div>
+    <input type="password" id="wifi-pass" placeholder="Password">
+    <button onclick="connectWiFi()" class="btn btn-primary full">Connect</button>
+</div>
+<div class="card">
+    <h3>RS485</h3>
+    <div class="form-row">
+        <label>Baud</label>
+        <select id="rs485-baud">
+            <option value="9600">9600</option>
+            <option value="19200">19200</option>
+            <option value="38400">38400</option>
+            <option value="57600">57600</option>
+            <option value="115200">115200</option>
+        </select>
+    </div>
+    <div class="info-row"><span>TX</span><span id="rs485-tx">--</span></div>
+    <div class="info-row"><span>RX</span><span id="rs485-rx">--</span></div>
+    <div class="info-row"><span>DE</span><span id="rs485-de">--</span></div>
+    <button onclick="saveRS485()" class="btn full">Save & Restart</button>
+</div>

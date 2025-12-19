@@ -25,224 +25,24 @@
     </nav>
 
     <main>
-        <!-- Actuators Tab -->
         <section id="tab-actuators" class="tab active">
-            <div class="toolbar">
-                <button onclick="scanActuators()" class="btn-icon" title="Scan">
-                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                </button>
-                <button onclick="addActuatorPrompt()" class="btn-icon" title="Add">
-                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                </button>
-                <button onclick="refreshActuators()" class="btn-icon" title="Refresh">
-                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-                </button>
-            </div>
-
-            <div id="actuators-container">
-                <div class="empty-state">
-                    <p>No actuators</p>
-                    <button onclick="scanActuators()" class="btn">Scan for devices</button>
-                </div>
-            </div>
-
-            <!-- Actuator Control Modal -->
-            <div id="actuator-modal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Actuator <span id="modal-act-id">--</span></h3>
-                        <button onclick="closeModal()" class="btn-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="control-row">
-                            <label>Force</label>
-                            <div class="toggle">
-                                <button onclick="setForce(true)" id="btn-force-on">ON</button>
-                                <button onclick="setForce(false)" id="btn-force-off">OFF</button>
-                            </div>
-                        </div>
-                        <div class="control-row">
-                            <label>Position</label>
-                            <input type="range" id="modal-pos" min="0" max="4095" value="2048">
-                            <input type="number" id="modal-pos-val" min="0" max="4095" value="2048">
-                        </div>
-                        <div class="control-row">
-                            <label>Speed</label>
-                            <input type="range" id="modal-spd" min="0" max="1023" value="512">
-                            <input type="number" id="modal-spd-val" min="0" max="1023" value="512">
-                        </div>
-                        <div class="control-row">
-                            <label>Current</label>
-                            <input type="range" id="modal-cur" min="0" max="800" value="400">
-                            <input type="number" id="modal-cur-val" min="0" max="800" value="400">
-                        </div>
-                        <div class="quick-pos">
-                            <button onclick="quickPos(0)">0%</button>
-                            <button onclick="quickPos(1024)">25%</button>
-                            <button onclick="quickPos(2048)">50%</button>
-                            <button onclick="quickPos(3072)">75%</button>
-                            <button onclick="quickPos(4095)">100%</button>
-                        </div>
-                        <button onclick="sendCommand()" class="btn btn-primary full">Send Command</button>
-                    </div>
-                </div>
-            </div>
+            <div class="tab-loading">Loading...</div>
         </section>
-
-        <!-- LED-Modbus Tab -->
         <section id="tab-ledmodbus" class="tab">
-            <div class="card">
-                <h3>Slave Connection</h3>
-                <div class="form-row">
-                    <label>Slave ID</label>
-                    <input type="number" id="led-slave-id" min="1" max="247" value="2" style="width:80px">
-                    <button onclick="ledModbusRefresh()" class="btn">Connect</button>
-                </div>
-                <div class="info-row"><span>Status</span><span id="led-conn-status">Disconnected</span></div>
-                <div class="info-row"><span>FW Version</span><span id="led-fw-version">--</span></div>
-            </div>
-
-            <div class="card">
-                <h3>LED Control</h3>
-                <div class="led-ctrl">
-                    <div class="led-indicator" id="led-ind"></div>
-                    <div class="toggle">
-                        <button onclick="ledSetState(true)" id="btn-led-on">ON</button>
-                        <button onclick="ledSetState(false)" id="btn-led-off">OFF</button>
-                    </div>
-                </div>
-                <div class="control-row">
-                    <label>Blink Mode</label>
-                    <div class="toggle">
-                        <button onclick="ledSetBlink(true)" id="btn-blink-on">ON</button>
-                        <button onclick="ledSetBlink(false)" id="btn-blink-off">OFF</button>
-                    </div>
-                </div>
-                <div class="control-row">
-                    <label>Blink Period (ms)</label>
-                    <input type="range" id="led-period-slider" min="100" max="10000" value="500" step="100">
-                    <input type="number" id="led-period-val" min="100" max="10000" value="500" style="width:80px">
-                </div>
-                <button onclick="ledSetPeriod()" class="btn btn-primary full">Set Period</button>
-            </div>
-
-            <div class="card">
-                <h3>Slave Configuration</h3>
-                <div class="form-row">
-                    <label>Change Slave ID</label>
-                    <input type="number" id="led-new-slave-id" min="1" max="247" value="2" style="width:80px">
-                    <button onclick="ledChangeSlaveId()" class="btn btn-danger">Change</button>
-                </div>
-                <p class="help-text">Warning: Device will reboot after ID change</p>
-            </div>
-
-            <div class="card">
-                <h3>System Commands</h3>
-                <div class="btn-group">
-                    <button onclick="ledSaveConfig()" class="btn full">Save Config to Flash</button>
-                    <button onclick="ledRebootSlave()" class="btn btn-danger full">Reboot Slave</button>
-                </div>
-            </div>
+            <div class="tab-loading">Loading...</div>
         </section>
-
-        <!-- System Tab -->
         <section id="tab-system" class="tab">
-            <div class="card">
-                <h3>Status</h3>
-                <div class="info-row"><span>IP</span><span id="sys-ip">--</span></div>
-                <div class="info-row"><span>SSID</span><span id="sys-ssid">--</span></div>
-                <div class="info-row"><span>RSSI</span><span id="sys-rssi">--</span></div>
-                <div class="info-row"><span>Uptime</span><span id="sys-uptime">--</span></div>
-                <div class="info-row"><span>Heap</span><span id="sys-heap">--</span></div>
-            </div>
-            <button onclick="restartDevice()" class="btn btn-danger full">Restart Device</button>
+            <div class="tab-loading">Loading...</div>
         </section>
-
-        <!-- Config Tab -->
         <section id="tab-config" class="tab">
-            <div class="card">
-                <h3>WiFi</h3>
-                <div class="form-row">
-                    <select id="wifi-select">
-                        <option value="">Select network...</option>
-                    </select>
-                    <button onclick="scanWiFi()" class="btn">Scan</button>
-                </div>
-                <input type="password" id="wifi-pass" placeholder="Password">
-                <button onclick="connectWiFi()" class="btn btn-primary full">Connect</button>
-            </div>
-            <div class="card">
-                <h3>RS485</h3>
-                <div class="form-row">
-                    <label>Baud</label>
-                    <select id="rs485-baud">
-                        <option value="9600">9600</option>
-                        <option value="19200">19200</option>
-                        <option value="38400">38400</option>
-                        <option value="57600">57600</option>
-                        <option value="115200">115200</option>
-                    </select>
-                </div>
-                <div class="info-row"><span>TX</span><span id="rs485-tx">--</span></div>
-                <div class="info-row"><span>RX</span><span id="rs485-rx">--</span></div>
-                <div class="info-row"><span>DE</span><span id="rs485-de">--</span></div>
-                <button onclick="saveRS485()" class="btn full">Save & Restart</button>
-            </div>
+            <div class="tab-loading">Loading...</div>
         </section>
-
-        <!-- Files Tab -->
         <section id="tab-files" class="tab">
-            <div class="fm-partition-tabs">
-                <button class="fm-tab active" data-partition="www" onclick="fmSelectPartition('www')">
-                    WWW <span class="fm-size" id="www-size"></span>
-                </button>
-                <button class="fm-tab" data-partition="userdata" onclick="fmSelectPartition('userdata')">
-                    UserData <span class="fm-size" id="userdata-size"></span>
-                </button>
-            </div>
-
-            <div class="fm-path" id="fm-current-path">/www/</div>
-
-            <div class="fm-toolbar">
-                <button onclick="fmRefresh()" class="btn">Refresh</button>
-                <button onclick="fmCreateFolder()" class="btn">New Folder</button>
-                <button onclick="fmCreateFile()" class="btn">New File</button>
-                <button onclick="document.getElementById('fm-file-input').click()" class="btn">Upload</button>
-                <input type="file" id="fm-file-input" multiple onchange="fmHandleFileSelect(event)" style="display:none">
-            </div>
-
-            <div class="fm-upload-zone" id="fm-upload-zone">
-                <p>Drag files here or click Upload</p>
-            </div>
-
-            <div class="fm-progress" id="fm-progress">
-                <div class="fm-progress-fill" id="fm-progress-fill">0%</div>
-            </div>
-
-            <div class="fm-file-list" id="fm-file-list">
-                <div class="fm-empty">Select Files tab to load</div>
-            </div>
-
-            <!-- File Editor Modal -->
-            <div id="fm-editor-modal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 id="fm-editor-title">Edit File</h3>
-                        <button onclick="fmCloseEditor()" class="btn-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <textarea id="fm-editor-content" spellcheck="false"></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button onclick="fmCloseEditor()" class="btn">Cancel</button>
-                        <button onclick="fmSaveFile()" class="btn btn-primary">Save</button>
-                    </div>
-                </div>
-            </div>
+            <div class="tab-loading">Loading...</div>
         </section>
     </main>
 
     <div id="toast"></div>
-    <script src="app.js"></script>
+    <script src="core.js"></script>
 </body>
 </html>

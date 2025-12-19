@@ -134,6 +134,30 @@ uint16_t modbus_crc16(const uint8_t *data, size_t len);
  */
 modbus_exception_t modbus_get_last_exception(modbus_handle_t handle);
 
+/**
+ * @brief Modbus communication statistics
+ */
+typedef struct {
+    uint32_t tx_count;          // Total requests sent
+    uint32_t rx_count;          // Total successful responses
+    uint32_t error_count;       // Total errors
+    uint32_t timeout_count;     // Timeout errors
+    uint32_t crc_error_count;   // CRC errors
+    uint32_t retry_count;       // Total retries performed
+} modbus_stats_t;
+
+/**
+ * @brief Get Modbus communication statistics
+ *
+ * @return const modbus_stats_t* Pointer to stats structure
+ */
+const modbus_stats_t* modbus_get_stats(void);
+
+/**
+ * @brief Reset Modbus statistics
+ */
+void modbus_reset_stats(void);
+
 #ifdef __cplusplus
 }
 #endif

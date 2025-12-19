@@ -4,8 +4,13 @@
 #include "esp_log.h"
 #include "esp_littlefs.h"
 #include "cJSON.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 static const char *TAG = "CONFIG";
+
+// Mutex for thread-safe access
+static SemaphoreHandle_t s_config_mutex = NULL;
 
 #define CONFIG_FILE "/userdata/config.json"
 
@@ -95,7 +100,7 @@ void config_reset_defaults(void)
     s_config.rs485_de_pin = 18;
 
     // Modbus defaults
-    s_config.modbus_slave_id = 2;      // Remote ESP32 Slave ID
+    s_config.modbus_slave_id = 10;     // Remote ESP32 Slave ID
     s_config.modbus_timeout = 500;
 
     // Web defaults
@@ -112,11 +117,18 @@ void config_reset_defaults(void)
 
 esp_err_t config_load(void)
 {
+    if (s_config_mutex && xSemaphoreTake(s_config_mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to acquire config mutex for load");
+        return ESP_ERR_TIMEOUT;
+    }
+
     FILE *f = fopen(CONFIG_FILE, "r");
     if (f == NULL) {
         ESP_LOGW(TAG, "Config file not found, using defaults");
         config_reset_defaults();
-        return config_save();
+        esp_err_t ret = config_save();
+        if (s_config_mutex) xSemaphoreGive(s_config_mutex);
+        return ret;
     }
 
     // Read file
@@ -212,11 +224,17 @@ esp_err_t config_load(void)
 
     cJSON_Delete(root);
     ESP_LOGI(TAG, "Configuration loaded");
+    if (s_config_mutex) xSemaphoreGive(s_config_mutex);
     return ESP_OK;
 }
 
 esp_err_t config_save(void)
 {
+    if (s_config_mutex && xSemaphoreTake(s_config_mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to acquire config mutex for save");
+        return ESP_ERR_TIMEOUT;
+    }
+
     cJSON *root = cJSON_CreateObject();
 
     // WiFi section
@@ -268,6 +286,7 @@ esp_err_t config_save(void)
     free(json_str);
 
     ESP_LOGI(TAG, "Configuration saved");
+    if (s_config_mutex) xSemaphoreGive(s_config_mutex);
     return ESP_OK;
 }
 
@@ -278,6 +297,15 @@ esp_err_t config_save(void)
 esp_err_t config_init(void)
 {
     if (s_initialized) return ESP_OK;
+
+    // Create mutex for thread safety
+    if (s_config_mutex == NULL) {
+        s_config_mutex = xSemaphoreCreateMutex();
+        if (s_config_mutex == NULL) {
+            ESP_LOGE(TAG, "Failed to create config mutex");
+            return ESP_ERR_NO_MEM;
+        }
+    }
 
     config_reset_defaults();
 

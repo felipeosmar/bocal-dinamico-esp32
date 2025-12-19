@@ -709,3 +709,116 @@ input:focus, select:focus {
 .btn-group .btn {
     margin-top: 0;
 }
+
+/* Tab Loading & Error States */
+.tab-loading, .tab-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.tab-error {
+    color: var(--danger);
+}
+
+/* Tasks Monitor */
+.auto-refresh-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.auto-refresh-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.tasks-table-container {
+    overflow-x: auto;
+}
+
+.tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.tasks-table th,
+.tasks-table td {
+    padding: 8px 6px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.tasks-table th {
+    background: var(--bg);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tasks-table tr:hover {
+    background: rgba(88, 166, 255, 0.05);
+}
+
+.state-Running {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.state-Ready {
+    color: var(--warning);
+}
+
+.state-Blocked {
+    color: var(--accent);
+}
+
+.state-Suspended {
+    color: var(--text-muted);
+}
+
+.cpu-bar {
+    display: flex;
+    align-items: center;
+    margin: 6px 0;
+}
+
+.cpu-bar-label {
+    width: 80px;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.cpu-bar-track {
+    flex: 1;
+    height: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 8px;
+}
+
+.cpu-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--success));
+    transition: width 0.3s ease;
+}
+
+.cpu-bar-value {
+    width: 40px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--text);
+}

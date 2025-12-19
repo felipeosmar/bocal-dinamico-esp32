@@ -7,6 +7,9 @@
 #include "esp_log.h"
 #include "esp_littlefs.h"
 #include "cJSON.h"
+#include "mbedtls/base64.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "wifi_manager.h"
 #include "config_manager.h"
@@ -48,22 +51,46 @@ static bool check_auth(httpd_req_t *req)
 {
     if (!s_config.auth_enabled) return true;
 
-    char auth_header[128] = {0};
+    char auth_header[256] = {0};
     if (httpd_req_get_hdr_value_str(req, "Authorization", auth_header, sizeof(auth_header)) != ESP_OK) {
+        ESP_LOGD(TAG, "No Authorization header");
         return false;
     }
 
     // Parse "Basic base64credentials"
-    if (strncmp(auth_header, "Basic ", 6) != 0) return false;
+    if (strncmp(auth_header, "Basic ", 6) != 0) {
+        ESP_LOGD(TAG, "Not Basic auth");
+        return false;
+    }
 
-    // For simplicity, just compare with expected credentials
-    // In production, use proper base64 encoding
+    // Decode base64
+    const char *b64_credentials = auth_header + 6;
+    size_t b64_len = strlen(b64_credentials);
+    
+    unsigned char decoded[128] = {0};
+    size_t decoded_len = 0;
+    
+    int ret = mbedtls_base64_decode(decoded, sizeof(decoded) - 1, &decoded_len,
+                                    (const unsigned char*)b64_credentials, b64_len);
+    if (ret != 0) {
+        ESP_LOGW(TAG, "Failed to decode base64 credentials");
+        return false;
+    }
+    decoded[decoded_len] = '\0';
+
+    // Build expected "username:password" string
     char expected[128];
     snprintf(expected, sizeof(expected), "%s:%s", s_config.username, s_config.password);
 
-    // Simple base64 decode check (simplified version)
-    // This is a basic implementation - in production use mbedtls base64
-    return true; // Simplified - implement proper auth if needed
+    // Secure comparison
+    bool match = (strlen(expected) == decoded_len) && 
+                 (memcmp(decoded, expected, decoded_len) == 0);
+    
+    if (!match) {
+        ESP_LOGW(TAG, "Authentication failed");
+    }
+    
+    return match;
 }
 
 static esp_err_t send_unauthorized(httpd_req_t *req)
@@ -114,7 +141,40 @@ static esp_err_t css_handler(httpd_req_t *req)
 
 static esp_err_t js_handler(httpd_req_t *req)
 {
-    return serve_file(req, "/www/app.js", "application/javascript");
+    return serve_file(req, "/www/core.js", "application/javascript");
+}
+
+// Generic handler for tabs HTML files
+static esp_err_t tabs_html_handler(httpd_req_t *req)
+{
+    // Extract filename from URI (e.g., "/tabs/actuators.html" -> "actuators.html")
+    const char *uri = req->uri;
+    const char *filename = strrchr(uri, '/');
+    if (!filename) {
+        httpd_resp_send_404(req);
+        return ESP_FAIL;
+    }
+    filename++; // Skip the '/'
+
+    char filepath[64];
+    snprintf(filepath, sizeof(filepath), "/www/tabs/%s", filename);
+    return serve_file(req, filepath, "text/html");
+}
+
+// Generic handler for tabs JS files
+static esp_err_t tabs_js_handler(httpd_req_t *req)
+{
+    const char *uri = req->uri;
+    const char *filename = strrchr(uri, '/');
+    if (!filename) {
+        httpd_resp_send_404(req);
+        return ESP_FAIL;
+    }
+    filename++;
+
+    char filepath[64];
+    snprintf(filepath, sizeof(filepath), "/www/tabs/%s", filename);
+    return serve_file(req, filepath, "application/javascript");
 }
 
 static esp_err_t favicon_handler(httpd_req_t *req)
@@ -823,6 +883,83 @@ static esp_err_t api_status_handler(httpd_req_t *req)
 
     free(json_str);
     cJSON_Delete(root);
+    return ESP_OK;
+}
+
+// GET /api/tasks - Get FreeRTOS task statistics
+static esp_err_t api_tasks_handler(httpd_req_t *req)
+{
+    cJSON *root = cJSON_CreateObject();
+    
+    // System overview
+    cJSON_AddNumberToObject(root, "heap_free", esp_get_free_heap_size());
+    cJSON_AddNumberToObject(root, "heap_min", esp_get_minimum_free_heap_size());
+    cJSON_AddNumberToObject(root, "uptime_s", xTaskGetTickCount() / configTICK_RATE_HZ);
+    cJSON_AddNumberToObject(root, "task_count", uxTaskGetNumberOfTasks());
+    
+    // Get task statistics
+    UBaseType_t num_tasks = uxTaskGetNumberOfTasks();
+    TaskStatus_t *task_array = malloc(num_tasks * sizeof(TaskStatus_t));
+    
+    if (task_array == NULL) {
+        cJSON_AddStringToObject(root, "error", "Out of memory");
+        char *json_str = cJSON_PrintUnformatted(root);
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, json_str, strlen(json_str));
+        free(json_str);
+        cJSON_Delete(root);
+        return ESP_OK;
+    }
+    
+    configRUN_TIME_COUNTER_TYPE total_runtime;
+    UBaseType_t tasks_returned = uxTaskGetSystemState(task_array, num_tasks, &total_runtime);
+    
+    cJSON *tasks = cJSON_CreateArray();
+    
+    for (UBaseType_t i = 0; i < tasks_returned; i++) {
+        cJSON *task = cJSON_CreateObject();
+        
+        cJSON_AddStringToObject(task, "name", task_array[i].pcTaskName);
+        cJSON_AddNumberToObject(task, "priority", task_array[i].uxCurrentPriority);
+        cJSON_AddNumberToObject(task, "stack_hwm", task_array[i].usStackHighWaterMark);
+        cJSON_AddNumberToObject(task, "task_num", task_array[i].xTaskNumber);
+        
+        // Task state
+        const char *state_str;
+        switch (task_array[i].eCurrentState) {
+            case eRunning:  state_str = "Running"; break;
+            case eReady:    state_str = "Ready"; break;
+            case eBlocked:  state_str = "Blocked"; break;
+            case eSuspended: state_str = "Suspended"; break;
+            case eDeleted:  state_str = "Deleted"; break;
+            default:        state_str = "Unknown"; break;
+        }
+        cJSON_AddStringToObject(task, "state", state_str);
+        
+        // CPU percentage (if runtime stats enabled)
+        if (total_runtime > 0) {
+            uint32_t cpu_percent = (uint32_t)((task_array[i].ulRunTimeCounter * 100) / total_runtime);
+            cJSON_AddNumberToObject(task, "cpu_percent", cpu_percent);
+            cJSON_AddNumberToObject(task, "runtime", (double)task_array[i].ulRunTimeCounter);
+        } else {
+            cJSON_AddNumberToObject(task, "cpu_percent", 0);
+            cJSON_AddNumberToObject(task, "runtime", 0);
+        }
+        
+        cJSON_AddItemToArray(tasks, task);
+    }
+    
+    free(task_array);
+    
+    cJSON_AddItemToObject(root, "tasks", tasks);
+    cJSON_AddNumberToObject(root, "total_runtime", total_runtime);
+    
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+    
     return ESP_OK;
 }
 
@@ -1735,7 +1872,7 @@ esp_err_t web_server_init(const web_server_config_t *config)
 
     httpd_config_t http_config = HTTPD_DEFAULT_CONFIG();
     http_config.server_port = s_config.port;
-    http_config.max_uri_handlers = 35;
+    http_config.max_uri_handlers = 45;
     http_config.stack_size = 8192;
 
     ESP_LOGI(TAG, "Starting server on port %d", http_config.server_port);
@@ -1762,11 +1899,39 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_register_uri_handler(s_server, &css_uri);
 
     httpd_uri_t js_uri = {
-        .uri = "/app.js",
+        .uri = "/core.js",
         .method = HTTP_GET,
         .handler = js_handler,
     };
     httpd_register_uri_handler(s_server, &js_uri);
+
+    // Tabs HTML files
+    httpd_uri_t tabs_actuators_html = { .uri = "/tabs/actuators.html", .method = HTTP_GET, .handler = tabs_html_handler };
+    httpd_uri_t tabs_ledmodbus_html = { .uri = "/tabs/ledmodbus.html", .method = HTTP_GET, .handler = tabs_html_handler };
+    httpd_uri_t tabs_system_html = { .uri = "/tabs/system.html", .method = HTTP_GET, .handler = tabs_html_handler };
+    httpd_uri_t tabs_config_html = { .uri = "/tabs/config.html", .method = HTTP_GET, .handler = tabs_html_handler };
+    httpd_uri_t tabs_files_html = { .uri = "/tabs/files.html", .method = HTTP_GET, .handler = tabs_html_handler };
+    httpd_uri_t tabs_tasks_html = { .uri = "/tabs/tasks.html", .method = HTTP_GET, .handler = tabs_html_handler };
+    httpd_register_uri_handler(s_server, &tabs_actuators_html);
+    httpd_register_uri_handler(s_server, &tabs_ledmodbus_html);
+    httpd_register_uri_handler(s_server, &tabs_system_html);
+    httpd_register_uri_handler(s_server, &tabs_config_html);
+    httpd_register_uri_handler(s_server, &tabs_files_html);
+    httpd_register_uri_handler(s_server, &tabs_tasks_html);
+
+    // Tabs JS files
+    httpd_uri_t tabs_actuators_js = { .uri = "/tabs/actuators.js", .method = HTTP_GET, .handler = tabs_js_handler };
+    httpd_uri_t tabs_ledmodbus_js = { .uri = "/tabs/ledmodbus.js", .method = HTTP_GET, .handler = tabs_js_handler };
+    httpd_uri_t tabs_system_js = { .uri = "/tabs/system.js", .method = HTTP_GET, .handler = tabs_js_handler };
+    httpd_uri_t tabs_config_js = { .uri = "/tabs/config.js", .method = HTTP_GET, .handler = tabs_js_handler };
+    httpd_uri_t tabs_files_js = { .uri = "/tabs/files.js", .method = HTTP_GET, .handler = tabs_js_handler };
+    httpd_uri_t tabs_tasks_js = { .uri = "/tabs/tasks.js", .method = HTTP_GET, .handler = tabs_js_handler };
+    httpd_register_uri_handler(s_server, &tabs_actuators_js);
+    httpd_register_uri_handler(s_server, &tabs_ledmodbus_js);
+    httpd_register_uri_handler(s_server, &tabs_system_js);
+    httpd_register_uri_handler(s_server, &tabs_config_js);
+    httpd_register_uri_handler(s_server, &tabs_files_js);
+    httpd_register_uri_handler(s_server, &tabs_tasks_js);
 
     httpd_uri_t favicon_uri = {
         .uri = "/favicon.ico",
@@ -1846,6 +2011,13 @@ esp_err_t web_server_init(const web_server_config_t *config)
         .handler = api_status_handler,
     };
     httpd_register_uri_handler(s_server, &status_uri);
+
+    httpd_uri_t tasks_uri = {
+        .uri = "/api/tasks",
+        .method = HTTP_GET,
+        .handler = api_tasks_handler,
+    };
+    httpd_register_uri_handler(s_server, &tasks_uri);
 
     httpd_uri_t restart_uri = {
         .uri = "/api/restart",

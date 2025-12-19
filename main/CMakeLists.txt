@@ -7,6 +7,7 @@ idf_component_register(
         "wifi/wifi_manager.c"
         "webserver/web_server.c"
         "config/config_manager.c"
+        "health/health_monitor.c"
     INCLUDE_DIRS
         "."
         "rs485"
@@ -15,6 +16,7 @@ idf_component_register(
         "wifi"
         "webserver"
         "config"
+        "health"
     REQUIRES
         driver
         nvs_flash
@@ -22,4 +24,8 @@ idf_component_register(
         esp_http_server
         spiffs
         json
+        mbedtls
+        esp_timer
+        freertos
 )
+

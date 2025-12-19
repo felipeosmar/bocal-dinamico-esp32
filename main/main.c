@@ -24,6 +24,7 @@
 #include "wifi_manager.h"
 #include "web_server.h"
 #include "config_manager.h"
+#include "health_monitor.h"
 
 static const char *TAG = "MASTER";
 
@@ -248,6 +249,12 @@ void app_main(void)
         if (ret != pdPASS) {
             ESP_LOGW(TAG, "Failed to create Modbus polling task");
         }
+    }
+
+    // Initialize health monitor (starts monitoring task)
+    ESP_LOGI(TAG, "Starting health monitor...");
+    if (health_monitor_init() != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to start health monitor");
     }
 
     ESP_LOGI(TAG, "System ready!");

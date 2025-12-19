@@ -1,0 +1,47 @@
+<div class="fm-partition-tabs">
+    <button class="fm-tab active" data-partition="www" onclick="fmSelectPartition('www')">
+        WWW <span class="fm-size" id="www-size"></span>
+    </button>
+    <button class="fm-tab" data-partition="userdata" onclick="fmSelectPartition('userdata')">
+        UserData <span class="fm-size" id="userdata-size"></span>
+    </button>
+</div>
+
+<div class="fm-path" id="fm-current-path">/www/</div>
+
+<div class="fm-toolbar">
+    <button onclick="fmRefresh()" class="btn">Refresh</button>
+    <button onclick="fmCreateFolder()" class="btn">New Folder</button>
+    <button onclick="fmCreateFile()" class="btn">New File</button>
+    <button onclick="document.getElementById('fm-file-input').click()" class="btn">Upload</button>
+    <input type="file" id="fm-file-input" multiple onchange="fmHandleFileSelect(event)" style="display:none">
+</div>
+
+<div class="fm-upload-zone" id="fm-upload-zone">
+    <p>Drag files here or click Upload</p>
+</div>
+
+<div class="fm-progress" id="fm-progress">
+    <div class="fm-progress-fill" id="fm-progress-fill">0%</div>
+</div>
+
+<div class="fm-file-list" id="fm-file-list">
+    <div class="fm-empty">Loading...</div>
+</div>
+
+<!-- File Editor Modal -->
+<div id="fm-editor-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="fm-editor-title">Edit File</h3>
+            <button onclick="fmCloseEditor()" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <textarea id="fm-editor-content" spellcheck="false"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button onclick="fmCloseEditor()" class="btn">Cancel</button>
+            <button onclick="fmSaveFile()" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</div>

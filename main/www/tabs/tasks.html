@@ -1,0 +1,48 @@
+<div class="toolbar">
+    <button onclick="refreshTasks()" class="btn-icon" title="Refresh">
+        <svg viewBox="0 0 24 24">
+            <path
+                d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+        </svg>
+    </button>
+    <label class="auto-refresh-label">
+        <input type="checkbox" id="auto-refresh" checked> Auto
+    </label>
+</div>
+
+<div class="card">
+    <h3>System Overview</h3>
+    <div class="info-row"><span>Heap Free</span><span id="heap-free">--</span></div>
+    <div class="info-row"><span>Heap Min</span><span id="heap-min">--</span></div>
+    <div class="info-row"><span>Uptime</span><span id="uptime">--</span></div>
+    <div class="info-row"><span>Tasks</span><span id="task-count">--</span></div>
+</div>
+
+<div class="card">
+    <h3>Task List</h3>
+    <div class="tasks-table-container">
+        <table class="tasks-table">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>State</th>
+                    <th>Prio</th>
+                    <th>CPU</th>
+                    <th>Stack</th>
+                </tr>
+            </thead>
+            <tbody id="tasks-tbody">
+                <tr>
+                    <td colspan="5">Loading...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h3>CPU Usage</h3>
+    <div id="cpu-bars"></div>
+</div>
+
+<script src="/tabs/tasks.js"></script>

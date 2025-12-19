@@ -1,28 +1,81 @@
 # ESP32 Target
 CONFIG_IDF_TARGET="esp32"
 
-# FreeRTOS
+# =============================================================================
+# FreeRTOS - Industrial Settings
+# =============================================================================
 CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_CHECK_STACKOVERFLOW=y
+CONFIG_FREERTOS_WATCHPOINT_END_OF_STACK=y
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
+CONFIG_FREERTOS_RUN_TIME_COUNTER_TYPE_U64=y
 
+# =============================================================================
+# Task Watchdog - Critical for 24/7 operation
+# =============================================================================
+CONFIG_ESP_TASK_WDT_EN=y
+CONFIG_ESP_TASK_WDT_INIT=y
+CONFIG_ESP_TASK_WDT_PANIC=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y
+
+# =============================================================================
+# Stack Protection
+# =============================================================================
+CONFIG_COMPILER_STACK_CHECK_MODE_STRONG=y
+
+# =============================================================================
+# Panic Handler - Reboot with delay for debug output
+# =============================================================================
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
+CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS=3
+
+# =============================================================================
+# Brownout Detection - Industrial level (2.90V)
+# =============================================================================
+CONFIG_ESP_BROWNOUT_DET=y
+CONFIG_ESP_BROWNOUT_DET_LVL_SEL_4=y
+
+# =============================================================================
+# Coredump - Post-mortem debugging
+# =============================================================================
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+CONFIG_ESP_COREDUMP_MAX_TASKS_NUM=64
+
+# =============================================================================
 # UART
+# =============================================================================
 CONFIG_UART_ISR_IN_IRAM=y
 
+# =============================================================================
 # Log level
+# =============================================================================
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 CONFIG_LOG_DEFAULT_LEVEL=3
 
+# =============================================================================
 # Partition Table
+# =============================================================================
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 
+# =============================================================================
 # LittleFS
+# =============================================================================
 CONFIG_LITTLEFS_MAX_PARTITIONS=3
 
+# =============================================================================
 # HTTP Server
+# =============================================================================
 CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
 CONFIG_HTTPD_MAX_URI_LEN=512
 
+# =============================================================================
 # WiFi
+# =============================================================================
 CONFIG_ESP_WIFI_SOFTAP_SUPPORT=y
 CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=10
 CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32

@@ -23,13 +23,33 @@ async function refreshTasks() {
                 <td><span class="state-${task.state}">${task.state}</span></td>
                 <td>${task.priority}</td>
                 <td>${task.cpu_percent}%</td>
-                <td>${task.stack_hwm * 4} bytes</td>
+                <td>${formatBytes(task.stack_hwm * 4)}</td>
             </tr>
         `).join('');
         
-        // Update CPU bars (top 6 tasks)
+        // Update CPU bars
         const cpuBars = document.getElementById('cpu-bars');
-        cpuBars.innerHTML = tasks.slice(0, 6).map(task => `
+
+        // Separate IDLE tasks (core idle) from other tasks
+        const idleTasks = tasks.filter(t => t.name === 'IDLE0' || t.name === 'IDLE1');
+        const otherTasks = tasks.filter(t => t.name !== 'IDLE0' && t.name !== 'IDLE1');
+
+        // Format core usage display (100% - idle = usage)
+        const coreUsageHtml = idleTasks.map(task => {
+            const coreNum = task.name === 'IDLE0' ? '0' : '1';
+            const usagePercent = 100 - task.cpu_percent;
+            return `
+            <div class="cpu-bar">
+                <span class="cpu-bar-label">Core ${coreNum}</span>
+                <div class="cpu-bar-track">
+                    <div class="cpu-bar-fill" style="width: ${Math.min(usagePercent, 100)}%"></div>
+                </div>
+                <span class="cpu-bar-value">${usagePercent}%</span>
+            </div>`;
+        }).join('');
+
+        // Top 4 other tasks by CPU usage
+        const otherTasksHtml = otherTasks.slice(0, 4).map(task => `
             <div class="cpu-bar">
                 <span class="cpu-bar-label">${task.name}</span>
                 <div class="cpu-bar-track">
@@ -38,6 +58,8 @@ async function refreshTasks() {
                 <span class="cpu-bar-value">${task.cpu_percent}%</span>
             </div>
         `).join('');
+
+        cpuBars.innerHTML = coreUsageHtml + otherTasksHtml;
         
     } catch (error) {
         console.error('Failed to fetch tasks:', error);

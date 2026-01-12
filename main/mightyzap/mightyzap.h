@@ -15,33 +15,40 @@ extern "C" {
  *        Address in Modbus = Register - 40001
  */
 typedef enum {
-    // Non-Volatile Memory (stored in EEPROM)
+    // Non-Volatile Memory (stored in EEPROM) - FC_MODBUS Model
     MZAP_REG_MODEL_NUMBER      = 0x0000,   // 40001 - Model Number (R)
     MZAP_REG_FIRMWARE_VERSION  = 0x0001,   // 40002 - Firmware Version (R)
     MZAP_REG_ID                = 0x0002,   // 40003 - Servo ID (RW) [1-247, default 1]
     MZAP_REG_BAUD_RATE         = 0x0003,   // 40004 - Baud Rate (RW) [16-128, default 32]
     MZAP_REG_PROTOCOL_TYPE     = 0x0004,   // 40005 - Protocol (RW) [0=Modbus, 1=IRRobot]
-    MZAP_REG_SHORT_STROKE_LIM  = 0x0005,   // 40006 - Short Stroke Limit (RW)
-    MZAP_REG_LONG_STROKE_LIM   = 0x0006,   // 40007 - Long Stroke Limit (RW)
-    MZAP_REG_SPEED_LIMIT       = 0x000A,   // 40011 - Speed Limit (RW)
-    MZAP_REG_CURRENT_LIMIT     = 0x000B,   // 40012 - Current Limit (RW)
-    MZAP_REG_MIN_POSITION      = 0x000C,   // 40013 - Min Position Calibration (RW)
-    MZAP_REG_MAX_POSITION      = 0x000D,   // 40014 - Max Position Calibration (RW)
+    MZAP_REG_SHORT_STROKE_LIM  = 0x0005,   // 40006 - Short Stroke Limit (RW) [0-4095]
+    MZAP_REG_LONG_STROKE_LIM   = 0x0006,   // 40007 - Long Stroke Limit (RW) [0-4095]
+    MZAP_REG_LOWEST_VOLTAGE    = 0x0007,   // 40008 - Lowest Limit Voltage (R) [default 70]
+    MZAP_REG_HIGHEST_VOLTAGE   = 0x0008,   // 40009 - Highest Limit Voltage (R) [default 130]
+    MZAP_REG_ALARM_LED         = 0x0009,   // 40010 - Alarm LED (RW) [default 32]
+    MZAP_REG_ALARM_SHUTDOWN    = 0x000A,   // 40011 - Alarm Shutdown (RW) [default 32]
+    MZAP_REG_START_COMPLIANCE  = 0x000B,   // 40012 - Start Compliance Margin (RW) [0-255, default 7]
+    MZAP_REG_END_COMPLIANCE    = 0x000C,   // 40013 - End Compliance Margin (RW) [0-255, default 2]
+    MZAP_REG_SPEED_LIMIT       = 0x000D,   // 40014 - Speed Limit (RW) [0-1023, default 1023]
+    MZAP_REG_CURRENT_LIMIT     = 0x000E,   // 40015 - Current Limit (RW) [0-1600, default 800]
 
-    // Volatile Memory (RAM)
-    MZAP_REG_FORCE_ON_OFF      = 0x0080,   // 40129 - Force Enable (RW) [0=Off, 1=On]
-    MZAP_REG_LED_ON_OFF        = 0x0081,   // 40130 - LED Control (RW)
-    MZAP_REG_GOAL_POSITION     = 0x0086,   // 40135 - Goal Position (RW)
-    MZAP_REG_GOAL_SPEED        = 0x0087,   // 40136 - Goal Speed (RW)
-    MZAP_REG_GOAL_CURRENT      = 0x0088,   // 40137 - Goal Current/Force (RW)
-    MZAP_REG_PRESENT_POSITION  = 0x0096,   // 40151 - Present Position (R)
-    MZAP_REG_PRESENT_CURRENT   = 0x0097,   // 40152 - Present Current (R)
-    MZAP_REG_PRESENT_MOTOR_OP  = 0x0098,   // 40153 - Motor Operating Rate (R)
-    MZAP_REG_PRESENT_VOLTAGE   = 0x009A,   // 40155 - Present Voltage (R)
-    MZAP_REG_MOVING            = 0x009F,   // 40160 - Moving Status (R)
-    MZAP_REG_ACTION_REQUEST    = 0x00A0,   // 40161 - Action Request (W)
-    MZAP_REG_RESTART           = 0x00A5,   // 40166 - Restart (W)
-    MZAP_REG_FACTORY_RESET     = 0x00A6,   // 40167 - Factory Reset (W)
+    // Volatile Memory (RAM) - FC_MODBUS Model (Force Control)
+    MZAP_REG_FORCE_ON_OFF      = 0x0032,   // 40051 - Force Enable (RW) [0=Off, 1=On]
+    MZAP_REG_LED_ON_OFF        = 0x0033,   // 40052 - LED Control (RW)
+    MZAP_REG_GOAL_POSITION     = 0x0034,   // 40053 - Goal Position (RW) [0-4095]
+    MZAP_REG_GOAL_SPEED        = 0x0035,   // 40054 - Goal Speed (RW) [0-1023]
+    MZAP_REG_GOAL_CURRENT      = 0x0036,   // 40055 - Goal Current/Force (RW) [0-1600]
+    MZAP_REG_PRESENT_POSITION  = 0x0037,   // 40056 - Present Position (R) [0-4095]
+    MZAP_REG_PRESENT_CURRENT   = 0x0038,   // 40057 - Present Current (R) [0-1600]
+    MZAP_REG_PRESENT_MOTOR_OP  = 0x0039,   // 40058 - Motor Operating Rate (R) [0-2048]
+    MZAP_REG_PRESENT_VOLTAGE   = 0x003A,   // 40059 - Present Voltage (R) [0-255]
+    MZAP_REG_MOVING            = 0x003B,   // 40060 - Moving Status (R) [0-1]
+    MZAP_REG_HW_ERROR_STATE    = 0x003C,   // 40061 - Hardware Error State (R)
+
+    // Special commands - NOTE: These use SP Function Codes (0xF6, 0xF8) in FC_MODBUS,
+    // not regular registers. Current implementation may not work for FC_MODBUS model.
+    MZAP_REG_RESTART           = 0x00FF,   // Placeholder - uses SP Function Code 0xF8
+    MZAP_REG_FACTORY_RESET     = 0x00FE,   // Placeholder - uses SP Function Code 0xF6
 } mightyzap_register_t;
 
 /**

@@ -192,9 +192,9 @@ function initActuators() {
         });
     }
 
-    // Start refresh interval
+    // Start refresh interval (reduced frequency to avoid RS485 congestion)
     if (actuatorsInterval) clearInterval(actuatorsInterval);
-    actuatorsInterval = setInterval(refreshActuators, 5000);
+    actuatorsInterval = setInterval(refreshActuators, 3000);
 
     // Initial load
     refreshActuators();

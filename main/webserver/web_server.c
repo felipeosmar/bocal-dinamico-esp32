@@ -13,12 +13,14 @@
 
 #include "wifi_manager.h"
 #include "config_manager.h"
+#include "rs485_driver.h"
 #include "modbus_rtu.h"
 #include "mightyzap.h"
 
 static const char *TAG = "WEB_SRV";
 
 // External globals from main
+extern rs485_handle_t g_rs485;
 extern modbus_handle_t g_modbus;
 extern mightyzap_handle_t g_actuator;
 
@@ -26,18 +28,6 @@ extern mightyzap_handle_t g_actuator;
 static httpd_handle_t s_server = NULL;
 static web_server_config_t s_config;
 static bool s_running = false;
-
-// Remote slave register addresses - LED Control (0x0000-0x0002)
-#define REG_LED_STATE       0x0000
-#define REG_BLINK_MODE      0x0001
-#define REG_BLINK_PERIOD    0x0002
-
-// Remote slave register addresses - System/Config (0x0100-0x01FF)
-#define REG_SLAVE_ID        0x0100
-#define REG_FW_VERSION      0x0101
-#define REG_SAVE_CONFIG     0x0102
-#define REG_REBOOT          0x0103
-#define REBOOT_MAGIC        0xBEEF
 
 // Forward declarations
 static esp_err_t serve_file(httpd_req_t *req, const char *filepath, const char *content_type);
@@ -1073,322 +1063,6 @@ static esp_err_t api_wifi_status_handler(httpd_req_t *req)
 }
 
 // ============================================================================
-// API Handlers - LED Control (Remote Slave)
-// ============================================================================
-
-static esp_err_t api_led_status_handler(httpd_req_t *req)
-{
-    cJSON *root = cJSON_CreateObject();
-
-    if (g_modbus == NULL) {
-        cJSON_AddBoolToObject(root, "error", true);
-        cJSON_AddStringToObject(root, "message", "Modbus not initialized");
-    } else {
-        uint16_t values[3];
-        esp_err_t ret = modbus_read_holding_registers(g_modbus, config_get_modbus_slave_id(),
-                                                       REG_LED_STATE, 3, values);
-        if (ret == ESP_OK) {
-            cJSON_AddBoolToObject(root, "error", false);
-            cJSON_AddBoolToObject(root, "led_on", values[0] != 0);
-            cJSON_AddBoolToObject(root, "blink_mode", values[1] != 0);
-            cJSON_AddNumberToObject(root, "blink_period", values[2]);
-        } else {
-            cJSON_AddBoolToObject(root, "error", true);
-            cJSON_AddStringToObject(root, "message", "Slave not responding");
-        }
-    }
-
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
-
-static esp_err_t api_led_control_handler(httpd_req_t *req)
-{
-    char buf[256];
-    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
-    if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    }
-    buf[ret] = '\0';
-
-    cJSON *root = cJSON_Parse(buf);
-    if (root == NULL) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
-    }
-
-    cJSON *response = cJSON_CreateObject();
-    esp_err_t err = ESP_FAIL;
-
-    if (g_modbus == NULL) {
-        cJSON_AddBoolToObject(response, "success", false);
-        cJSON_AddStringToObject(response, "message", "Modbus not initialized");
-    } else {
-        // Check for LED state
-        cJSON *led_on = cJSON_GetObjectItem(root, "led_on");
-        if (cJSON_IsBool(led_on)) {
-            err = modbus_write_single_register(g_modbus, config_get_modbus_slave_id(),
-                                               REG_LED_STATE, cJSON_IsTrue(led_on) ? 1 : 0);
-        }
-
-        // Check for blink mode
-        cJSON *blink = cJSON_GetObjectItem(root, "blink_mode");
-        if (cJSON_IsBool(blink)) {
-            err = modbus_write_single_register(g_modbus, config_get_modbus_slave_id(),
-                                               REG_BLINK_MODE, cJSON_IsTrue(blink) ? 1 : 0);
-        }
-
-        // Check for blink period
-        cJSON *period = cJSON_GetObjectItem(root, "blink_period");
-        if (cJSON_IsNumber(period)) {
-            int val = period->valueint;
-            if (val >= 100 && val <= 10000) {
-                err = modbus_write_single_register(g_modbus, config_get_modbus_slave_id(),
-                                                   REG_BLINK_PERIOD, val);
-            }
-        }
-
-        cJSON_AddBoolToObject(response, "success", err == ESP_OK);
-        cJSON_AddStringToObject(response, "message", err == ESP_OK ? "OK" : "Failed");
-    }
-
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(response);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
-
-// ============================================================================
-// API Handlers - LED Modbus (Full Slave Protocol Support)
-// ============================================================================
-
-// GET /api/ledmodbus/status - Get full LED slave status
-static esp_err_t api_ledmodbus_status_handler(httpd_req_t *req)
-{
-    cJSON *root = cJSON_CreateObject();
-
-    // Get slave ID from query parameter
-    char query_buf[32] = {0};
-    char id_param[8] = "2";  // Default
-    if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) == ESP_OK) {
-        httpd_query_key_value(query_buf, "id", id_param, sizeof(id_param));
-    }
-    uint8_t slave_id = atoi(id_param);
-
-    if (g_modbus == NULL) {
-        cJSON_AddBoolToObject(root, "connected", false);
-        cJSON_AddStringToObject(root, "error", "Modbus not initialized");
-    } else {
-        // Read LED registers (0x0000-0x0002)
-        uint16_t led_values[3];
-        esp_err_t ret = modbus_read_holding_registers(g_modbus, slave_id,
-                                                       REG_LED_STATE, 3, led_values);
-        if (ret == ESP_OK) {
-            cJSON_AddBoolToObject(root, "connected", true);
-            cJSON_AddNumberToObject(root, "slave_id", slave_id);
-            cJSON_AddBoolToObject(root, "led_on", led_values[0] != 0);
-            cJSON_AddBoolToObject(root, "blink_mode", led_values[1] != 0);
-            cJSON_AddNumberToObject(root, "blink_period", led_values[2]);
-
-            // Read firmware version (0x0101)
-            uint16_t fw_version = 0;
-            if (modbus_read_holding_registers(g_modbus, slave_id,
-                                              REG_FW_VERSION, 1, &fw_version) == ESP_OK) {
-                char fw_str[16];
-                snprintf(fw_str, sizeof(fw_str), "v%d.%d", (fw_version >> 8) & 0xFF, fw_version & 0xFF);
-                cJSON_AddStringToObject(root, "fw_version", fw_str);
-            } else {
-                cJSON_AddStringToObject(root, "fw_version", "unknown");
-            }
-        } else {
-            cJSON_AddBoolToObject(root, "connected", false);
-            cJSON_AddStringToObject(root, "error", "Slave not responding");
-        }
-    }
-
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
-
-// POST /api/ledmodbus/control - Control LED state, blink mode, period
-static esp_err_t api_ledmodbus_control_handler(httpd_req_t *req)
-{
-    char buf[256];
-    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
-    if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    }
-    buf[ret] = '\0';
-
-    cJSON *root = cJSON_Parse(buf);
-    if (root == NULL) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
-    }
-
-    cJSON *response = cJSON_CreateObject();
-    esp_err_t err = ESP_FAIL;
-
-    // Get slave ID
-    cJSON *id_json = cJSON_GetObjectItem(root, "slave_id");
-    uint8_t slave_id = cJSON_IsNumber(id_json) ? id_json->valueint : config_get_modbus_slave_id();
-
-    if (g_modbus == NULL) {
-        cJSON_AddBoolToObject(response, "success", false);
-        cJSON_AddStringToObject(response, "message", "Modbus not initialized");
-    } else {
-        // Check for LED state
-        cJSON *led_on = cJSON_GetObjectItem(root, "led_on");
-        if (cJSON_IsBool(led_on)) {
-            err = modbus_write_single_register(g_modbus, slave_id,
-                                               REG_LED_STATE, cJSON_IsTrue(led_on) ? 1 : 0);
-        }
-
-        // Check for blink mode
-        cJSON *blink = cJSON_GetObjectItem(root, "blink_mode");
-        if (cJSON_IsBool(blink)) {
-            err = modbus_write_single_register(g_modbus, slave_id,
-                                               REG_BLINK_MODE, cJSON_IsTrue(blink) ? 1 : 0);
-        }
-
-        // Check for blink period
-        cJSON *period = cJSON_GetObjectItem(root, "blink_period");
-        if (cJSON_IsNumber(period)) {
-            int val = period->valueint;
-            if (val >= 100 && val <= 10000) {
-                err = modbus_write_single_register(g_modbus, slave_id,
-                                                   REG_BLINK_PERIOD, val);
-            } else {
-                cJSON_AddBoolToObject(response, "success", false);
-                cJSON_AddStringToObject(response, "message", "Period must be 100-10000ms");
-                goto send_response_ledmodbus;
-            }
-        }
-
-        cJSON_AddBoolToObject(response, "success", err == ESP_OK);
-        cJSON_AddStringToObject(response, "message", err == ESP_OK ? "OK" : "Command failed");
-    }
-
-send_response_ledmodbus:
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-
-    cJSON_Delete(response);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
-
-// POST /api/ledmodbus/config - Change slave ID, save config, reboot
-static esp_err_t api_ledmodbus_config_handler(httpd_req_t *req)
-{
-    char buf[256];
-    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
-    if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    }
-    buf[ret] = '\0';
-
-    cJSON *root = cJSON_Parse(buf);
-    if (root == NULL) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
-    }
-
-    cJSON *response = cJSON_CreateObject();
-    esp_err_t err = ESP_FAIL;
-
-    // Get current slave ID
-    cJSON *id_json = cJSON_GetObjectItem(root, "slave_id");
-    uint8_t slave_id = cJSON_IsNumber(id_json) ? id_json->valueint : config_get_modbus_slave_id();
-
-    if (g_modbus == NULL) {
-        cJSON_AddBoolToObject(response, "success", false);
-        cJSON_AddStringToObject(response, "message", "Modbus not initialized");
-        goto send_config_response;
-    }
-
-    // Check for new slave ID change
-    cJSON *new_id = cJSON_GetObjectItem(root, "new_slave_id");
-    if (cJSON_IsNumber(new_id)) {
-        int val = new_id->valueint;
-        if (val >= 1 && val <= 247) {
-            ESP_LOGI(TAG, "Changing slave ID from %d to %d", slave_id, val);
-            err = modbus_write_single_register(g_modbus, slave_id, REG_SLAVE_ID, val);
-            if (err == ESP_OK) {
-                cJSON_AddBoolToObject(response, "success", true);
-                cJSON_AddStringToObject(response, "message", "Slave ID changed. Device will reboot.");
-                cJSON_AddNumberToObject(response, "new_id", val);
-                goto send_config_response;
-            }
-        } else {
-            cJSON_AddBoolToObject(response, "success", false);
-            cJSON_AddStringToObject(response, "message", "Slave ID must be 1-247");
-            goto send_config_response;
-        }
-    }
-
-    // Check for save config command
-    cJSON *save = cJSON_GetObjectItem(root, "save_config");
-    if (cJSON_IsTrue(save)) {
-        ESP_LOGI(TAG, "Sending save config command to slave %d", slave_id);
-        err = modbus_write_single_register(g_modbus, slave_id, REG_SAVE_CONFIG, 1);
-        if (err == ESP_OK) {
-            cJSON_AddBoolToObject(response, "success", true);
-            cJSON_AddStringToObject(response, "message", "Configuration saved to flash");
-            goto send_config_response;
-        }
-    }
-
-    // Check for reboot command
-    cJSON *reboot = cJSON_GetObjectItem(root, "reboot");
-    if (cJSON_IsTrue(reboot)) {
-        ESP_LOGI(TAG, "Sending reboot command to slave %d", slave_id);
-        err = modbus_write_single_register(g_modbus, slave_id, REG_REBOOT, REBOOT_MAGIC);
-        if (err == ESP_OK) {
-            cJSON_AddBoolToObject(response, "success", true);
-            cJSON_AddStringToObject(response, "message", "Slave device rebooting...");
-            goto send_config_response;
-        }
-    }
-
-    cJSON_AddBoolToObject(response, "success", err == ESP_OK);
-    cJSON_AddStringToObject(response, "message", err == ESP_OK ? "OK" : "Command failed");
-
-send_config_response:
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-
-    cJSON_Delete(response);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
-
-// ============================================================================
 // API Handlers - Actuator Control (mightyZAP) - Multi-actuator support
 // ============================================================================
 
@@ -1612,15 +1286,22 @@ static esp_err_t api_actuator_scan_handler(httpd_req_t *req)
         return ESP_OK;
     }
 
-    ESP_LOGI(TAG, "Scanning for mightyZAP actuators (IDs 1-10)...");
+    uint8_t max_id = config_get_scan_max_id();
+    if (max_id < 1) max_id = 1;
+    if (max_id > 247) max_id = 247;
+
+    ESP_LOGI(TAG, "Scanning for mightyZAP actuators (IDs 1-%d)...", max_id);
+
+    // Suppress timeout warnings during scan
+    esp_log_level_set("RS485", ESP_LOG_ERROR);
+    esp_log_level_set("MODBUS", ESP_LOG_ERROR);
 
     int count = 0;
-    for (uint8_t id = 1; id <= 10; id++) {
+    for (uint8_t id = 1; id <= max_id; id++) {
         uint16_t model = 0;
         esp_err_t ret = modbus_read_holding_registers(g_modbus, id,
                                                        MZAP_REG_MODEL_NUMBER, 1, &model);
         // mightyZAP models are typically > 100 (e.g., 350, 500, etc.)
-        // This filters out false positives from LED slaves where reg 0x0000 is LED state (0 or 1)
         if (ret == ESP_OK && model > 100) {
             ESP_LOGI(TAG, "Found actuator at ID %d, model: %u", id, model);
 
@@ -1635,6 +1316,10 @@ static esp_err_t api_actuator_scan_handler(httpd_req_t *req)
         }
         vTaskDelay(pdMS_TO_TICKS(50));
     }
+
+    // Restore log levels
+    esp_log_level_set("RS485", ESP_LOG_WARN);
+    esp_log_level_set("MODBUS", ESP_LOG_WARN);
 
     cJSON_AddItemToObject(root, "found", found);
     cJSON_AddNumberToObject(root, "count", count);
@@ -1802,6 +1487,162 @@ static esp_err_t api_rs485_config_handler(httpd_req_t *req)
 }
 
 // ============================================================================
+// API Handlers - RS485 Diagnostics
+// ============================================================================
+
+// GET /api/rs485/diag - Get RS485/Modbus diagnostics
+static esp_err_t api_rs485_diag_handler(httpd_req_t *req)
+{
+    cJSON *root = cJSON_CreateObject();
+
+    // RS485 status
+    cJSON_AddBoolToObject(root, "rs485_ready", g_rs485 != NULL);
+    cJSON_AddBoolToObject(root, "modbus_ready", g_modbus != NULL);
+
+    // Configuration
+    cJSON *config = cJSON_CreateObject();
+    cJSON_AddNumberToObject(config, "baud_rate", config_get_rs485_baud());
+    cJSON_AddNumberToObject(config, "tx_pin", config_get_rs485_tx_pin());
+    cJSON_AddNumberToObject(config, "rx_pin", config_get_rs485_rx_pin());
+    cJSON_AddNumberToObject(config, "de_pin", config_get_rs485_de_pin());
+    cJSON_AddNumberToObject(config, "timeout_ms", config_get_modbus_timeout());
+    cJSON_AddItemToObject(root, "config", config);
+
+    // Modbus statistics
+    const modbus_stats_t *stats = modbus_get_stats();
+    if (stats) {
+        cJSON *modbus_stats = cJSON_CreateObject();
+        cJSON_AddNumberToObject(modbus_stats, "tx_count", stats->tx_count);
+        cJSON_AddNumberToObject(modbus_stats, "rx_count", stats->rx_count);
+        cJSON_AddNumberToObject(modbus_stats, "error_count", stats->error_count);
+        cJSON_AddNumberToObject(modbus_stats, "timeout_count", stats->timeout_count);
+        cJSON_AddNumberToObject(modbus_stats, "crc_error_count", stats->crc_error_count);
+        cJSON_AddNumberToObject(modbus_stats, "retry_count", stats->retry_count);
+
+        // Calculate success rate
+        if (stats->tx_count > 0) {
+            double success_rate = (double)stats->rx_count / (double)stats->tx_count * 100.0;
+            cJSON_AddNumberToObject(modbus_stats, "success_rate", success_rate);
+        } else {
+            cJSON_AddNumberToObject(modbus_stats, "success_rate", 0);
+        }
+        cJSON_AddItemToObject(root, "stats", modbus_stats);
+    }
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+
+    free(json_str);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+// POST /api/rs485/test - Test communication with a Modbus slave
+static esp_err_t api_rs485_test_handler(httpd_req_t *req)
+{
+    char buf[256];
+    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
+    if (ret <= 0) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+    buf[ret] = '\0';
+
+    cJSON *root = cJSON_Parse(buf);
+    if (root == NULL) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+    cJSON *response = cJSON_CreateObject();
+
+    if (g_modbus == NULL) {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "error", "Modbus not initialized");
+        goto send_test_response;
+    }
+
+    // Get slave ID (default 1 for mightyZAP)
+    cJSON *id_json = cJSON_GetObjectItem(root, "slave_id");
+    uint8_t slave_id = cJSON_IsNumber(id_json) ? id_json->valueint : 1;
+
+    // Get register to read (default 0x0000 for model number)
+    cJSON *reg_json = cJSON_GetObjectItem(root, "register");
+    uint16_t reg_addr = cJSON_IsNumber(reg_json) ? reg_json->valueint : 0x0000;
+
+    // Get number of registers (default 1)
+    cJSON *count_json = cJSON_GetObjectItem(root, "count");
+    uint16_t count = cJSON_IsNumber(count_json) ? count_json->valueint : 1;
+    if (count > 10) count = 10;  // Limit to 10 registers
+
+    ESP_LOGI(TAG, "RS485 Test: slave=%d, reg=0x%04X, count=%d", slave_id, reg_addr, count);
+
+    uint16_t values[10] = {0};
+    esp_err_t err = modbus_read_holding_registers(g_modbus, slave_id, reg_addr, count, values);
+
+    cJSON_AddNumberToObject(response, "slave_id", slave_id);
+    cJSON_AddNumberToObject(response, "register", reg_addr);
+    cJSON_AddNumberToObject(response, "count", count);
+
+    if (err == ESP_OK) {
+        cJSON_AddBoolToObject(response, "success", true);
+        cJSON *data = cJSON_CreateArray();
+        for (int i = 0; i < count; i++) {
+            cJSON_AddItemToArray(data, cJSON_CreateNumber(values[i]));
+        }
+        cJSON_AddItemToObject(response, "data", data);
+
+        // Show hex representation too
+        char hex_str[64] = {0};
+        size_t pos = 0;
+        for (int i = 0; i < count && pos < sizeof(hex_str) - 6; i++) {
+            pos += snprintf(hex_str + pos, sizeof(hex_str) - pos, "0x%04X ", values[i]);
+        }
+        cJSON_AddStringToObject(response, "hex", hex_str);
+    } else {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "error", esp_err_to_name(err));
+
+        // Get last Modbus exception if available
+        modbus_exception_t ex = modbus_get_last_exception(g_modbus);
+        if (ex != MODBUS_EX_NONE) {
+            cJSON_AddNumberToObject(response, "exception_code", ex);
+        }
+    }
+
+send_test_response:
+    {
+        char *json_str = cJSON_PrintUnformatted(response);
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, json_str, strlen(json_str));
+        free(json_str);
+    }
+
+    cJSON_Delete(response);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+// POST /api/rs485/reset_stats - Reset Modbus statistics
+static esp_err_t api_rs485_reset_stats_handler(httpd_req_t *req)
+{
+    modbus_reset_stats();
+
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddBoolToObject(response, "success", true);
+    cJSON_AddStringToObject(response, "message", "Statistics reset");
+
+    char *json_str = cJSON_PrintUnformatted(response);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+
+    free(json_str);
+    cJSON_Delete(response);
+    return ESP_OK;
+}
+
+// ============================================================================
 // API Handlers - System Control
 // ============================================================================
 
@@ -1872,7 +1713,7 @@ esp_err_t web_server_init(const web_server_config_t *config)
 
     httpd_config_t http_config = HTTPD_DEFAULT_CONFIG();
     http_config.server_port = s_config.port;
-    http_config.max_uri_handlers = 45;
+    http_config.max_uri_handlers = 50;
     http_config.stack_size = 8192;
 
     ESP_LOGI(TAG, "Starting server on port %d", http_config.server_port);
@@ -1907,13 +1748,11 @@ esp_err_t web_server_init(const web_server_config_t *config)
 
     // Tabs HTML files
     httpd_uri_t tabs_actuators_html = { .uri = "/tabs/actuators.html", .method = HTTP_GET, .handler = tabs_html_handler };
-    httpd_uri_t tabs_ledmodbus_html = { .uri = "/tabs/ledmodbus.html", .method = HTTP_GET, .handler = tabs_html_handler };
     httpd_uri_t tabs_system_html = { .uri = "/tabs/system.html", .method = HTTP_GET, .handler = tabs_html_handler };
     httpd_uri_t tabs_config_html = { .uri = "/tabs/config.html", .method = HTTP_GET, .handler = tabs_html_handler };
     httpd_uri_t tabs_files_html = { .uri = "/tabs/files.html", .method = HTTP_GET, .handler = tabs_html_handler };
     httpd_uri_t tabs_tasks_html = { .uri = "/tabs/tasks.html", .method = HTTP_GET, .handler = tabs_html_handler };
     httpd_register_uri_handler(s_server, &tabs_actuators_html);
-    httpd_register_uri_handler(s_server, &tabs_ledmodbus_html);
     httpd_register_uri_handler(s_server, &tabs_system_html);
     httpd_register_uri_handler(s_server, &tabs_config_html);
     httpd_register_uri_handler(s_server, &tabs_files_html);
@@ -1921,13 +1760,11 @@ esp_err_t web_server_init(const web_server_config_t *config)
 
     // Tabs JS files
     httpd_uri_t tabs_actuators_js = { .uri = "/tabs/actuators.js", .method = HTTP_GET, .handler = tabs_js_handler };
-    httpd_uri_t tabs_ledmodbus_js = { .uri = "/tabs/ledmodbus.js", .method = HTTP_GET, .handler = tabs_js_handler };
     httpd_uri_t tabs_system_js = { .uri = "/tabs/system.js", .method = HTTP_GET, .handler = tabs_js_handler };
     httpd_uri_t tabs_config_js = { .uri = "/tabs/config.js", .method = HTTP_GET, .handler = tabs_js_handler };
     httpd_uri_t tabs_files_js = { .uri = "/tabs/files.js", .method = HTTP_GET, .handler = tabs_js_handler };
     httpd_uri_t tabs_tasks_js = { .uri = "/tabs/tasks.js", .method = HTTP_GET, .handler = tabs_js_handler };
     httpd_register_uri_handler(s_server, &tabs_actuators_js);
-    httpd_register_uri_handler(s_server, &tabs_ledmodbus_js);
     httpd_register_uri_handler(s_server, &tabs_system_js);
     httpd_register_uri_handler(s_server, &tabs_config_js);
     httpd_register_uri_handler(s_server, &tabs_files_js);
@@ -2048,43 +1885,6 @@ esp_err_t web_server_init(const web_server_config_t *config)
     };
     httpd_register_uri_handler(s_server, &wifi_status_uri);
 
-    // API - LED Control
-    httpd_uri_t led_status_uri = {
-        .uri = "/api/led/status",
-        .method = HTTP_GET,
-        .handler = api_led_status_handler,
-    };
-    httpd_register_uri_handler(s_server, &led_status_uri);
-
-    httpd_uri_t led_control_uri = {
-        .uri = "/api/led/control",
-        .method = HTTP_POST,
-        .handler = api_led_control_handler,
-    };
-    httpd_register_uri_handler(s_server, &led_control_uri);
-
-    // API - LED Modbus (Full Protocol Support)
-    httpd_uri_t ledmodbus_status_uri = {
-        .uri = "/api/ledmodbus/status",
-        .method = HTTP_GET,
-        .handler = api_ledmodbus_status_handler,
-    };
-    httpd_register_uri_handler(s_server, &ledmodbus_status_uri);
-
-    httpd_uri_t ledmodbus_control_uri = {
-        .uri = "/api/ledmodbus/control",
-        .method = HTTP_POST,
-        .handler = api_ledmodbus_control_handler,
-    };
-    httpd_register_uri_handler(s_server, &ledmodbus_control_uri);
-
-    httpd_uri_t ledmodbus_config_uri = {
-        .uri = "/api/ledmodbus/config",
-        .method = HTTP_POST,
-        .handler = api_ledmodbus_config_handler,
-    };
-    httpd_register_uri_handler(s_server, &ledmodbus_config_uri);
-
     // API - RS485 Config
     httpd_uri_t rs485_config_get_uri = {
         .uri = "/api/rs485/config",
@@ -2099,6 +1899,28 @@ esp_err_t web_server_init(const web_server_config_t *config)
         .handler = api_rs485_config_handler,
     };
     httpd_register_uri_handler(s_server, &rs485_config_post_uri);
+
+    // API - RS485 Diagnostics
+    httpd_uri_t rs485_diag_uri = {
+        .uri = "/api/rs485/diag",
+        .method = HTTP_GET,
+        .handler = api_rs485_diag_handler,
+    };
+    httpd_register_uri_handler(s_server, &rs485_diag_uri);
+
+    httpd_uri_t rs485_test_uri = {
+        .uri = "/api/rs485/test",
+        .method = HTTP_POST,
+        .handler = api_rs485_test_handler,
+    };
+    httpd_register_uri_handler(s_server, &rs485_test_uri);
+
+    httpd_uri_t rs485_reset_stats_uri = {
+        .uri = "/api/rs485/reset_stats",
+        .method = HTTP_POST,
+        .handler = api_rs485_reset_stats_handler,
+    };
+    httpd_register_uri_handler(s_server, &rs485_reset_stats_uri);
 
     // API - Actuator Control (Multi-actuator)
     httpd_uri_t actuator_status_uri = {

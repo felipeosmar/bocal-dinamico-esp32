@@ -33,6 +33,9 @@ typedef struct {
     uint8_t modbus_slave_id;
     uint32_t modbus_timeout;
 
+    // Actuator
+    uint8_t scan_max_id;
+
     // Web
     char web_username[32];
     char web_password[64];
@@ -90,18 +93,20 @@ void config_reset_defaults(void)
     strcpy(s_config.wifi_ssid, "");
     strcpy(s_config.wifi_password, "");
     s_config.wifi_ap_mode = true;  // Start in AP mode by default
-    strcpy(s_config.ap_ssid, "ESP32-Master");
+    strcpy(s_config.ap_ssid, "Bocal-Dinamico");
     strcpy(s_config.ap_password, "12345678");
 
-    // RS485 defaults (safe pins)
-    s_config.rs485_baud = 19200;
+    // RS485 defaults (safe pins, 57600 for mightyZAP)
+    s_config.rs485_baud = 57600;
     s_config.rs485_tx_pin = 17;
     s_config.rs485_rx_pin = 5;
     s_config.rs485_de_pin = 18;
 
     // Modbus defaults
-    s_config.modbus_slave_id = 10;     // Remote ESP32 Slave ID
-    s_config.modbus_timeout = 500;
+    s_config.modbus_timeout = 100;  // Reduced from 500ms for faster response
+
+    // Actuator defaults
+    s_config.scan_max_id = 3;  // Scan IDs 1-3 by default
 
     // Web defaults
     strcpy(s_config.web_username, "admin");
@@ -207,6 +212,15 @@ esp_err_t config_load(void)
         }
     }
 
+    // Actuator section
+    cJSON *actuator = cJSON_GetObjectItem(root, "actuator");
+    if (actuator) {
+        cJSON *item;
+        if ((item = cJSON_GetObjectItem(actuator, "scan_max_id")) && cJSON_IsNumber(item)) {
+            s_config.scan_max_id = item->valueint;
+        }
+    }
+
     // Web section
     cJSON *web = cJSON_GetObjectItem(root, "web");
     if (web) {
@@ -259,6 +273,11 @@ esp_err_t config_save(void)
     cJSON_AddNumberToObject(modbus, "slave_id", s_config.modbus_slave_id);
     cJSON_AddNumberToObject(modbus, "timeout", s_config.modbus_timeout);
     cJSON_AddItemToObject(root, "modbus", modbus);
+
+    // Actuator section
+    cJSON *actuator = cJSON_CreateObject();
+    cJSON_AddNumberToObject(actuator, "scan_max_id", s_config.scan_max_id);
+    cJSON_AddItemToObject(root, "actuator", actuator);
 
     // Web section
     cJSON *web = cJSON_CreateObject();
@@ -390,6 +409,18 @@ uint32_t config_get_modbus_timeout(void) { return s_config.modbus_timeout; }
 
 void config_set_modbus_slave_id(uint8_t id) { s_config.modbus_slave_id = id; }
 void config_set_modbus_timeout(uint32_t timeout_ms) { s_config.modbus_timeout = timeout_ms; }
+
+// ============================================================================
+// Getters - Actuator
+// ============================================================================
+
+uint8_t config_get_scan_max_id(void) { return s_config.scan_max_id; }
+
+// ============================================================================
+// Setters - Actuator
+// ============================================================================
+
+void config_set_scan_max_id(uint8_t max_id) { s_config.scan_max_id = max_id; }
 
 // ============================================================================
 // Getters - Web

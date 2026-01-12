@@ -7,6 +7,29 @@
 
 static const char *TAG = "RS485";
 
+// Enable verbose hex dump of TX/RX data (set to 1 for debugging)
+#ifndef RS485_DEBUG_HEX_DUMP
+#define RS485_DEBUG_HEX_DUMP 1
+#endif
+
+#if RS485_DEBUG_HEX_DUMP
+static void hex_dump(const char *prefix, const uint8_t *data, size_t len)
+{
+    if (len == 0) return;
+
+    char buf[128];
+    size_t pos = 0;
+
+    for (size_t i = 0; i < len && pos < sizeof(buf) - 4; i++) {
+        pos += snprintf(buf + pos, sizeof(buf) - pos, "%02X ", data[i]);
+    }
+
+    ESP_LOGI(TAG, "%s [%u bytes]: %s", prefix, (unsigned)len, buf);
+}
+#else
+#define hex_dump(prefix, data, len) do {} while(0)
+#endif
+
 /**
  * @brief Internal RS485 driver structure
  */
@@ -121,6 +144,8 @@ esp_err_t rs485_send(rs485_handle_t handle, const uint8_t *data, size_t len, uin
 
     struct rs485_driver *drv = handle;
 
+    hex_dump("TX", data, len);
+
     int written = uart_write_bytes(drv->uart_num, data, len);
     if (written < 0) {
         ESP_LOGE(TAG, "UART write failed");
@@ -153,8 +178,11 @@ esp_err_t rs485_receive(rs485_handle_t handle, uint8_t *data, size_t max_len, si
     }
 
     if (len == 0) {
+        ESP_LOGW(TAG, "RX timeout - no response from slave");
         return ESP_ERR_TIMEOUT;
     }
+
+    hex_dump("RX", data, len);
 
     *received = len;
     return ESP_OK;

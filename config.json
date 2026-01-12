@@ -1,0 +1,27 @@
+{
+    "wifi": {
+        "ssid": "Escalador",
+        "password": "Escalador@123",
+        "ap_mode": false,
+        "ap_ssid": "Bocal-Dinamico",
+        "ap_password": "12345678"
+    },
+    "rs485": {
+        "baud": 57600,
+        "tx_pin": 17,
+        "rx_pin": 5,
+        "de_pin": 18
+    },
+    "modbus": {
+        "slave_id": 3,
+        "timeout": 100
+    },
+    "web": {
+        "username": "admin",
+        "password": "admin",
+        "auth_enabled": true
+    },
+    "actuator": {
+        "scan_max_id": 20
+    }
+}

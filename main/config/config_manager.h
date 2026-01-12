@@ -78,6 +78,13 @@ void config_set_modbus_slave_id(uint8_t id);
 void config_set_modbus_timeout(uint32_t timeout_ms);
 
 // ============================================================================
+// Actuator Configuration
+// ============================================================================
+
+uint8_t config_get_scan_max_id(void);
+void config_set_scan_max_id(uint8_t max_id);
+
+// ============================================================================
 // Web Server Configuration
 // ============================================================================
 

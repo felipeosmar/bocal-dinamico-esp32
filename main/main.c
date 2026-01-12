@@ -3,7 +3,6 @@
  * @brief ESP32 Master - RS485 Modbus RTU with Web Interface
  *
  * This application provides:
- * - RS485 communication with ESP32 Slave (LED control)
  * - RS485 communication with mightyZAP actuators
  * - Web interface for configuration and control
  * - WiFi AP/STA mode
@@ -35,11 +34,6 @@ mightyzap_handle_t g_actuator = NULL;
 
 // Actuator configuration
 #define ACTUATOR_SLAVE_ID   1   // mightyZAP default ID
-
-// Remote ESP32 Slave register addresses (slave ID from config)
-#define REG_LED_STATE       0x0000
-#define REG_BLINK_MODE      0x0001
-#define REG_BLINK_PERIOD    0x0002
 
 /**
  * @brief Initialize RS485 and Modbus using config
@@ -146,46 +140,14 @@ static esp_err_t init_wifi(void)
     return ret;
 }
 
-/**
- * @brief Test connection to ESP32 Slave
- */
-static esp_err_t test_slave_connection(void)
-{
-    if (g_modbus == NULL) return ESP_ERR_INVALID_STATE;
-
-    uint16_t led_state;
-    esp_err_t ret = modbus_read_holding_registers(g_modbus, config_get_modbus_slave_id(),
-                                                   REG_LED_STATE, 1, &led_state);
-
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Slave connected, LED state: %u", led_state);
-    } else {
-        ESP_LOGD(TAG, "Slave not responding");
-    }
-    return ret;
-}
-
-/**
- * @brief Modbus polling task - periodically checks slave status
- */
-static void modbus_task(void *pvParameters)
-{
-    ESP_LOGI(TAG, "Modbus polling task started");
-
-    // Wait for system to stabilize
-    vTaskDelay(pdMS_TO_TICKS(2000));
-
-    while (1) {
-        // Test slave connection periodically
-        test_slave_connection();
-
-        // Poll every 5 seconds
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
-}
-
 void app_main(void)
 {
+    // Set log level to WARN (suppress INFO and DEBUG messages)
+    esp_log_level_set("*", ESP_LOG_WARN);
+
+    // Allow important startup messages
+    esp_log_level_set("MASTER", ESP_LOG_INFO);
+
     ESP_LOGI(TAG, "==========================================");
     ESP_LOGI(TAG, "  ESP32 Master - RS485 + Web Interface");
     ESP_LOGI(TAG, "==========================================");
@@ -233,22 +195,6 @@ void app_main(void)
         ESP_LOGI(TAG, "==========================================");
         ESP_LOGI(TAG, "  Web Interface: http://%s", ip);
         ESP_LOGI(TAG, "==========================================");
-    }
-
-    // Create Modbus polling task
-    if (g_modbus != NULL) {
-        BaseType_t ret = xTaskCreate(
-            modbus_task,
-            "modbus_poll",
-            4096,
-            NULL,
-            5,
-            NULL
-        );
-
-        if (ret != pdPASS) {
-            ESP_LOGW(TAG, "Failed to create Modbus polling task");
-        }
     }
 
     // Initialize health monitor (starts monitoring task)

@@ -13,6 +13,9 @@ static const char *TAG = "MIGHTYZAP";
 struct mightyzap {
     modbus_handle_t modbus;
     uint8_t slave_id;
+    uint16_t speed_limit;    // Cached speed limit
+    uint16_t current_limit;  // Cached current limit
+    bool limits_cached;      // Flag to indicate if limits are cached
 };
 
 esp_err_t mightyzap_init(modbus_handle_t modbus, uint8_t slave_id, mightyzap_handle_t *handle)
@@ -29,6 +32,9 @@ esp_err_t mightyzap_init(modbus_handle_t modbus, uint8_t slave_id, mightyzap_han
 
     zap->modbus = modbus;
     zap->slave_id = slave_id;
+    zap->speed_limit = 1023;   // Default max
+    zap->current_limit = 1600; // Default max
+    zap->limits_cached = false;
 
     ESP_LOGI(TAG, "mightyZAP initialized, ID=%u", slave_id);
 
@@ -44,6 +50,28 @@ esp_err_t mightyzap_deinit(mightyzap_handle_t handle)
 
     free(handle);
     return ESP_OK;
+}
+
+/**
+ * @brief Cache speed and current limits from actuator (called once)
+ */
+static void cache_limits(mightyzap_handle_t handle)
+{
+    if (handle->limits_cached) return;
+
+    // Try to read limits - use defaults if fails
+    if (modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                      MZAP_REG_SPEED_LIMIT, 1, &handle->speed_limit) != ESP_OK) {
+        handle->speed_limit = 1023;
+    }
+    if (modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                      MZAP_REG_CURRENT_LIMIT, 1, &handle->current_limit) != ESP_OK) {
+        handle->current_limit = 1600;
+    }
+
+    handle->limits_cached = true;
+    ESP_LOGI(TAG, "ID=%u: Cached limits - speed=%u, current=%u",
+             handle->slave_id, handle->speed_limit, handle->current_limit);
 }
 
 esp_err_t mightyzap_get_model(mightyzap_handle_t handle, uint16_t *model)
@@ -84,6 +112,15 @@ esp_err_t mightyzap_set_speed(mightyzap_handle_t handle, uint16_t speed)
         return ESP_ERR_INVALID_ARG;
     }
 
+    // Use cached limit
+    cache_limits(handle);
+
+    if (speed > handle->speed_limit) {
+        ESP_LOGW(TAG, "ID=%u: Clamping speed %u to limit %u",
+                 handle->slave_id, speed, handle->speed_limit);
+        speed = handle->speed_limit;
+    }
+
     ESP_LOGD(TAG, "ID=%u: Set speed=%u", handle->slave_id, speed);
     return modbus_write_single_register(handle->modbus, handle->slave_id,
                                         MZAP_REG_GOAL_SPEED, speed);
@@ -95,6 +132,15 @@ esp_err_t mightyzap_set_current(mightyzap_handle_t handle, uint16_t current)
         return ESP_ERR_INVALID_ARG;
     }
 
+    // Use cached limit
+    cache_limits(handle);
+
+    if (current > handle->current_limit) {
+        ESP_LOGW(TAG, "ID=%u: Clamping current %u to limit %u",
+                 handle->slave_id, current, handle->current_limit);
+        current = handle->current_limit;
+    }
+
     ESP_LOGD(TAG, "ID=%u: Set current=%u", handle->slave_id, current);
     return modbus_write_single_register(handle->modbus, handle->slave_id,
                                         MZAP_REG_GOAL_CURRENT, current);
@@ -104,6 +150,21 @@ esp_err_t mightyzap_set_goal(mightyzap_handle_t handle, uint16_t position, uint1
 {
     if (handle == NULL) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    // Use cached limits
+    cache_limits(handle);
+
+    // Clamp speed and current to their limits
+    if (speed > handle->speed_limit) {
+        ESP_LOGW(TAG, "ID=%u: Clamping speed %u to limit %u",
+                 handle->slave_id, speed, handle->speed_limit);
+        speed = handle->speed_limit;
+    }
+    if (current > handle->current_limit) {
+        ESP_LOGW(TAG, "ID=%u: Clamping current %u to limit %u",
+                 handle->slave_id, current, handle->current_limit);
+        current = handle->current_limit;
     }
 
     ESP_LOGD(TAG, "ID=%u: Set goal pos=%u, spd=%u, cur=%u",
@@ -138,29 +199,18 @@ esp_err_t mightyzap_get_status(mightyzap_handle_t handle, mightyzap_status_t *st
         return ESP_ERR_INVALID_ARG;
     }
 
-    esp_err_t ret;
-
-    // Read position
-    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
-                                        MZAP_REG_PRESENT_POSITION, 1, &status->position);
+    // Read all status registers in a single transaction (5 consecutive registers)
+    // 0x0037: Position, 0x0038: Current, 0x0039: Motor Op, 0x003A: Voltage, 0x003B: Moving
+    uint16_t regs[5];
+    esp_err_t ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                                   MZAP_REG_PRESENT_POSITION, 5, regs);
     if (ret != ESP_OK) return ret;
 
-    // Read current
-    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
-                                        MZAP_REG_PRESENT_CURRENT, 1, &status->current);
-    if (ret != ESP_OK) return ret;
-
-    // Read voltage
-    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
-                                        MZAP_REG_PRESENT_VOLTAGE, 1, &status->voltage);
-    if (ret != ESP_OK) return ret;
-
-    // Read moving status
-    uint16_t moving;
-    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
-                                        MZAP_REG_MOVING, 1, &moving);
-    if (ret != ESP_OK) return ret;
-    status->moving = moving & 0xFF;
+    status->position = regs[0];  // 0x0037
+    status->current = regs[1];   // 0x0038
+    // regs[2] is Motor Operating Rate (0x0039) - not used in status struct
+    status->voltage = regs[3];   // 0x003A
+    status->moving = regs[4] & 0xFF;  // 0x003B
 
     return ESP_OK;
 }

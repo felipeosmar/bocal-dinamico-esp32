@@ -35,6 +35,8 @@ typedef struct {
 
     // Actuator
     uint8_t scan_max_id;
+    uint8_t saved_actuator_ids[MAX_SAVED_ACTUATORS];
+    uint8_t saved_actuator_count;
 
     // Web
     char web_username[32];
@@ -107,6 +109,7 @@ void config_reset_defaults(void)
 
     // Actuator defaults
     s_config.scan_max_id = 3;  // Scan IDs 1-3 by default
+    s_config.saved_actuator_count = 0;  // No saved actuators initially
 
     // Web defaults
     strcpy(s_config.web_username, "admin");
@@ -219,6 +222,20 @@ esp_err_t config_load(void)
         if ((item = cJSON_GetObjectItem(actuator, "scan_max_id")) && cJSON_IsNumber(item)) {
             s_config.scan_max_id = item->valueint;
         }
+        // Parse saved_ids array
+        cJSON *saved_ids = cJSON_GetObjectItem(actuator, "saved_ids");
+        if (saved_ids && cJSON_IsArray(saved_ids)) {
+            s_config.saved_actuator_count = 0;
+            int array_size = cJSON_GetArraySize(saved_ids);
+            for (int i = 0; i < array_size && i < MAX_SAVED_ACTUATORS; i++) {
+                cJSON *id_item = cJSON_GetArrayItem(saved_ids, i);
+                if (id_item && cJSON_IsNumber(id_item)) {
+                    s_config.saved_actuator_ids[s_config.saved_actuator_count] = (uint8_t)id_item->valueint;
+                    s_config.saved_actuator_count++;
+                }
+            }
+            ESP_LOGI(TAG, "Loaded %d saved actuator IDs", s_config.saved_actuator_count);
+        }
     }
 
     // Web section
@@ -277,6 +294,12 @@ esp_err_t config_save(void)
     // Actuator section
     cJSON *actuator = cJSON_CreateObject();
     cJSON_AddNumberToObject(actuator, "scan_max_id", s_config.scan_max_id);
+    // Serialize saved_ids array
+    cJSON *saved_ids = cJSON_CreateArray();
+    for (int i = 0; i < s_config.saved_actuator_count; i++) {
+        cJSON_AddItemToArray(saved_ids, cJSON_CreateNumber(s_config.saved_actuator_ids[i]));
+    }
+    cJSON_AddItemToObject(actuator, "saved_ids", saved_ids);
     cJSON_AddItemToObject(root, "actuator", actuator);
 
     // Web section
@@ -416,11 +439,80 @@ void config_set_modbus_timeout(uint32_t timeout_ms) { s_config.modbus_timeout = 
 
 uint8_t config_get_scan_max_id(void) { return s_config.scan_max_id; }
 
+uint8_t config_get_saved_actuator_count(void)
+{
+    return s_config.saved_actuator_count;
+}
+
+const uint8_t* config_get_saved_actuator_ids(void)
+{
+    return s_config.saved_actuator_ids;
+}
+
 // ============================================================================
 // Setters - Actuator
 // ============================================================================
 
 void config_set_scan_max_id(uint8_t max_id) { s_config.scan_max_id = max_id; }
+
+bool config_add_saved_actuator_id(uint8_t id)
+{
+    // Check if already exists
+    for (int i = 0; i < s_config.saved_actuator_count; i++) {
+        if (s_config.saved_actuator_ids[i] == id) {
+            ESP_LOGD(TAG, "Actuator ID %d already saved", id);
+            return true;  // Already exists - success (idempotent)
+        }
+    }
+
+    // Check if array is full
+    if (s_config.saved_actuator_count >= MAX_SAVED_ACTUATORS) {
+        ESP_LOGW(TAG, "Cannot save actuator ID %d: max actuators (%d) reached",
+                 id, MAX_SAVED_ACTUATORS);
+        return false;
+    }
+
+    // Add to array
+    s_config.saved_actuator_ids[s_config.saved_actuator_count] = id;
+    s_config.saved_actuator_count++;
+    ESP_LOGI(TAG, "Added actuator ID %d to saved list (count=%d)",
+             id, s_config.saved_actuator_count);
+    return true;
+}
+
+bool config_remove_saved_actuator_id(uint8_t id)
+{
+    // Find the actuator ID in the array
+    int found_index = -1;
+    for (int i = 0; i < s_config.saved_actuator_count; i++) {
+        if (s_config.saved_actuator_ids[i] == id) {
+            found_index = i;
+            break;
+        }
+    }
+
+    if (found_index < 0) {
+        ESP_LOGD(TAG, "Actuator ID %d not found in saved list", id);
+        return true;  // Not found - success (idempotent)
+    }
+
+    // Shift remaining elements down
+    for (int i = found_index; i < s_config.saved_actuator_count - 1; i++) {
+        s_config.saved_actuator_ids[i] = s_config.saved_actuator_ids[i + 1];
+    }
+    s_config.saved_actuator_count--;
+
+    ESP_LOGI(TAG, "Removed actuator ID %d from saved list (count=%d)",
+             id, s_config.saved_actuator_count);
+    return true;
+}
+
+void config_clear_saved_actuators(void)
+{
+    memset(s_config.saved_actuator_ids, 0, sizeof(s_config.saved_actuator_ids));
+    s_config.saved_actuator_count = 0;
+    ESP_LOGI(TAG, "Cleared all saved actuators");
+}
 
 // ============================================================================
 // Getters - Web

@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/worktrees/tasks/001-persistir-atuadores-encontrados/**)",
+      "Write(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/worktrees/tasks/001-persistir-atuadores-encontrados/**)",
+      "Edit(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/worktrees/tasks/001-persistir-atuadores-encontrados/**)",
+      "Glob(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/worktrees/tasks/001-persistir-atuadores-encontrados/**)",
+      "Grep(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/worktrees/tasks/001-persistir-atuadores-encontrados/**)",
+      "Read(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/worktrees/tasks/001-persistir-atuadores-encontrados/.auto-claude/specs/001-persistir-atuadores-encontrados/**)",
+      "Write(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/worktrees/tasks/001-persistir-atuadores-encontrados/.auto-claude/specs/001-persistir-atuadores-encontrados/**)",
+      "Edit(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/worktrees/tasks/001-persistir-atuadores-encontrados/.auto-claude/specs/001-persistir-atuadores-encontrados/**)",
+      "Read(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/**)",
+      "Write(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/**)",
+      "Edit(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/**)",
+      "Glob(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/**)",
+      "Grep(/home/felipe/work/bocal-dinamico-esp32/.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

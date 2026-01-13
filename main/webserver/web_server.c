@@ -1125,6 +1125,37 @@ static void remove_actuator(uint8_t id) {
     }
 }
 
+// Helper: Load saved actuators from config on startup
+static void load_saved_actuators(void) {
+    uint8_t count = config_get_saved_actuator_count();
+    if (count == 0) {
+        ESP_LOGI(TAG, "No saved actuators to load");
+        return;
+    }
+
+    const uint8_t *ids = config_get_saved_actuator_ids();
+    if (ids == NULL) {
+        ESP_LOGW(TAG, "Failed to get saved actuator IDs");
+        return;
+    }
+
+    ESP_LOGI(TAG, "Loading %d saved actuators from config", count);
+
+    int loaded = 0;
+    for (uint8_t i = 0; i < count; i++) {
+        uint8_t id = ids[i];
+        esp_err_t ret = add_actuator(id);
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "Loaded saved actuator ID %d", id);
+            loaded++;
+        } else {
+            ESP_LOGW(TAG, "Failed to load actuator ID %d: %s", id, esp_err_to_name(ret));
+        }
+    }
+
+    ESP_LOGI(TAG, "Loaded %d of %d saved actuators", loaded, count);
+}
+
 // GET /api/actuator/status - Get status of all active actuators
 static esp_err_t api_actuator_status_handler(httpd_req_t *req)
 {
@@ -1297,6 +1328,7 @@ static esp_err_t api_actuator_scan_handler(httpd_req_t *req)
     esp_log_level_set("MODBUS", ESP_LOG_ERROR);
 
     int count = 0;
+    bool config_changed = false;
     for (uint8_t id = 1; id <= max_id; id++) {
         uint16_t model = 0;
         esp_err_t ret = modbus_read_holding_registers(g_modbus, id,
@@ -1307,6 +1339,12 @@ static esp_err_t api_actuator_scan_handler(httpd_req_t *req)
 
             // Auto-add to active actuators
             add_actuator(id);
+
+            // Persist to config (idempotent - won't duplicate)
+            if (config_add_saved_actuator_id(id)) {
+                ESP_LOGI(TAG, "Persisted actuator ID %d to config", id);
+                config_changed = true;
+            }
 
             cJSON *item = cJSON_CreateObject();
             cJSON_AddNumberToObject(item, "id", id);
@@ -1320,6 +1358,12 @@ static esp_err_t api_actuator_scan_handler(httpd_req_t *req)
     // Restore log levels
     esp_log_level_set("RS485", ESP_LOG_WARN);
     esp_log_level_set("MODBUS", ESP_LOG_WARN);
+
+    // Save config if any new actuators were persisted
+    if (config_changed) {
+        config_save();
+        ESP_LOGI(TAG, "Saved actuator config with %d actuators", count);
+    }
 
     cJSON_AddItemToObject(root, "found", found);
     cJSON_AddNumberToObject(root, "count", count);
@@ -1407,6 +1451,13 @@ static esp_err_t api_actuator_remove_handler(httpd_req_t *req)
     } else {
         uint8_t id = id_json->valueint;
         remove_actuator(id);
+
+        // Also remove from persisted config
+        if (config_remove_saved_actuator_id(id)) {
+            config_save();
+            ESP_LOGI(TAG, "Actuator removed from config: ID %d", id);
+        }
+
         ESP_LOGI(TAG, "Actuator removed: ID %d", id);
         cJSON_AddBoolToObject(response, "success", true);
         cJSON_AddStringToObject(response, "message", "Actuator removed");
@@ -1960,6 +2011,10 @@ esp_err_t web_server_init(const web_server_config_t *config)
 
     s_running = true;
     ESP_LOGI(TAG, "Web server started");
+
+    // Load saved actuators from config
+    load_saved_actuators();
+
     return ESP_OK;
 }
 

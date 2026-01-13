@@ -81,8 +81,17 @@ void config_set_modbus_timeout(uint32_t timeout_ms);
 // Actuator Configuration
 // ============================================================================
 
+#define MAX_SAVED_ACTUATORS 10
+
 uint8_t config_get_scan_max_id(void);
 void config_set_scan_max_id(uint8_t max_id);
+
+// Saved actuator ID persistence
+uint8_t config_get_saved_actuator_count(void);
+const uint8_t* config_get_saved_actuator_ids(void);
+bool config_add_saved_actuator_id(uint8_t id);
+bool config_remove_saved_actuator_id(uint8_t id);
+void config_clear_saved_actuators(void);
 
 // ============================================================================
 // Web Server Configuration

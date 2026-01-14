@@ -119,7 +119,7 @@ esp_err_t health_monitor_init(void)
     BaseType_t ret = xTaskCreate(
         health_monitor_task,
         "health_mon",
-        4096,
+        2048,
         NULL,
         tskIDLE_PRIORITY + 2,  // Low priority
         &s_health_task_handle

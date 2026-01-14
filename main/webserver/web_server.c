@@ -1362,7 +1362,7 @@ static esp_err_t api_actuator_scan_handler(httpd_req_t *req)
             cJSON_AddItemToArray(found, item);
             count++;
         }
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
     // Restore log levels

@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "008-reduce-health-monitor-task-stack-from-4kb-to-2kb",
+  "spec": "007-reduce-actuator-scan-delay-from-50ms-to-10ms-per-i",
   "state": "building",
   "subtasks": {
-    "completed": 1,
-    "total": 2,
+    "completed": 2,
+    "total": 3,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Runtime Verification",
+    "current": "Build and Flash Verification",
     "id": null,
-    "total": 1
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 3,
-    "started_at": "2026-01-14T13:01:33.970462"
+    "number": 2,
+    "started_at": "2026-01-14T13:31:17.799654"
   },
-  "last_update": "2026-01-14T13:05:27.280198"
+  "last_update": "2026-01-14T13:35:38.463621"
 }

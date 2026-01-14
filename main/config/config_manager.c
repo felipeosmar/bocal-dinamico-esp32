@@ -124,6 +124,80 @@ void config_reset_defaults(void)
 // Load/Save
 // ============================================================================
 
+// Internal save function (assumes mutex is already held)
+static esp_err_t _config_save_internal(void)
+{
+    cJSON *root = cJSON_CreateObject();
+
+    // WiFi section
+    cJSON *wifi = cJSON_CreateObject();
+    cJSON_AddStringToObject(wifi, "ssid", s_config.wifi_ssid);
+    cJSON_AddStringToObject(wifi, "password", s_config.wifi_password);
+    cJSON_AddBoolToObject(wifi, "ap_mode", s_config.wifi_ap_mode);
+    cJSON_AddStringToObject(wifi, "ap_ssid", s_config.ap_ssid);
+    cJSON_AddStringToObject(wifi, "ap_password", s_config.ap_password);
+    cJSON_AddItemToObject(root, "wifi", wifi);
+
+    // RS485 section
+    cJSON *rs485 = cJSON_CreateObject();
+    cJSON_AddNumberToObject(rs485, "baud", s_config.rs485_baud);
+    cJSON_AddNumberToObject(rs485, "tx_pin", s_config.rs485_tx_pin);
+    cJSON_AddNumberToObject(rs485, "rx_pin", s_config.rs485_rx_pin);
+    cJSON_AddNumberToObject(rs485, "de_pin", s_config.rs485_de_pin);
+    cJSON_AddItemToObject(root, "rs485", rs485);
+
+    // Modbus section
+    cJSON *modbus = cJSON_CreateObject();
+    cJSON_AddNumberToObject(modbus, "slave_id", s_config.modbus_slave_id);
+    cJSON_AddNumberToObject(modbus, "timeout", s_config.modbus_timeout);
+    cJSON_AddItemToObject(root, "modbus", modbus);
+
+    // Actuator section
+    cJSON *actuator = cJSON_CreateObject();
+    cJSON_AddNumberToObject(actuator, "scan_max_id", s_config.scan_max_id);
+    // Serialize saved_ids array
+    cJSON *saved_ids = cJSON_CreateArray();
+    for (int i = 0; i < s_config.saved_actuator_count; i++) {
+        cJSON_AddItemToArray(saved_ids, cJSON_CreateNumber(s_config.saved_actuator_ids[i]));
+    }
+    cJSON_AddItemToObject(actuator, "saved_ids", saved_ids);
+    // Serialize names array
+    cJSON *saved_names = cJSON_CreateArray();
+    for (int i = 0; i < s_config.saved_actuator_count; i++) {
+        cJSON_AddItemToArray(saved_names, cJSON_CreateString(s_config.saved_actuator_names[i]));
+    }
+    cJSON_AddItemToObject(actuator, "names", saved_names);
+    cJSON_AddItemToObject(root, "actuator", actuator);
+
+    // Web section
+    cJSON *web = cJSON_CreateObject();
+    cJSON_AddStringToObject(web, "username", s_config.web_username);
+    cJSON_AddStringToObject(web, "password", s_config.web_password);
+    cJSON_AddBoolToObject(web, "auth_enabled", s_config.web_auth_enabled);
+    cJSON_AddItemToObject(root, "web", web);
+
+    char *json_str = cJSON_Print(root);
+    cJSON_Delete(root);
+
+    if (json_str == NULL) {
+        return ESP_ERR_NO_MEM;
+    }
+
+    FILE *f = fopen(CONFIG_FILE, "w");
+    if (f == NULL) {
+        free(json_str);
+        ESP_LOGE(TAG, "Failed to open config file for writing");
+        return ESP_FAIL;
+    }
+
+    fprintf(f, "%s", json_str);
+    fclose(f);
+    free(json_str);
+
+    ESP_LOGI(TAG, "Configuration saved");
+    return ESP_OK;
+}
+
 esp_err_t config_load(void)
 {
     if (s_config_mutex && xSemaphoreTake(s_config_mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
@@ -135,7 +209,7 @@ esp_err_t config_load(void)
     if (f == NULL) {
         ESP_LOGW(TAG, "Config file not found, using defaults");
         config_reset_defaults();
-        esp_err_t ret = config_save();
+        esp_err_t ret = _config_save_internal();  // Use internal version (mutex already held)
         if (s_config_mutex) xSemaphoreGive(s_config_mutex);
         return ret;
     }
@@ -281,76 +355,10 @@ esp_err_t config_save(void)
         return ESP_ERR_TIMEOUT;
     }
 
-    cJSON *root = cJSON_CreateObject();
+    esp_err_t ret = _config_save_internal();
 
-    // WiFi section
-    cJSON *wifi = cJSON_CreateObject();
-    cJSON_AddStringToObject(wifi, "ssid", s_config.wifi_ssid);
-    cJSON_AddStringToObject(wifi, "password", s_config.wifi_password);
-    cJSON_AddBoolToObject(wifi, "ap_mode", s_config.wifi_ap_mode);
-    cJSON_AddStringToObject(wifi, "ap_ssid", s_config.ap_ssid);
-    cJSON_AddStringToObject(wifi, "ap_password", s_config.ap_password);
-    cJSON_AddItemToObject(root, "wifi", wifi);
-
-    // RS485 section
-    cJSON *rs485 = cJSON_CreateObject();
-    cJSON_AddNumberToObject(rs485, "baud", s_config.rs485_baud);
-    cJSON_AddNumberToObject(rs485, "tx_pin", s_config.rs485_tx_pin);
-    cJSON_AddNumberToObject(rs485, "rx_pin", s_config.rs485_rx_pin);
-    cJSON_AddNumberToObject(rs485, "de_pin", s_config.rs485_de_pin);
-    cJSON_AddItemToObject(root, "rs485", rs485);
-
-    // Modbus section
-    cJSON *modbus = cJSON_CreateObject();
-    cJSON_AddNumberToObject(modbus, "slave_id", s_config.modbus_slave_id);
-    cJSON_AddNumberToObject(modbus, "timeout", s_config.modbus_timeout);
-    cJSON_AddItemToObject(root, "modbus", modbus);
-
-    // Actuator section
-    cJSON *actuator = cJSON_CreateObject();
-    cJSON_AddNumberToObject(actuator, "scan_max_id", s_config.scan_max_id);
-    // Serialize saved_ids array
-    cJSON *saved_ids = cJSON_CreateArray();
-    for (int i = 0; i < s_config.saved_actuator_count; i++) {
-        cJSON_AddItemToArray(saved_ids, cJSON_CreateNumber(s_config.saved_actuator_ids[i]));
-    }
-    cJSON_AddItemToObject(actuator, "saved_ids", saved_ids);
-    // Serialize names array
-    cJSON *saved_names = cJSON_CreateArray();
-    for (int i = 0; i < s_config.saved_actuator_count; i++) {
-        cJSON_AddItemToArray(saved_names, cJSON_CreateString(s_config.saved_actuator_names[i]));
-    }
-    cJSON_AddItemToObject(actuator, "names", saved_names);
-    cJSON_AddItemToObject(root, "actuator", actuator);
-
-    // Web section
-    cJSON *web = cJSON_CreateObject();
-    cJSON_AddStringToObject(web, "username", s_config.web_username);
-    cJSON_AddStringToObject(web, "password", s_config.web_password);
-    cJSON_AddBoolToObject(web, "auth_enabled", s_config.web_auth_enabled);
-    cJSON_AddItemToObject(root, "web", web);
-
-    char *json_str = cJSON_Print(root);
-    cJSON_Delete(root);
-
-    if (json_str == NULL) {
-        return ESP_ERR_NO_MEM;
-    }
-
-    FILE *f = fopen(CONFIG_FILE, "w");
-    if (f == NULL) {
-        free(json_str);
-        ESP_LOGE(TAG, "Failed to open config file for writing");
-        return ESP_FAIL;
-    }
-
-    fprintf(f, "%s", json_str);
-    fclose(f);
-    free(json_str);
-
-    ESP_LOGI(TAG, "Configuration saved");
     if (s_config_mutex) xSemaphoreGive(s_config_mutex);
-    return ESP_OK;
+    return ret;
 }
 
 // ============================================================================

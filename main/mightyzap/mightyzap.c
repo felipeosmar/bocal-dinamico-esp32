@@ -170,17 +170,11 @@ esp_err_t mightyzap_set_goal(mightyzap_handle_t handle, uint16_t position, uint1
     ESP_LOGD(TAG, "ID=%u: Set goal pos=%u, spd=%u, cur=%u",
              handle->slave_id, position, speed, current);
 
-    // Write position first
-    esp_err_t ret = modbus_write_single_register(handle->modbus, handle->slave_id,
-                                                  MZAP_REG_GOAL_POSITION, position);
-    if (ret != ESP_OK) return ret;
-
-    ret = modbus_write_single_register(handle->modbus, handle->slave_id,
-                                        MZAP_REG_GOAL_SPEED, speed);
-    if (ret != ESP_OK) return ret;
-
-    return modbus_write_single_register(handle->modbus, handle->slave_id,
-                                        MZAP_REG_GOAL_CURRENT, current);
+    // Write all goal registers in a single transaction (3 consecutive registers)
+    // 0x0034: Position, 0x0035: Speed, 0x0036: Current
+    uint16_t regs[3] = {position, speed, current};
+    return modbus_write_multiple_registers(handle->modbus, handle->slave_id,
+                                          MZAP_REG_GOAL_POSITION, 3, regs);
 }
 
 esp_err_t mightyzap_get_position(mightyzap_handle_t handle, uint16_t *position)

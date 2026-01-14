@@ -47,10 +47,21 @@ async function api(endpoint, method = 'GET', data = null) {
         const opts = { method, headers: { 'Content-Type': 'application/json' } };
         if (data) opts.body = JSON.stringify(data);
         const res = await fetch('/api/' + endpoint, opts);
+
+        // Any successful response means connection is working
+        connectionState.connected = true;
+        connectionState.lastSuccessfulPing = Date.now();
+
         return await res.json();
     } catch (e) {
         console.error('API Error:', e);
         toast('Communication error', 'error');
+
+        // Network error - trigger reconnection if we were connected
+        if (connectionState.connected) {
+            startReconnection();
+        }
+
         throw e;
     }
 }

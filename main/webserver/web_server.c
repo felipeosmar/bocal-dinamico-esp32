@@ -16,7 +16,6 @@
 #include "rs485_driver.h"
 #include "modbus_rtu.h"
 #include "mightyzap.h"
-#include "health_monitor.h"
 
 static const char *TAG = "WEB_SRV";
 
@@ -877,39 +876,6 @@ static esp_err_t api_status_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-// GET /api/health - Get comprehensive health status
-static esp_err_t api_health_handler(httpd_req_t *req)
-{
-    const system_health_t *health = health_monitor_get_status();
-
-    cJSON *root = cJSON_CreateObject();
-
-    // System metrics
-    cJSON_AddNumberToObject(root, "uptime_seconds", health->uptime_seconds);
-    cJSON_AddNumberToObject(root, "free_heap", health->free_heap);
-    cJSON_AddNumberToObject(root, "min_free_heap", health->min_free_heap);
-    cJSON_AddNumberToObject(root, "reset_reason", health->reset_reason);
-
-    // Subsystem status
-    cJSON_AddBoolToObject(root, "wifi_connected", health->wifi_connected);
-    cJSON_AddBoolToObject(root, "modbus_active", health->modbus_active);
-    cJSON_AddBoolToObject(root, "filesystem_ok", health->filesystem_ok);
-
-    // Error tracking
-    cJSON_AddNumberToObject(root, "total_error_count", health->total_error_count);
-
-    // Overall health
-    cJSON_AddBoolToObject(root, "healthy", health_monitor_is_healthy());
-
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
-
 // GET /api/tasks - Get FreeRTOS task statistics
 static esp_err_t api_tasks_handler(httpd_req_t *req)
 {
@@ -1200,6 +1166,16 @@ static esp_err_t api_actuator_status_handler(httpd_req_t *req)
         if (s_actuators[i].active && s_actuators[i].handle) {
             cJSON *act = cJSON_CreateObject();
             cJSON_AddNumberToObject(act, "id", s_actuators[i].id);
+
+            // Add actuator name (or default if not set)
+            const char *name = config_get_actuator_name(s_actuators[i].id);
+            if (name && strlen(name) > 0) {
+                cJSON_AddStringToObject(act, "name", name);
+            } else {
+                char default_name[32];
+                snprintf(default_name, sizeof(default_name), "Actuator #%d", s_actuators[i].id);
+                cJSON_AddStringToObject(act, "name", default_name);
+            }
 
             mightyzap_status_t status;
             esp_err_t ret = mightyzap_get_status(s_actuators[i].handle, &status);
@@ -1507,8 +1483,8 @@ static esp_err_t api_actuator_remove_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-// POST /api/actuator/sync_control - Synchronized control for actuators 1 and 2
-static esp_err_t api_actuator_sync_control_handler(httpd_req_t *req)
+// POST /api/actuator/set-name - Set friendly name for actuator
+static esp_err_t api_actuator_set_name_handler(httpd_req_t *req)
 {
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
@@ -1524,136 +1500,42 @@ static esp_err_t api_actuator_sync_control_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    cJSON *id_json = cJSON_GetObjectItem(root, "id");
+    cJSON *name_json = cJSON_GetObjectItem(root, "name");
     cJSON *response = cJSON_CreateObject();
 
-    // Parse goal object
-    cJSON *goal = cJSON_GetObjectItem(root, "goal");
-    if (!cJSON_IsObject(goal)) {
+    if (!cJSON_IsNumber(id_json) || id_json->valueint < 1 || id_json->valueint > 247) {
         cJSON_AddBoolToObject(response, "success", false);
-        cJSON_AddStringToObject(response, "message", "Missing goal object");
-        goto send_sync_response;
-    }
-
-    cJSON *g_pos = cJSON_GetObjectItem(goal, "position");
-    cJSON *g_spd = cJSON_GetObjectItem(goal, "speed");
-    cJSON *g_cur = cJSON_GetObjectItem(goal, "current");
-
-    if (!cJSON_IsNumber(g_pos) || !cJSON_IsNumber(g_spd) || !cJSON_IsNumber(g_cur)) {
+        cJSON_AddStringToObject(response, "message", "Invalid ID (1-247)");
+    } else if (!cJSON_IsString(name_json)) {
         cJSON_AddBoolToObject(response, "success", false);
-        cJSON_AddStringToObject(response, "message", "Missing position, speed, or current");
-        goto send_sync_response;
-    }
-
-    // Get delay_ms with validation (default 20ms, clamp to 10-50ms)
-    cJSON *delay_json = cJSON_GetObjectItem(root, "delay_ms");
-    int delay_ms = 20;
-    if (cJSON_IsNumber(delay_json)) {
-        delay_ms = delay_json->valueint;
-        if (delay_ms < 10) delay_ms = 10;
-        if (delay_ms > 50) delay_ms = 50;
-    }
-
-    // Clamp position to valid range (0-4095)
-    int position = g_pos->valueint;
-    if (position < 0) position = 0;
-    if (position > 4095) position = 4095;
-
-    // Clamp speed (0-1023) and current (0-800)
-    int speed = g_spd->valueint;
-    if (speed < 0) speed = 0;
-    if (speed > 1023) speed = 1023;
-
-    int current = g_cur->valueint;
-    if (current < 0) current = 0;
-    if (current > 800) current = 800;
-
-    ESP_LOGI(TAG, "Sync control: pos=%d, spd=%d, cur=%d, delay=%dms",
-             position, speed, current, delay_ms);
-
-    // Find actuators 1 and 2
-    actuator_slot_t *slot1 = find_actuator(1);
-    actuator_slot_t *slot2 = find_actuator(2);
-
-    bool act1_success = false;
-    bool act2_success = false;
-    const char *act1_error = NULL;
-    const char *act2_error = NULL;
-
-    // Send command to actuator 1
-    if (slot1 != NULL && slot1->handle != NULL) {
-        esp_err_t err = mightyzap_set_goal(slot1->handle, position, speed, current);
-        if (err == ESP_OK) {
-            act1_success = true;
-            ESP_LOGI(TAG, "ID=1: Set goal position=%d, speed=%d, current=%d", position, speed, current);
-        } else {
-            act1_error = "Command failed";
-            ESP_LOGW(TAG, "ID=1: Set goal failed: %s", esp_err_to_name(err));
-        }
+        cJSON_AddStringToObject(response, "message", "Invalid name (must be string)");
     } else {
-        act1_error = "Actuator not found";
-        ESP_LOGW(TAG, "ID=1: Actuator not found");
-    }
+        uint8_t id = id_json->valueint;
+        const char *name = name_json->valuestring;
 
-    // Delay between actuator commands
-    vTaskDelay(pdMS_TO_TICKS(delay_ms));
+        // Set the actuator name
+        bool success = config_set_actuator_name(id, name);
 
-    // Send command to actuator 2
-    if (slot2 != NULL && slot2->handle != NULL) {
-        esp_err_t err = mightyzap_set_goal(slot2->handle, position, speed, current);
-        if (err == ESP_OK) {
-            act2_success = true;
-            ESP_LOGI(TAG, "ID=2: Set goal position=%d, speed=%d, current=%d", position, speed, current);
+        if (success) {
+            // Persist to config
+            config_save();
+            ESP_LOGI(TAG, "Actuator name set: ID %d -> '%s'", id, name);
+            cJSON_AddBoolToObject(response, "success", true);
+            cJSON_AddStringToObject(response, "message", "Name set successfully");
+            cJSON_AddNumberToObject(response, "id", id);
+            cJSON_AddStringToObject(response, "name", name);
         } else {
-            act2_error = "Command failed";
-            ESP_LOGW(TAG, "ID=2: Set goal failed: %s", esp_err_to_name(err));
+            cJSON_AddBoolToObject(response, "success", false);
+            cJSON_AddStringToObject(response, "message", "Actuator not found in config");
         }
-    } else {
-        act2_error = "Actuator not found";
-        ESP_LOGW(TAG, "ID=2: Actuator not found");
     }
 
-    // Build response
-    bool overall_success = act1_success && act2_success;
-    cJSON_AddBoolToObject(response, "success", overall_success);
+    char *json_str = cJSON_PrintUnformatted(response);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
 
-    if (overall_success) {
-        cJSON_AddStringToObject(response, "message", "Synchronized movement started");
-    } else if (act1_success || act2_success) {
-        // Partial success
-        if (!act1_success) {
-            cJSON_AddStringToObject(response, "message", "Actuator 1 failed");
-        } else {
-            cJSON_AddStringToObject(response, "message", "Actuator 2 failed");
-        }
-    } else {
-        cJSON_AddStringToObject(response, "message", "Both actuators failed");
-    }
-
-    // Add individual actuator status
-    cJSON *act1_obj = cJSON_CreateObject();
-    cJSON_AddNumberToObject(act1_obj, "id", 1);
-    cJSON_AddBoolToObject(act1_obj, "success", act1_success);
-    if (act1_error) {
-        cJSON_AddStringToObject(act1_obj, "error", act1_error);
-    }
-    cJSON_AddItemToObject(response, "actuator_1", act1_obj);
-
-    cJSON *act2_obj = cJSON_CreateObject();
-    cJSON_AddNumberToObject(act2_obj, "id", 2);
-    cJSON_AddBoolToObject(act2_obj, "success", act2_success);
-    if (act2_error) {
-        cJSON_AddStringToObject(act2_obj, "error", act2_error);
-    }
-    cJSON_AddItemToObject(response, "actuator_2", act2_obj);
-
-send_sync_response:
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-
+    free(json_str);
     cJSON_Delete(response);
     cJSON_Delete(root);
     return ESP_OK;
@@ -2086,13 +1968,6 @@ esp_err_t web_server_init(const web_server_config_t *config)
     };
     httpd_register_uri_handler(s_server, &status_uri);
 
-    httpd_uri_t health_uri = {
-        .uri = "/api/health",
-        .method = HTTP_GET,
-        .handler = api_health_handler,
-    };
-    httpd_register_uri_handler(s_server, &health_uri);
-
     httpd_uri_t tasks_uri = {
         .uri = "/api/tasks",
         .method = HTTP_GET,
@@ -2202,12 +2077,12 @@ esp_err_t web_server_init(const web_server_config_t *config)
     };
     httpd_register_uri_handler(s_server, &actuator_remove_uri);
 
-    httpd_uri_t actuator_sync_control_uri = {
-        .uri = "/api/actuator/sync_control",
+    httpd_uri_t actuator_set_name_uri = {
+        .uri = "/api/actuator/set-name",
         .method = HTTP_POST,
-        .handler = api_actuator_sync_control_handler,
+        .handler = api_actuator_set_name_handler,
     };
-    httpd_register_uri_handler(s_server, &actuator_sync_control_uri);
+    httpd_register_uri_handler(s_server, &actuator_set_name_uri);
 
     s_running = true;
     ESP_LOGI(TAG, "Web server started");

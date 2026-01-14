@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "001-persistir-atuadores-encontrados",
+  "spec": "011-actuator-friendly-names-in-configuration",
   "state": "building",
   "subtasks": {
-    "completed": 3,
-    "total": 9,
+    "completed": 4,
+    "total": 8,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Config Manager Extension",
+    "current": "REST API Updates",
     "id": null,
-    "total": 4
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 4,
-    "started_at": "2026-01-13T16:37:07.848452"
+    "number": 6,
+    "started_at": "2026-01-14T12:12:05.852359"
   },
-  "last_update": "2026-01-13T16:41:31.609338"
+  "last_update": "2026-01-14T12:23:32.204922"
 }

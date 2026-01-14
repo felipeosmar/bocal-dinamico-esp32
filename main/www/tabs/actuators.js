@@ -32,7 +32,7 @@ function renderActuators() {
         <div class="actuator-card" onclick="openActuator(${act.id})">
             <div class="id">${act.id}</div>
             <div class="info">
-                <div class="name">Actuator #${act.id}</div>
+                <div class="name">${act.name || 'Actuator #' + act.id}</div>
                 <div class="stats">
                     ${act.connected ?
                         `Pos: ${act.position} | ${act.current}mA | ${act.voltage.toFixed(1)}V` :
@@ -47,91 +47,6 @@ function renderActuators() {
             </button>
         </div>
     `).join('');
-
-    // Update sync status with actuator 1 and 2 positions
-    updateSyncStatus();
-}
-
-// ============================================================================
-// Sync Control
-// ============================================================================
-
-function syncQuickPos(pos) {
-    document.getElementById('sync-pos').value = pos;
-    document.getElementById('sync-pos-val').value = pos;
-}
-
-function initSyncSliders() {
-    const pairs = [
-        ['sync-pos', 'sync-pos-val'],
-        ['sync-spd', 'sync-spd-val'],
-        ['sync-cur', 'sync-cur-val']
-    ];
-
-    pairs.forEach(([slider, input]) => {
-        const s = document.getElementById(slider);
-        const i = document.getElementById(input);
-        if (s && i) {
-            s.oninput = () => i.value = s.value;
-            i.oninput = () => s.value = i.value;
-        }
-    });
-}
-
-function updateSyncStatus() {
-    const statusEl = document.getElementById('sync-status-text');
-    if (!statusEl) return;
-
-    const act1 = actuatorsData.find(a => a.id === 1);
-    const act2 = actuatorsData.find(a => a.id === 2);
-
-    if (!act1 && !act2) {
-        statusEl.textContent = 'No actuators 1 or 2 found';
-        return;
-    }
-
-    const parts = [];
-    if (act1) {
-        parts.push(`#1: ${act1.connected ? `Pos ${act1.position}` : 'Disconnected'}`);
-    } else {
-        parts.push('#1: Not added');
-    }
-    if (act2) {
-        parts.push(`#2: ${act2.connected ? `Pos ${act2.position}` : 'Disconnected'}`);
-    } else {
-        parts.push('#2: Not added');
-    }
-
-    statusEl.textContent = parts.join(' | ');
-}
-
-async function sendSyncCommand() {
-    const pos = parseInt(document.getElementById('sync-pos-val').value);
-    const spd = parseInt(document.getElementById('sync-spd-val').value);
-    const cur = parseInt(document.getElementById('sync-cur-val').value);
-
-    try {
-        const r = await api('actuator/sync_control', 'POST', {
-            goal: { position: pos, speed: spd, current: cur }
-        });
-
-        if (r.success) {
-            toast(`Sync moving to ${pos}`, 'success');
-            setTimeout(refreshActuators, 500);
-        } else {
-            // Build detailed error message from per-actuator status
-            let msg = r.message || 'Sync command failed';
-            if (r.actuator_1 && !r.actuator_1.success && r.actuator_1.error) {
-                msg += ` | #1: ${r.actuator_1.error}`;
-            }
-            if (r.actuator_2 && !r.actuator_2.success && r.actuator_2.error) {
-                msg += ` | #2: ${r.actuator_2.error}`;
-            }
-            toast(msg, 'error');
-        }
-    } catch (e) {
-        toast('Sync command error', 'error');
-    }
 }
 
 // ============================================================================
@@ -191,6 +106,7 @@ function openActuator(id) {
     if (!act) return;
 
     document.getElementById('modal-act-id').textContent = '#' + id;
+    document.getElementById('modal-act-name').value = act.name || '';
 
     if (act.connected) {
         document.getElementById('modal-pos').value = act.position;
@@ -204,6 +120,26 @@ function openActuator(id) {
 function closeActuatorModal() {
     document.getElementById('actuator-modal').classList.remove('show');
     selectedActuatorId = null;
+}
+
+async function saveActuatorName() {
+    if (!selectedActuatorId) return;
+
+    const name = document.getElementById('modal-act-name').value.trim();
+
+    try {
+        const r = await api('actuator/set-name', 'POST', {
+            id: selectedActuatorId,
+            name: name
+        });
+
+        if (r.success) {
+            toast('Name saved', 'success');
+            refreshActuators();
+        } else {
+            toast(r.message || 'Failed to save name', 'error');
+        }
+    } catch (e) {}
 }
 
 function syncSliders() {
@@ -276,9 +212,6 @@ function initActuators() {
             if (e.target.id === 'actuator-modal') closeActuatorModal();
         });
     }
-
-    // Initialize sync control sliders
-    initSyncSliders();
 
     // Start refresh interval (reduced frequency to avoid RS485 congestion)
     if (actuatorsInterval) clearInterval(actuatorsInterval);

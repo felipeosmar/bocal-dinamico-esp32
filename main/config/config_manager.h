@@ -93,6 +93,14 @@ bool config_add_saved_actuator_id(uint8_t id);
 bool config_remove_saved_actuator_id(uint8_t id);
 void config_clear_saved_actuators(void);
 
+// Saved actuator name persistence
+const char* config_get_saved_actuator_name(uint8_t index);
+bool config_set_saved_actuator_name(uint8_t index, const char* name);
+
+// Actuator name by ID (finds ID in saved_actuator_ids and returns/sets corresponding name)
+const char* config_get_actuator_name(uint8_t id);
+bool config_set_actuator_name(uint8_t id, const char *name);
+
 // ============================================================================
 // Web Server Configuration
 // ============================================================================

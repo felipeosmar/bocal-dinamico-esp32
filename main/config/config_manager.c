@@ -36,6 +36,7 @@ typedef struct {
     // Actuator
     uint8_t scan_max_id;
     uint8_t saved_actuator_ids[MAX_SAVED_ACTUATORS];
+    char saved_actuator_names[MAX_SAVED_ACTUATORS][32];
     uint8_t saved_actuator_count;
 
     // Web
@@ -236,6 +237,20 @@ esp_err_t config_load(void)
             }
             ESP_LOGI(TAG, "Loaded %d saved actuator IDs", s_config.saved_actuator_count);
         }
+        // Parse names array (optional, for backward compatibility)
+        cJSON *saved_names = cJSON_GetObjectItem(actuator, "names");
+        if (saved_names && cJSON_IsArray(saved_names)) {
+            int array_size = cJSON_GetArraySize(saved_names);
+            for (int i = 0; i < array_size && i < s_config.saved_actuator_count; i++) {
+                cJSON *name_item = cJSON_GetArrayItem(saved_names, i);
+                if (name_item && cJSON_IsString(name_item)) {
+                    strncpy(s_config.saved_actuator_names[i], name_item->valuestring,
+                            sizeof(s_config.saved_actuator_names[i]) - 1);
+                    s_config.saved_actuator_names[i][sizeof(s_config.saved_actuator_names[i]) - 1] = '\0';
+                }
+            }
+            ESP_LOGI(TAG, "Loaded %d saved actuator names", array_size);
+        }
     }
 
     // Web section
@@ -300,6 +315,12 @@ esp_err_t config_save(void)
         cJSON_AddItemToArray(saved_ids, cJSON_CreateNumber(s_config.saved_actuator_ids[i]));
     }
     cJSON_AddItemToObject(actuator, "saved_ids", saved_ids);
+    // Serialize names array
+    cJSON *saved_names = cJSON_CreateArray();
+    for (int i = 0; i < s_config.saved_actuator_count; i++) {
+        cJSON_AddItemToArray(saved_names, cJSON_CreateString(s_config.saved_actuator_names[i]));
+    }
+    cJSON_AddItemToObject(actuator, "names", saved_names);
     cJSON_AddItemToObject(root, "actuator", actuator);
 
     // Web section
@@ -449,6 +470,14 @@ const uint8_t* config_get_saved_actuator_ids(void)
     return s_config.saved_actuator_ids;
 }
 
+const char* config_get_saved_actuator_name(uint8_t index)
+{
+    if (index >= MAX_SAVED_ACTUATORS) {
+        return "";
+    }
+    return s_config.saved_actuator_names[index];
+}
+
 // ============================================================================
 // Setters - Actuator
 // ============================================================================
@@ -474,6 +503,8 @@ bool config_add_saved_actuator_id(uint8_t id)
 
     // Add to array
     s_config.saved_actuator_ids[s_config.saved_actuator_count] = id;
+    // Initialize name to empty string
+    s_config.saved_actuator_names[s_config.saved_actuator_count][0] = '\0';
     s_config.saved_actuator_count++;
     ESP_LOGI(TAG, "Added actuator ID %d to saved list (count=%d)",
              id, s_config.saved_actuator_count);
@@ -499,7 +530,11 @@ bool config_remove_saved_actuator_id(uint8_t id)
     // Shift remaining elements down
     for (int i = found_index; i < s_config.saved_actuator_count - 1; i++) {
         s_config.saved_actuator_ids[i] = s_config.saved_actuator_ids[i + 1];
+        strncpy(s_config.saved_actuator_names[i], s_config.saved_actuator_names[i + 1],
+                sizeof(s_config.saved_actuator_names[i]));
     }
+    // Clear the last entry
+    s_config.saved_actuator_names[s_config.saved_actuator_count - 1][0] = '\0';
     s_config.saved_actuator_count--;
 
     ESP_LOGI(TAG, "Removed actuator ID %d from saved list (count=%d)",
@@ -510,8 +545,63 @@ bool config_remove_saved_actuator_id(uint8_t id)
 void config_clear_saved_actuators(void)
 {
     memset(s_config.saved_actuator_ids, 0, sizeof(s_config.saved_actuator_ids));
+    memset(s_config.saved_actuator_names, 0, sizeof(s_config.saved_actuator_names));
     s_config.saved_actuator_count = 0;
     ESP_LOGI(TAG, "Cleared all saved actuators");
+}
+
+bool config_set_saved_actuator_name(uint8_t index, const char* name)
+{
+    if (index >= MAX_SAVED_ACTUATORS) {
+        ESP_LOGW(TAG, "Cannot set actuator name: index %d out of range (max %d)",
+                 index, MAX_SAVED_ACTUATORS);
+        return false;
+    }
+
+    if (name == NULL) {
+        ESP_LOGW(TAG, "Cannot set actuator name: name is NULL");
+        return false;
+    }
+
+    strncpy(s_config.saved_actuator_names[index], name, sizeof(s_config.saved_actuator_names[index]) - 1);
+    s_config.saved_actuator_names[index][sizeof(s_config.saved_actuator_names[index]) - 1] = '\0';
+    ESP_LOGD(TAG, "Set actuator name at index %d to '%s'", index, name);
+    return true;
+}
+
+const char* config_get_actuator_name(uint8_t id)
+{
+    // Find the actuator ID in the saved array
+    for (int i = 0; i < s_config.saved_actuator_count; i++) {
+        if (s_config.saved_actuator_ids[i] == id) {
+            return s_config.saved_actuator_names[i];
+        }
+    }
+
+    // ID not found, return empty string
+    return "";
+}
+
+bool config_set_actuator_name(uint8_t id, const char *name)
+{
+    if (name == NULL) {
+        ESP_LOGW(TAG, "Cannot set actuator name: name is NULL");
+        return false;
+    }
+
+    // Find the actuator ID in the saved array
+    for (int i = 0; i < s_config.saved_actuator_count; i++) {
+        if (s_config.saved_actuator_ids[i] == id) {
+            strncpy(s_config.saved_actuator_names[i], name, sizeof(s_config.saved_actuator_names[i]) - 1);
+            s_config.saved_actuator_names[i][sizeof(s_config.saved_actuator_names[i]) - 1] = '\0';
+            ESP_LOGI(TAG, "Set actuator name for ID %d to '%s'", id, name);
+            return true;
+        }
+    }
+
+    // ID not found in saved actuators
+    ESP_LOGW(TAG, "Cannot set actuator name: ID %d not found in saved actuators", id);
+    return false;
 }
 
 // ============================================================================

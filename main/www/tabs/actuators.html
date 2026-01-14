@@ -10,38 +10,6 @@
     </button>
 </div>
 
-<!-- Synchronized Control Panel -->
-<div id="sync-control-panel" class="card">
-    <h3>Synchronized Control (Actuators 1 & 2)</h3>
-    <div id="sync-status" class="info-row">
-        <span>Status</span>
-        <span id="sync-status-text">--</span>
-    </div>
-    <div class="control-row">
-        <label>Position</label>
-        <input type="range" id="sync-pos" min="0" max="4095" value="2048">
-        <input type="number" id="sync-pos-val" min="0" max="4095" value="2048">
-    </div>
-    <div class="control-row">
-        <label>Speed</label>
-        <input type="range" id="sync-spd" min="0" max="1023" value="512">
-        <input type="number" id="sync-spd-val" min="0" max="1023" value="512">
-    </div>
-    <div class="control-row">
-        <label>Current</label>
-        <input type="range" id="sync-cur" min="0" max="800" value="400">
-        <input type="number" id="sync-cur-val" min="0" max="800" value="400">
-    </div>
-    <div class="quick-pos">
-        <button onclick="syncQuickPos(0)">0%</button>
-        <button onclick="syncQuickPos(1024)">25%</button>
-        <button onclick="syncQuickPos(2048)">50%</button>
-        <button onclick="syncQuickPos(3072)">75%</button>
-        <button onclick="syncQuickPos(4095)">100%</button>
-    </div>
-    <button onclick="sendSyncCommand()" class="btn btn-primary full">Sync Move</button>
-</div>
-
 <div id="actuators-container">
     <div class="empty-state">
         <p>No actuators</p>
@@ -57,6 +25,11 @@
             <button onclick="closeActuatorModal()" class="btn-close">&times;</button>
         </div>
         <div class="modal-body">
+            <div class="control-row">
+                <label>Name</label>
+                <input type="text" id="modal-act-name" placeholder="Enter actuator name" maxlength="31">
+                <button onclick="saveActuatorName()" class="btn btn-sm">Save</button>
+            </div>
             <div class="control-row">
                 <label>Force</label>
                 <div class="toggle">

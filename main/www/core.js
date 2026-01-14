@@ -85,10 +85,10 @@ function updateConnectionBanner() {
         banner.className = 'connection-banner hidden';
         banner.textContent = '';
     } else if (connectionState.reconnecting) {
-        banner.className = 'connection-banner warning';
+        banner.className = 'connection-banner show reconnecting';
         banner.textContent = `Connection lost. Reconnecting... (attempt ${connectionState.retryCount})`;
     } else {
-        banner.className = 'connection-banner error';
+        banner.className = 'connection-banner show disconnected';
         banner.textContent = 'Connection lost';
     }
 }
@@ -119,7 +119,7 @@ function startReconnection() {
                 // Show success briefly
                 const banner = document.getElementById('connection-banner');
                 if (banner) {
-                    banner.className = 'connection-banner success';
+                    banner.className = 'connection-banner show connected';
                     banner.textContent = 'Connection restored';
                     setTimeout(() => updateConnectionBanner(), 2000);
                 }

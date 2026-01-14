@@ -56,6 +56,93 @@ async function api(endpoint, method = 'GET', data = null) {
 }
 
 // ============================================================================
+// Connection State Management
+// ============================================================================
+
+const connectionState = {
+    connected: true,
+    reconnecting: false,
+    retryCount: 0,
+    lastSuccessfulPing: null
+};
+
+let reconnectionTimer = null;
+
+function updateConnectionBanner() {
+    const banner = document.getElementById('connection-banner');
+    if (!banner) return;
+
+    if (connectionState.connected) {
+        banner.className = 'connection-banner hidden';
+        banner.textContent = '';
+    } else if (connectionState.reconnecting) {
+        banner.className = 'connection-banner warning';
+        banner.textContent = `Connection lost. Reconnecting... (attempt ${connectionState.retryCount})`;
+    } else {
+        banner.className = 'connection-banner error';
+        banner.textContent = 'Connection lost';
+    }
+}
+
+function startReconnection() {
+    if (connectionState.reconnecting) return;
+
+    connectionState.connected = false;
+    connectionState.reconnecting = true;
+    connectionState.retryCount = 0;
+
+    updateConnectionBanner();
+
+    function scheduleNextAttempt() {
+        if (connectionState.connected) return;
+
+        connectionState.retryCount++;
+        updateConnectionBanner();
+
+        checkConnection().then(isConnected => {
+            if (isConnected) {
+                connectionState.connected = true;
+                connectionState.reconnecting = false;
+                connectionState.retryCount = 0;
+                connectionState.lastSuccessfulPing = Date.now();
+                updateConnectionBanner();
+
+                // Show success briefly
+                const banner = document.getElementById('connection-banner');
+                if (banner) {
+                    banner.className = 'connection-banner success';
+                    banner.textContent = 'Connection restored';
+                    setTimeout(() => updateConnectionBanner(), 2000);
+                }
+            } else {
+                // Exponential backoff: 1s, 1.5s, 2.25s, 3.375s, ... max 30s
+                const delay = Math.min(1000 * Math.pow(1.5, connectionState.retryCount - 1), 30000);
+                reconnectionTimer = setTimeout(scheduleNextAttempt, delay);
+            }
+        });
+    }
+
+    scheduleNextAttempt();
+}
+
+async function checkConnection() {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch('/api/status', {
+            method: 'GET',
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+        return res.ok;
+    } catch (e) {
+        return false;
+    }
+}
+
+// ============================================================================
 // Status Badge Updates
 // ============================================================================
 

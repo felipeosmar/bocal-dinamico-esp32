@@ -16,6 +16,7 @@
 #include "rs485_driver.h"
 #include "modbus_rtu.h"
 #include "mightyzap.h"
+#include "health_monitor.h"
 
 static const char *TAG = "WEB_SRV";
 
@@ -866,6 +867,39 @@ static esp_err_t api_status_handler(httpd_req_t *req)
 
     // Modbus status
     cJSON_AddBoolToObject(root, "modbus_ready", g_modbus != NULL);
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+
+    free(json_str);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+// GET /api/health - Get comprehensive health status
+static esp_err_t api_health_handler(httpd_req_t *req)
+{
+    const system_health_t *health = health_monitor_get_status();
+
+    cJSON *root = cJSON_CreateObject();
+
+    // System metrics
+    cJSON_AddNumberToObject(root, "uptime_seconds", health->uptime_seconds);
+    cJSON_AddNumberToObject(root, "free_heap", health->free_heap);
+    cJSON_AddNumberToObject(root, "min_free_heap", health->min_free_heap);
+    cJSON_AddNumberToObject(root, "reset_reason", health->reset_reason);
+
+    // Subsystem status
+    cJSON_AddBoolToObject(root, "wifi_connected", health->wifi_connected);
+    cJSON_AddBoolToObject(root, "modbus_active", health->modbus_active);
+    cJSON_AddBoolToObject(root, "filesystem_ok", health->filesystem_ok);
+
+    // Error tracking
+    cJSON_AddNumberToObject(root, "total_error_count", health->total_error_count);
+
+    // Overall health
+    cJSON_AddBoolToObject(root, "healthy", health_monitor_is_healthy());
 
     char *json_str = cJSON_PrintUnformatted(root);
     httpd_resp_set_type(req, "application/json");
@@ -2051,6 +2085,13 @@ esp_err_t web_server_init(const web_server_config_t *config)
         .handler = api_status_handler,
     };
     httpd_register_uri_handler(s_server, &status_uri);
+
+    httpd_uri_t health_uri = {
+        .uri = "/api/health",
+        .method = HTTP_GET,
+        .handler = api_health_handler,
+    };
+    httpd_register_uri_handler(s_server, &health_uri);
 
     httpd_uri_t tasks_uri = {
         .uri = "/api/tasks",

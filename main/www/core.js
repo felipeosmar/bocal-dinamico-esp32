@@ -54,11 +54,9 @@ async function api(endpoint, method = 'GET', data = null) {
 
         return await res.json();
     } catch (e) {
-        console.error('API Error:', e);
-        toast('Communication error', 'error');
-
         // Network error - trigger reconnection if we were connected
         if (connectionState.connected) {
+            toast('Communication error', 'error');
             startReconnection();
         }
 

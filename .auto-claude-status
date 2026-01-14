@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "011-actuator-friendly-names-in-configuration",
+  "spec": "008-reduce-health-monitor-task-stack-from-4kb-to-2kb",
   "state": "building",
   "subtasks": {
-    "completed": 4,
-    "total": 8,
+    "completed": 1,
+    "total": 2,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "REST API Updates",
+    "current": "Runtime Verification",
     "id": null,
-    "total": 2
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 6,
-    "started_at": "2026-01-14T12:12:05.852359"
+    "number": 3,
+    "started_at": "2026-01-14T13:01:33.970462"
   },
-  "last_update": "2026-01-14T12:23:32.204922"
+  "last_update": "2026-01-14T13:05:27.280198"
 }

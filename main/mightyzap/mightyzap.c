@@ -115,10 +115,11 @@ esp_err_t mightyzap_set_speed(mightyzap_handle_t handle, uint16_t speed)
     // Use cached limit
     cache_limits(handle);
 
+    uint16_t original_speed = speed;
     if (speed > handle->speed_limit) {
-        ESP_LOGW(TAG, "ID=%u: Clamping speed %u to limit %u",
-                 handle->slave_id, speed, handle->speed_limit);
         speed = handle->speed_limit;
+        ESP_LOGW(TAG, "ID=%u: Speed clamped %u->%u (actuator limit)",
+                 handle->slave_id, original_speed, speed);
     }
 
     ESP_LOGD(TAG, "ID=%u: Set speed=%u", handle->slave_id, speed);
@@ -135,10 +136,11 @@ esp_err_t mightyzap_set_current(mightyzap_handle_t handle, uint16_t current)
     // Use cached limit
     cache_limits(handle);
 
+    uint16_t original_current = current;
     if (current > handle->current_limit) {
-        ESP_LOGW(TAG, "ID=%u: Clamping current %u to limit %u",
-                 handle->slave_id, current, handle->current_limit);
         current = handle->current_limit;
+        ESP_LOGW(TAG, "ID=%u: Current clamped %u->%u (actuator limit)",
+                 handle->slave_id, original_current, current);
     }
 
     ESP_LOGD(TAG, "ID=%u: Set current=%u", handle->slave_id, current);
@@ -156,15 +158,18 @@ esp_err_t mightyzap_set_goal(mightyzap_handle_t handle, uint16_t position, uint1
     cache_limits(handle);
 
     // Clamp speed and current to their limits
+    uint16_t original_speed = speed;
+    uint16_t original_current = current;
+
     if (speed > handle->speed_limit) {
-        ESP_LOGW(TAG, "ID=%u: Clamping speed %u to limit %u",
-                 handle->slave_id, speed, handle->speed_limit);
         speed = handle->speed_limit;
+        ESP_LOGW(TAG, "ID=%u: Speed clamped %u->%u (actuator limit)",
+                 handle->slave_id, original_speed, speed);
     }
     if (current > handle->current_limit) {
-        ESP_LOGW(TAG, "ID=%u: Clamping current %u to limit %u",
-                 handle->slave_id, current, handle->current_limit);
         current = handle->current_limit;
+        ESP_LOGW(TAG, "ID=%u: Current clamped %u->%u (actuator limit)",
+                 handle->slave_id, original_current, current);
     }
 
     ESP_LOGD(TAG, "ID=%u: Set goal pos=%u, spd=%u, cur=%u",

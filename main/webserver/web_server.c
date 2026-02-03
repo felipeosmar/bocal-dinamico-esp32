@@ -1609,6 +1609,67 @@ static esp_err_t api_rs485_config_handler(httpd_req_t *req)
 // API Handlers - RS485 Diagnostics
 // ============================================================================
 
+// Helper: Add exception stats to JSON object
+static void add_exception_stats_to_json(cJSON *parent, const modbus_stats_t *stats)
+{
+    cJSON *exception_stats = cJSON_CreateObject();
+
+    // Standard Modbus exceptions (0x00-0x0F)
+    static const struct {
+        uint8_t code;
+        const char *name;
+    } std_exceptions[] = {
+        {0x01, "Illegal Function"},
+        {0x02, "Illegal Data Address"},
+        {0x03, "Illegal Data Value"},
+        {0x04, "Slave Device Failure"},
+        {0x05, "Acknowledge"},
+        {0x06, "Slave Device Busy"},
+        {0x08, "Memory Parity Error"},
+        {0x0A, "Gateway Path Unavailable"},
+        {0x0B, "Gateway Target Failed"},
+    };
+
+    for (size_t i = 0; i < sizeof(std_exceptions) / sizeof(std_exceptions[0]); i++) {
+        uint8_t code = std_exceptions[i].code;
+        if (stats->exception_counts[code] > 0) {
+            char key[8];
+            snprintf(key, sizeof(key), "0x%02X", code);
+            cJSON *ex_obj = cJSON_CreateObject();
+            cJSON_AddNumberToObject(ex_obj, "count", stats->exception_counts[code]);
+            cJSON_AddStringToObject(ex_obj, "name", std_exceptions[i].name);
+            cJSON_AddItemToObject(exception_stats, key, ex_obj);
+        }
+    }
+
+    // mightyZAP proprietary exceptions (0x20-0x2F)
+    static const struct {
+        uint8_t code;
+        const char *name;
+    } mzap_exceptions[] = {
+        {0x21, "mightyZAP Motor Moving"},
+        {0x22, "mightyZAP Overload"},
+        {0x23, "mightyZAP Checksum Error"},
+        {0x24, "mightyZAP Range Error"},
+        {0x25, "mightyZAP Instruction Error"},
+    };
+
+    for (size_t i = 0; i < sizeof(mzap_exceptions) / sizeof(mzap_exceptions[0]); i++) {
+        uint8_t code = mzap_exceptions[i].code;
+        uint8_t idx = code - 0x20;
+        if (stats->mzap_exception_counts[idx] > 0) {
+            char key[8];
+            snprintf(key, sizeof(key), "0x%02X", code);
+            cJSON *ex_obj = cJSON_CreateObject();
+            cJSON_AddNumberToObject(ex_obj, "count", stats->mzap_exception_counts[idx]);
+            cJSON_AddStringToObject(ex_obj, "name", mzap_exceptions[i].name);
+            cJSON_AddItemToObject(exception_stats, key, ex_obj);
+        }
+    }
+
+    cJSON_AddItemToObject(parent, "exception_stats", exception_stats);
+}
+
 // GET /api/rs485/diag - Get RS485/Modbus diagnostics
 static esp_err_t api_rs485_diag_handler(httpd_req_t *req)
 {
@@ -1636,6 +1697,7 @@ static esp_err_t api_rs485_diag_handler(httpd_req_t *req)
         cJSON_AddNumberToObject(modbus_stats, "error_count", stats->error_count);
         cJSON_AddNumberToObject(modbus_stats, "timeout_count", stats->timeout_count);
         cJSON_AddNumberToObject(modbus_stats, "crc_error_count", stats->crc_error_count);
+        cJSON_AddNumberToObject(modbus_stats, "short_response_count", stats->short_response_count);
         cJSON_AddNumberToObject(modbus_stats, "retry_count", stats->retry_count);
 
         // Calculate success rate
@@ -1646,6 +1708,9 @@ static esp_err_t api_rs485_diag_handler(httpd_req_t *req)
             cJSON_AddNumberToObject(modbus_stats, "success_rate", 0);
         }
         cJSON_AddItemToObject(root, "stats", modbus_stats);
+
+        // Add detailed exception statistics
+        add_exception_stats_to_json(root, stats);
     }
 
     char *json_str = cJSON_PrintUnformatted(root);
@@ -1723,11 +1788,27 @@ static esp_err_t api_rs485_test_handler(httpd_req_t *req)
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "error", esp_err_to_name(err));
 
-        // Get last Modbus exception if available
+        // Get last Modbus exception and error type if available
         modbus_exception_t ex = modbus_get_last_exception(g_modbus);
+        modbus_error_type_t err_type = modbus_get_last_error_type(g_modbus);
+
         if (ex != MODBUS_EX_NONE) {
             cJSON_AddNumberToObject(response, "exception_code", ex);
+            cJSON_AddStringToObject(response, "exception_name", modbus_exception_to_string(ex));
+            cJSON_AddBoolToObject(response, "retryable", modbus_exception_is_retryable(ex));
         }
+
+        // Add error classification
+        const char *err_type_str;
+        switch (err_type) {
+            case MODBUS_ERR_TIMEOUT:        err_type_str = "timeout"; break;
+            case MODBUS_ERR_CRC:            err_type_str = "crc_error"; break;
+            case MODBUS_ERR_SHORT_RESPONSE: err_type_str = "short_response"; break;
+            case MODBUS_ERR_EXCEPTION:      err_type_str = "exception"; break;
+            case MODBUS_ERR_INVALID_RESPONSE: err_type_str = "invalid_response"; break;
+            default:                        err_type_str = "unknown"; break;
+        }
+        cJSON_AddStringToObject(response, "error_type", err_type_str);
     }
 
 send_test_response:

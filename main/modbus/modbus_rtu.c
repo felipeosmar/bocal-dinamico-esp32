@@ -18,6 +18,7 @@ struct modbus_rtu {
     rs485_handle_t rs485;
     uint32_t response_timeout;
     modbus_exception_t last_exception;
+    modbus_error_type_t last_error_type;
 };
 
 // Global statistics for diagnostics
@@ -121,15 +122,105 @@ void modbus_reset_stats(void)
     memset(&s_modbus_stats, 0, sizeof(s_modbus_stats));
 }
 
-static esp_err_t modbus_send_receive(modbus_handle_t handle,
-                                     const uint8_t *request, size_t req_len,
-                                     uint8_t *response, size_t *resp_len,
-                                     size_t expected_len)
+modbus_error_type_t modbus_get_last_error_type(modbus_handle_t handle)
+{
+    if (handle == NULL) {
+        return MODBUS_ERR_NONE;
+    }
+    return handle->last_error_type;
+}
+
+const char* modbus_exception_to_string(modbus_exception_t ex)
+{
+    switch (ex) {
+        case MODBUS_EX_NONE:                    return "None";
+        case MODBUS_EX_ILLEGAL_FUNCTION:        return "Illegal Function";
+        case MODBUS_EX_ILLEGAL_DATA_ADDRESS:    return "Illegal Data Address";
+        case MODBUS_EX_ILLEGAL_DATA_VALUE:      return "Illegal Data Value";
+        case MODBUS_EX_SLAVE_DEVICE_FAILURE:    return "Slave Device Failure";
+        case MODBUS_EX_ACKNOWLEDGE:             return "Acknowledge";
+        case MODBUS_EX_SLAVE_DEVICE_BUSY:       return "Slave Device Busy";
+        case MODBUS_EX_MEMORY_PARITY_ERROR:     return "Memory Parity Error";
+        case MODBUS_EX_GATEWAY_PATH_UNAVAILABLE: return "Gateway Path Unavailable";
+        case MODBUS_EX_GATEWAY_TARGET_FAILED:   return "Gateway Target Failed";
+        // mightyZAP proprietary codes
+        case MODBUS_EX_MZAP_MOTOR_MOVING:       return "mightyZAP Motor Moving";
+        case MODBUS_EX_MZAP_OVERLOAD:           return "mightyZAP Overload";
+        case MODBUS_EX_MZAP_CHECKSUM_ERROR:     return "mightyZAP Checksum Error";
+        case MODBUS_EX_MZAP_RANGE_ERROR:        return "mightyZAP Range Error";
+        case MODBUS_EX_MZAP_INSTRUCTION_ERROR:  return "mightyZAP Instruction Error";
+        default:
+            if (ex >= 0x20 && ex <= 0x2F) {
+                return "mightyZAP Unknown";
+            }
+            return "Unknown Exception";
+    }
+}
+
+bool modbus_exception_is_retryable(modbus_exception_t ex)
+{
+    switch (ex) {
+        // Retryable: temporary conditions that may resolve
+        case MODBUS_EX_ACKNOWLEDGE:         // Processing in progress
+        case MODBUS_EX_SLAVE_DEVICE_BUSY:   // Temporarily busy
+        case MODBUS_EX_MZAP_MOTOR_MOVING:   // Motor in motion, wait and retry
+            return true;
+
+        // Non-retryable: permanent errors
+        case MODBUS_EX_ILLEGAL_FUNCTION:
+        case MODBUS_EX_ILLEGAL_DATA_ADDRESS:
+        case MODBUS_EX_ILLEGAL_DATA_VALUE:
+        case MODBUS_EX_SLAVE_DEVICE_FAILURE:
+        case MODBUS_EX_MEMORY_PARITY_ERROR:
+        case MODBUS_EX_GATEWAY_PATH_UNAVAILABLE:
+        case MODBUS_EX_GATEWAY_TARGET_FAILED:
+        case MODBUS_EX_MZAP_OVERLOAD:
+        case MODBUS_EX_MZAP_CHECKSUM_ERROR:
+        case MODBUS_EX_MZAP_RANGE_ERROR:
+        case MODBUS_EX_MZAP_INSTRUCTION_ERROR:
+        default:
+            return false;
+    }
+}
+
+/**
+ * @brief Update exception statistics
+ */
+static void update_exception_stats(modbus_exception_t ex)
+{
+    if (ex >= 0x00 && ex <= 0x0F) {
+        s_modbus_stats.exception_counts[ex]++;
+    } else if (ex >= 0x20 && ex <= 0x2F) {
+        s_modbus_stats.mzap_exception_counts[ex - 0x20]++;
+    }
+}
+
+/**
+ * @brief Calculate backoff delay with exponential increase
+ *
+ * @param attempt Retry attempt number (0-based)
+ * @return uint32_t Delay in milliseconds
+ */
+static uint32_t calculate_backoff_delay(uint8_t attempt)
+{
+    // delay = min(100ms * 2^attempt, 1000ms)
+    uint32_t delay = MODBUS_RETRY_BASE_DELAY_MS << attempt;
+    if (delay > 1000) {
+        delay = 1000;
+    }
+    return delay;
+}
+
+/**
+ * @brief Internal send/receive without retry logic
+ */
+static esp_err_t modbus_send_receive_internal(modbus_handle_t handle,
+                                              const uint8_t *request, size_t req_len,
+                                              uint8_t *response, size_t *resp_len,
+                                              size_t expected_len)
 {
     esp_err_t ret;
     size_t received = 0;
-
-    s_modbus_stats.tx_count++;
 
     // Send request and receive response
     ret = rs485_transaction(handle->rs485,
@@ -138,18 +229,21 @@ static esp_err_t modbus_send_receive(modbus_handle_t handle,
                            handle->response_timeout);
 
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "RS485 transaction failed: %s", esp_err_to_name(ret));
-        s_modbus_stats.error_count++;
         if (ret == ESP_ERR_TIMEOUT) {
+            handle->last_error_type = MODBUS_ERR_TIMEOUT;
             s_modbus_stats.timeout_count++;
+        } else {
+            handle->last_error_type = MODBUS_ERR_INVALID_RESPONSE;
         }
+        s_modbus_stats.error_count++;
         return ret;
     }
 
     // Check minimum response length (addr + fc + crc)
     if (received < 4) {
-        ESP_LOGE(TAG, "Response too short: %u bytes", received);
+        handle->last_error_type = MODBUS_ERR_SHORT_RESPONSE;
         s_modbus_stats.error_count++;
+        s_modbus_stats.short_response_count++;
         return ESP_ERR_INVALID_RESPONSE;
     }
 
@@ -158,7 +252,7 @@ static esp_err_t modbus_send_receive(modbus_handle_t handle,
     uint16_t calc_crc = modbus_crc16(response, received - 2);
 
     if (recv_crc != calc_crc) {
-        ESP_LOGE(TAG, "CRC mismatch: recv=0x%04X, calc=0x%04X", recv_crc, calc_crc);
+        handle->last_error_type = MODBUS_ERR_CRC;
         s_modbus_stats.error_count++;
         s_modbus_stats.crc_error_count++;
         return ESP_ERR_INVALID_CRC;
@@ -167,15 +261,90 @@ static esp_err_t modbus_send_receive(modbus_handle_t handle,
     // Check for exception response
     if (response[1] & 0x80) {
         handle->last_exception = response[2];
-        ESP_LOGE(TAG, "Modbus exception: 0x%02X", response[2]);
+        handle->last_error_type = MODBUS_ERR_EXCEPTION;
+        update_exception_stats(handle->last_exception);
         s_modbus_stats.error_count++;
         return ESP_ERR_INVALID_RESPONSE;
     }
 
     handle->last_exception = MODBUS_EX_NONE;
-    s_modbus_stats.rx_count++;
+    handle->last_error_type = MODBUS_ERR_NONE;
     *resp_len = received;
     return ESP_OK;
+}
+
+/**
+ * @brief Send/receive with automatic retry and exponential backoff
+ */
+static esp_err_t modbus_send_receive(modbus_handle_t handle,
+                                     const uint8_t *request, size_t req_len,
+                                     uint8_t *response, size_t *resp_len,
+                                     size_t expected_len)
+{
+    esp_err_t ret = ESP_FAIL;
+    bool should_retry;
+
+    for (uint8_t attempt = 0; attempt <= MODBUS_RETRY_COUNT; attempt++) {
+        // Wait before retry (not on first attempt)
+        if (attempt > 0) {
+            uint32_t delay = calculate_backoff_delay(attempt - 1);
+            ESP_LOGD(TAG, "Retry %d/%d after %lu ms delay", attempt, MODBUS_RETRY_COUNT, delay);
+            vTaskDelay(pdMS_TO_TICKS(delay));
+            s_modbus_stats.retry_count++;
+        }
+
+        s_modbus_stats.tx_count++;
+        ret = modbus_send_receive_internal(handle, request, req_len, response, resp_len, expected_len);
+
+        if (ret == ESP_OK) {
+            s_modbus_stats.rx_count++;
+            return ESP_OK;
+        }
+
+        // Determine if we should retry based on error type
+        should_retry = false;
+        switch (handle->last_error_type) {
+            case MODBUS_ERR_TIMEOUT:
+            case MODBUS_ERR_CRC:
+            case MODBUS_ERR_SHORT_RESPONSE:
+                // Always retry these recoverable errors
+                should_retry = true;
+                if (attempt == 0) {
+                    ESP_LOGW(TAG, "%s (will retry)",
+                             handle->last_error_type == MODBUS_ERR_TIMEOUT ? "Timeout" :
+                             handle->last_error_type == MODBUS_ERR_CRC ? "CRC error" : "Short response");
+                }
+                break;
+
+            case MODBUS_ERR_EXCEPTION:
+                // Retry only if the exception is retryable
+                should_retry = modbus_exception_is_retryable(handle->last_exception);
+                if (attempt == 0) {
+                    ESP_LOGW(TAG, "Modbus exception 0x%02X (%s)%s",
+                             handle->last_exception,
+                             modbus_exception_to_string(handle->last_exception),
+                             should_retry ? " - will retry" : "");
+                }
+                break;
+
+            default:
+                // Don't retry invalid responses or unknown errors
+                ESP_LOGE(TAG, "Non-recoverable error: %s", esp_err_to_name(ret));
+                break;
+        }
+
+        if (!should_retry) {
+            break;
+        }
+    }
+
+    // Log final failure after all retries exhausted
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Operation failed after %d retries: %s",
+                 MODBUS_RETRY_COUNT, esp_err_to_name(ret));
+    }
+
+    return ret;
 }
 
 esp_err_t modbus_read_holding_registers(modbus_handle_t handle,

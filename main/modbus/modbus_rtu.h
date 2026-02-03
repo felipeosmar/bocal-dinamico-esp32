@@ -34,7 +34,26 @@ typedef enum {
     MODBUS_EX_MEMORY_PARITY_ERROR = 0x08,
     MODBUS_EX_GATEWAY_PATH_UNAVAILABLE = 0x0A,
     MODBUS_EX_GATEWAY_TARGET_FAILED = 0x0B,
+
+    // mightyZAP proprietary exception codes (0x20-0x2F range)
+    MODBUS_EX_MZAP_MOTOR_MOVING = 0x21,      // Motor is currently moving
+    MODBUS_EX_MZAP_OVERLOAD = 0x22,          // Overload condition
+    MODBUS_EX_MZAP_CHECKSUM_ERROR = 0x23,    // Internal checksum error
+    MODBUS_EX_MZAP_RANGE_ERROR = 0x24,       // Value out of range
+    MODBUS_EX_MZAP_INSTRUCTION_ERROR = 0x25, // Invalid instruction
 } modbus_exception_t;
+
+/**
+ * @brief Modbus error classification for retry logic
+ */
+typedef enum {
+    MODBUS_ERR_NONE = 0,           // No error
+    MODBUS_ERR_TIMEOUT,            // Recoverable - no response
+    MODBUS_ERR_CRC,                // Recoverable - noise/corruption
+    MODBUS_ERR_SHORT_RESPONSE,     // Recoverable - incomplete frame
+    MODBUS_ERR_EXCEPTION,          // Depends on exception code
+    MODBUS_ERR_INVALID_RESPONSE,   // Non-recoverable - malformed response
+} modbus_error_type_t;
 
 /**
  * @brief Modbus RTU handle
@@ -143,7 +162,10 @@ typedef struct {
     uint32_t error_count;       // Total errors
     uint32_t timeout_count;     // Timeout errors
     uint32_t crc_error_count;   // CRC errors
+    uint32_t short_response_count; // Short response errors
     uint32_t retry_count;       // Total retries performed
+    uint32_t exception_counts[16];      // Standard Modbus exceptions (0x00-0x0F)
+    uint32_t mzap_exception_counts[16]; // mightyZAP exceptions (0x20-0x2F)
 } modbus_stats_t;
 
 /**
@@ -157,6 +179,30 @@ const modbus_stats_t* modbus_get_stats(void);
  * @brief Reset Modbus statistics
  */
 void modbus_reset_stats(void);
+
+/**
+ * @brief Convert exception code to human-readable string
+ *
+ * @param ex Exception code
+ * @return const char* Exception name string
+ */
+const char* modbus_exception_to_string(modbus_exception_t ex);
+
+/**
+ * @brief Check if an exception is retryable
+ *
+ * @param ex Exception code
+ * @return bool True if the operation should be retried
+ */
+bool modbus_exception_is_retryable(modbus_exception_t ex);
+
+/**
+ * @brief Get last error type from a Modbus operation
+ *
+ * @param handle Modbus handle
+ * @return modbus_error_type_t Last error classification
+ */
+modbus_error_type_t modbus_get_last_error_type(modbus_handle_t handle);
 
 #ifdef __cplusplus
 }

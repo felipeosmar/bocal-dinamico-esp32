@@ -19,7 +19,7 @@ typedef enum {
     MZAP_REG_MODEL_NUMBER      = 0x0000,   // 40001 - Model Number (R)
     MZAP_REG_FIRMWARE_VERSION  = 0x0001,   // 40002 - Firmware Version (R)
     MZAP_REG_ID                = 0x0002,   // 40003 - Servo ID (RW) [1-247, default 1]
-    MZAP_REG_BAUD_RATE         = 0x0003,   // 40004 - Baud Rate (RW) [16-128, default 32]
+    MZAP_REG_BAUD_RATE         = 0x0003,   // 40004 - Baud Rate (RW) [16=115200, 32=57600, 48=38400, 64=19200, 128=9600]
     MZAP_REG_PROTOCOL_TYPE     = 0x0004,   // 40005 - Protocol (RW) [0=Modbus, 1=IRRobot]
     MZAP_REG_SHORT_STROKE_LIM  = 0x0005,   // 40006 - Short Stroke Limit (RW) [0-4095]
     MZAP_REG_LONG_STROKE_LIM   = 0x0006,   // 40007 - Long Stroke Limit (RW) [0-4095]
@@ -55,10 +55,11 @@ typedef enum {
  * @brief Baud rate values for mightyZAP
  */
 typedef enum {
-    MZAP_BAUD_9600   = 16,    // 0x10
-    MZAP_BAUD_19200  = 32,    // 0x20
-    MZAP_BAUD_57600  = 64,    // 0x40
-    MZAP_BAUD_115200 = 128,   // 0x80
+    MZAP_BAUD_9600   = 128,   // 0x80
+    MZAP_BAUD_19200  = 64,    // 0x40
+    MZAP_BAUD_38400  = 48,    // 0x30
+    MZAP_BAUD_57600  = 32,    // 0x20 (default)
+    MZAP_BAUD_115200 = 16,    // 0x10
 } mightyzap_baud_t;
 
 /**
@@ -75,6 +76,32 @@ typedef struct {
     uint16_t voltage;           // Present voltage (0.1V units)
     uint8_t moving;             // Moving status (0=stopped, 1=moving)
 } mightyzap_status_t;
+
+/**
+ * @brief mightyZAP device info (read-only)
+ */
+typedef struct {
+    uint16_t model;             // Model number
+    uint16_t firmware;          // Firmware version
+    uint16_t voltage_min;       // Lowest limit voltage (0.1V units)
+    uint16_t voltage_max;       // Highest limit voltage (0.1V units)
+} mightyzap_info_t;
+
+/**
+ * @brief mightyZAP configuration (EEPROM)
+ */
+typedef struct {
+    uint8_t slave_id;           // Modbus slave ID (1-247)
+    uint8_t baud_rate;          // Baud rate code (16=115200, 32=57600, 48=38400, 64=19200, 128=9600)
+    uint16_t short_stroke_limit; // Short stroke limit (0-4095)
+    uint16_t long_stroke_limit;  // Long stroke limit (0-4095)
+    uint16_t speed_limit;       // Speed limit (0-1023)
+    uint16_t current_limit;     // Current limit (0-1600 mA)
+    uint8_t start_compliance;   // Start compliance margin (0-255)
+    uint8_t end_compliance;     // End compliance margin (0-255)
+    uint8_t alarm_led;          // Alarm LED bitmask
+    uint8_t alarm_shutdown;     // Alarm shutdown bitmask
+} mightyzap_config_t;
 
 /**
  * @brief Initialize mightyZAP driver
@@ -210,6 +237,47 @@ esp_err_t mightyzap_restart(mightyzap_handle_t handle);
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t mightyzap_factory_reset(mightyzap_handle_t handle);
+
+/**
+ * @brief Get device info (read-only parameters)
+ *
+ * @param handle mightyZAP handle
+ * @param info Pointer to store device info
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t mightyzap_get_info(mightyzap_handle_t handle, mightyzap_info_t *info);
+
+/**
+ * @brief Get full configuration (EEPROM parameters)
+ *
+ * @param handle mightyZAP handle
+ * @param config Pointer to store configuration
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t mightyzap_get_config(mightyzap_handle_t handle, mightyzap_config_t *config);
+
+/**
+ * @brief Set configuration (writes to EEPROM)
+ *
+ * @param handle mightyZAP handle
+ * @param config Configuration to write (only non-zero fields are written)
+ * @param mask Bitmask of fields to update (use MZAP_CONFIG_* constants)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t mightyzap_set_config(mightyzap_handle_t handle, const mightyzap_config_t *config, uint16_t mask);
+
+// Configuration field masks for mightyzap_set_config()
+#define MZAP_CONFIG_SLAVE_ID         (1 << 0)
+#define MZAP_CONFIG_BAUD_RATE        (1 << 1)
+#define MZAP_CONFIG_SHORT_STROKE     (1 << 2)
+#define MZAP_CONFIG_LONG_STROKE      (1 << 3)
+#define MZAP_CONFIG_SPEED_LIMIT      (1 << 4)
+#define MZAP_CONFIG_CURRENT_LIMIT    (1 << 5)
+#define MZAP_CONFIG_START_COMPLIANCE (1 << 6)
+#define MZAP_CONFIG_END_COMPLIANCE   (1 << 7)
+#define MZAP_CONFIG_ALARM_LED        (1 << 8)
+#define MZAP_CONFIG_ALARM_SHUTDOWN   (1 << 9)
+#define MZAP_CONFIG_ALL              (0x03FF)
 
 #ifdef __cplusplus
 }

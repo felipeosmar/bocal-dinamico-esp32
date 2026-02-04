@@ -1086,3 +1086,171 @@ body.log-expanded {
     opacity: 0.7;
     pointer-events: none;
 }
+
+/* ============================================================================
+   Config Tab - Actuator Configuration
+   ============================================================================ */
+
+.config-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+    height: 100%;
+}
+
+.config-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.config-main {
+    min-width: 0;
+}
+
+.config-actuator-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 6px;
+}
+
+.config-actuator-item:hover {
+    background: var(--bg-hover);
+}
+
+.config-actuator-item.selected {
+    background: var(--accent);
+    color: white;
+}
+
+.config-actuator-item.disconnected {
+    opacity: 0.5;
+}
+
+.config-actuator-item .id {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.config-actuator-item .name {
+    flex: 1;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.config-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.config-section:last-of-type {
+    border-bottom: none;
+}
+
+.config-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.form-group input[type="range"] {
+    width: 100%;
+}
+
+.form-group input[type="number"] {
+    width: 80px;
+}
+
+.form-group small.warning {
+    color: var(--warning);
+    font-size: 11px;
+}
+
+.config-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.config-warning {
+    margin-top: 16px;
+    padding: 10px;
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid var(--warning);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--warning);
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: #000;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.empty-state.small {
+    padding: 20px;
+}
+
+.empty-state.small p {
+    font-size: 13px;
+}
+
+.mt-2 {
+    margin-top: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .config-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .config-sidebar {
+        order: 2;
+    }
+    
+    .config-main {
+        order: 1;
+    }
+}

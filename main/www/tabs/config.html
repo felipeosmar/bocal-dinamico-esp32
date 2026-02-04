@@ -1,28 +1,52 @@
-<div class="card">
-    <h3>WiFi</h3>
-    <div class="form-row">
-        <select id="wifi-select">
-            <option value="">Select network...</option>
-        </select>
-        <button onclick="scanWiFi()" class="btn">Scan</button>
-    </div>
-    <input type="password" id="wifi-pass" placeholder="Password">
-    <button onclick="connectWiFi()" class="btn btn-primary full">Connect</button>
-</div>
-<div class="card">
-    <h3>RS485</h3>
-    <div class="form-row">
-        <label>Baud</label>
-        <select id="rs485-baud">
-            <option value="9600">9600</option>
-            <option value="19200">19200</option>
-            <option value="38400">38400</option>
-            <option value="57600">57600</option>
-            <option value="115200">115200</option>
-        </select>
-    </div>
-    <div class="info-row"><span>TX</span><span id="rs485-tx">--</span></div>
-    <div class="info-row"><span>RX</span><span id="rs485-rx">--</span></div>
-    <div class="info-row"><span>DE</span><span id="rs485-de">--</span></div>
-    <button onclick="saveRS485()" class="btn full">Save & Restart</button>
-</div>
+<div class="config-layout">
+<div class="config-sidebar">
+<div class="card"><h3>Actuators</h3>
+<div id="config-actuator-list"><div class="empty-state small"><p>No actuators</p></div></div>
+<button onclick="refreshConfigActuators()" class="btn full mt-2">Refresh</button></div>
+<div class="card"><h3>WiFi</h3>
+<div class="form-row"><select id="wifi-select"><option value="">Select network...</option></select>
+<button onclick="scanWiFi()" class="btn">Scan</button></div>
+<input type="password" id="wifi-pass" placeholder="Password">
+<button onclick="connectWiFi()" class="btn btn-primary full">Connect</button></div>
+<div class="card"><h3>RS485</h3>
+<div class="form-row"><label>Baud</label><select id="rs485-baud">
+<option value="9600">9600</option><option value="19200">19200</option><option value="57600">57600</option><option value="115200">115200</option></select></div>
+<div class="info-row"><span>TX</span><span id="rs485-tx">--</span></div>
+<div class="info-row"><span>RX</span><span id="rs485-rx">--</span></div>
+<div class="info-row"><span>DE</span><span id="rs485-de">--</span></div>
+<button onclick="saveRS485()" class="btn full">Save & Restart</button></div></div>
+<div class="config-main">
+<div id="config-panel" class="card" style="display:none">
+<h3>Config <span id="config-act-id"></span></h3>
+<div class="config-section"><h4>Device Info</h4>
+<div class="info-row"><span>Model</span><span id="cfg-model">--</span></div>
+<div class="info-row"><span>Firmware</span><span id="cfg-firmware">--</span></div>
+<div class="info-row"><span>Voltage</span><span id="cfg-voltage">--</span></div></div>
+<div class="config-section"><h4>Communication</h4>
+<div class="form-grid">
+<div class="form-group"><label>Slave ID</label><input type="number" id="cfg-slave-id" min="1" max="247"><small class="warning">Changes ID</small></div>
+<div class="form-group"><label>Baud Rate</label><select id="cfg-baud-rate">
+<option value="16">9600</option><option value="32">19200</option><option value="64">57600</option><option value="128">115200</option></select></div></div></div>
+<div class="config-section"><h4>Stroke Limits</h4>
+<div class="form-grid">
+<div class="form-group"><label>Short</label><input type="range" id="cfg-short-stroke" min="0" max="4095"><input type="number" id="cfg-short-stroke-val" min="0" max="4095"></div>
+<div class="form-group"><label>Long</label><input type="range" id="cfg-long-stroke" min="0" max="4095"><input type="number" id="cfg-long-stroke-val" min="0" max="4095"></div></div></div>
+<div class="config-section"><h4>Performance</h4>
+<div class="form-grid">
+<div class="form-group"><label>Speed (0-1023)</label><input type="range" id="cfg-speed-limit" min="0" max="1023"><input type="number" id="cfg-speed-limit-val" min="0" max="1023"></div>
+<div class="form-group"><label>Current (mA)</label><input type="range" id="cfg-current-limit" min="0" max="1600"><input type="number" id="cfg-current-limit-val" min="0" max="1600"></div></div></div>
+<div class="config-section"><h4>Compliance</h4>
+<div class="form-grid">
+<div class="form-group"><label>Start</label><input type="range" id="cfg-start-compliance" min="0" max="255"><input type="number" id="cfg-start-compliance-val" min="0" max="255"></div>
+<div class="form-group"><label>End</label><input type="range" id="cfg-end-compliance" min="0" max="255"><input type="number" id="cfg-end-compliance-val" min="0" max="255"></div></div></div>
+<div class="config-section"><h4>Alarms</h4>
+<div class="form-grid">
+<div class="form-group"><label>LED</label><select id="cfg-alarm-led"><option value="0">Off</option><option value="16">Overload</option><option value="32">Overheat</option><option value="48">Both</option></select></div>
+<div class="form-group"><label>Shutdown</label><select id="cfg-alarm-shutdown"><option value="0">Off</option><option value="16">Overload</option><option value="32">Overheat</option><option value="48">Both</option></select></div></div></div>
+<div class="config-actions">
+<button onclick="saveActuatorConfig()" class="btn btn-primary" id="btn-save-config">Save</button>
+<button onclick="reloadActuatorConfig()" class="btn">Reload</button>
+<button onclick="restartActuator()" class="btn btn-warning">Restart</button>
+<button onclick="factoryResetActuator()" class="btn btn-danger">Reset</button></div>
+<div class="config-warning">Config saved to EEPROM persists after power cycle.</div></div>
+<div id="config-placeholder" class="card"><div class="empty-state"><p>Select actuator to configure</p></div></div></div></div>

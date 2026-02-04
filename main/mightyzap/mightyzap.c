@@ -298,3 +298,189 @@ esp_err_t mightyzap_factory_reset(mightyzap_handle_t handle)
     return modbus_write_single_register(handle->modbus, handle->slave_id,
                                         MZAP_REG_FACTORY_RESET, 1);
 }
+
+esp_err_t mightyzap_get_info(mightyzap_handle_t handle, mightyzap_info_t *info)
+{
+    if (handle == NULL || info == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    esp_err_t ret;
+    
+    // Read model number
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_MODEL_NUMBER, 1, &info->model);
+    if (ret != ESP_OK) return ret;
+    
+    // Read firmware version
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_FIRMWARE_VERSION, 1, &info->firmware);
+    if (ret != ESP_OK) return ret;
+    
+    // Read voltage limits
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_LOWEST_VOLTAGE, 1, &info->voltage_min);
+    if (ret != ESP_OK) return ret;
+    
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_HIGHEST_VOLTAGE, 1, &info->voltage_max);
+    if (ret != ESP_OK) return ret;
+    
+    ESP_LOGD(TAG, "ID=%u: Info - model=%u, fw=%u, voltage=%u-%u",
+             handle->slave_id, info->model, info->firmware, 
+             info->voltage_min, info->voltage_max);
+    
+    return ESP_OK;
+}
+
+esp_err_t mightyzap_get_config(mightyzap_handle_t handle, mightyzap_config_t *config)
+{
+    if (handle == NULL || config == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    esp_err_t ret;
+    uint16_t val;
+    
+    // Read slave ID
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_ID, 1, &val);
+    if (ret != ESP_OK) return ret;
+    config->slave_id = val;
+    
+    // Read baud rate
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_BAUD_RATE, 1, &val);
+    if (ret != ESP_OK) return ret;
+    config->baud_rate = val;
+    
+    // Read stroke limits
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_SHORT_STROKE_LIM, 1, &config->short_stroke_limit);
+    if (ret != ESP_OK) return ret;
+    
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_LONG_STROKE_LIM, 1, &config->long_stroke_limit);
+    if (ret != ESP_OK) return ret;
+    
+    // Read performance limits
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_SPEED_LIMIT, 1, &config->speed_limit);
+    if (ret != ESP_OK) return ret;
+    
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_CURRENT_LIMIT, 1, &config->current_limit);
+    if (ret != ESP_OK) return ret;
+    
+    // Read compliance margins
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_START_COMPLIANCE, 1, &val);
+    if (ret != ESP_OK) return ret;
+    config->start_compliance = val;
+    
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_END_COMPLIANCE, 1, &val);
+    if (ret != ESP_OK) return ret;
+    config->end_compliance = val;
+    
+    // Read alarm settings
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_ALARM_LED, 1, &val);
+    if (ret != ESP_OK) return ret;
+    config->alarm_led = val;
+    
+    ret = modbus_read_holding_registers(handle->modbus, handle->slave_id,
+                                        MZAP_REG_ALARM_SHUTDOWN, 1, &val);
+    if (ret != ESP_OK) return ret;
+    config->alarm_shutdown = val;
+    
+    ESP_LOGI(TAG, "ID=%u: Config loaded - speed_lim=%u, current_lim=%u",
+             handle->slave_id, config->speed_limit, config->current_limit);
+    
+    return ESP_OK;
+}
+
+esp_err_t mightyzap_set_config(mightyzap_handle_t handle, const mightyzap_config_t *config, uint16_t mask)
+{
+    if (handle == NULL || config == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    esp_err_t ret;
+    
+    ESP_LOGI(TAG, "ID=%u: Setting config (mask=0x%04X)", handle->slave_id, mask);
+    
+    if (mask & MZAP_CONFIG_SLAVE_ID) {
+        if (config->slave_id == 0 || config->slave_id > 247) {
+            ESP_LOGE(TAG, "Invalid slave ID: %u", config->slave_id);
+            return ESP_ERR_INVALID_ARG;
+        }
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_ID, config->slave_id);
+        if (ret != ESP_OK) return ret;
+        ESP_LOGW(TAG, "Slave ID changed to %u - restart required", config->slave_id);
+    }
+    
+    if (mask & MZAP_CONFIG_BAUD_RATE) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_BAUD_RATE, config->baud_rate);
+        if (ret != ESP_OK) return ret;
+    }
+    
+    if (mask & MZAP_CONFIG_SHORT_STROKE) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_SHORT_STROKE_LIM, config->short_stroke_limit);
+        if (ret != ESP_OK) return ret;
+    }
+    
+    if (mask & MZAP_CONFIG_LONG_STROKE) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_LONG_STROKE_LIM, config->long_stroke_limit);
+        if (ret != ESP_OK) return ret;
+    }
+    
+    if (mask & MZAP_CONFIG_SPEED_LIMIT) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_SPEED_LIMIT, config->speed_limit);
+        if (ret != ESP_OK) return ret;
+        // Update cached value
+        handle->speed_limit = config->speed_limit;
+        handle->limits_cached = true;
+    }
+    
+    if (mask & MZAP_CONFIG_CURRENT_LIMIT) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_CURRENT_LIMIT, config->current_limit);
+        if (ret != ESP_OK) return ret;
+        // Update cached value
+        handle->current_limit = config->current_limit;
+        handle->limits_cached = true;
+    }
+    
+    if (mask & MZAP_CONFIG_START_COMPLIANCE) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_START_COMPLIANCE, config->start_compliance);
+        if (ret != ESP_OK) return ret;
+    }
+    
+    if (mask & MZAP_CONFIG_END_COMPLIANCE) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_END_COMPLIANCE, config->end_compliance);
+        if (ret != ESP_OK) return ret;
+    }
+    
+    if (mask & MZAP_CONFIG_ALARM_LED) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_ALARM_LED, config->alarm_led);
+        if (ret != ESP_OK) return ret;
+    }
+    
+    if (mask & MZAP_CONFIG_ALARM_SHUTDOWN) {
+        ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                           MZAP_REG_ALARM_SHUTDOWN, config->alarm_shutdown);
+        if (ret != ESP_OK) return ret;
+    }
+    
+    ESP_LOGI(TAG, "ID=%u: Config saved to EEPROM", handle->slave_id);
+    return ESP_OK;
+}

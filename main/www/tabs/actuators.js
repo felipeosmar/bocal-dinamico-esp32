@@ -182,8 +182,17 @@ async function sendActuatorCommand() {
     if (!selectedActuatorId) return;
 
     const pos = parseInt(document.getElementById('modal-pos-val').value);
-    const spd = parseInt(document.getElementById('modal-spd-val').value);
+    let spd = parseInt(document.getElementById('modal-spd-val').value);
     const cur = parseInt(document.getElementById('modal-cur-val').value);
+
+    // Validate and clamp values
+    const MAX_SPEED = 400;
+    if (spd > MAX_SPEED) {
+        spd = MAX_SPEED;
+        document.getElementById('modal-spd').value = spd;
+        document.getElementById('modal-spd-val').value = spd;
+        toast(`Speed limited to ${MAX_SPEED}`, 'info');
+    }
 
     try {
         const r = await api('actuator/control', 'POST', {
@@ -193,7 +202,7 @@ async function sendActuatorCommand() {
 
         if (r.success) {
             toast(`Moving to ${pos}`, 'success');
-            setTimeout(refreshActuators, 500);
+            setTimeout(refreshActuators, 1000);
         } else {
             toast(r.message || 'Command failed', 'error');
         }
@@ -213,9 +222,9 @@ function initActuators() {
         });
     }
 
-    // Start refresh interval (reduced frequency to avoid RS485 congestion)
+    // Start refresh interval (5s to avoid RS485 congestion)
     if (actuatorsInterval) clearInterval(actuatorsInterval);
-    actuatorsInterval = setInterval(refreshActuators, 3000);
+    actuatorsInterval = setInterval(refreshActuators, 5000);
 
     // Initial load
     refreshActuators();

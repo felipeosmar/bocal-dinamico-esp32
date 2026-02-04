@@ -1,0 +1,43 @@
+meta {
+  name: View file (inline)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/files/view
+  body: none
+  auth: inherit
+}
+
+params:query {
+  path: 
+}
+
+example {
+  name: 200 Response
+  description: File content
+  
+  request: {
+    url: {{baseUrl}}/api/files/view
+    method: GET
+    mode: none
+    params:query: {
+      path: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

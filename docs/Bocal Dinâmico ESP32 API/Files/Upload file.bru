@@ -1,0 +1,43 @@
+meta {
+  name: Upload file
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/files/upload
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: 
+}
+
+example {
+  name: 200 Response
+  description: File uploaded
+  
+  request: {
+    url: {{baseUrl}}/api/files/upload
+    method: POST
+    mode: multipartForm
+    body:multipart-form: {
+      file: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

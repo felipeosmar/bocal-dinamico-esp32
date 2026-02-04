@@ -1,0 +1,42 @@
+meta {
+  name: Set actuator name
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/actuator/set-name
+  body: json
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Name set
+  
+  request: {
+    url: {{baseUrl}}/api/actuator/set-name
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "id": 3,
+        "name": "Bocal Principal"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

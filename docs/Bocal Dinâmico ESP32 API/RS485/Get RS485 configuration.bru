@@ -1,0 +1,45 @@
+meta {
+  name: Get RS485 configuration
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/rs485/config
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: RS485 config
+  
+  request: {
+    url: {{baseUrl}}/api/rs485/config
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "baud": 57600,
+          "tx_pin": 17,
+          "rx_pin": 5,
+          "de_pin": 18
+        }
+      '''
+    }
+  }
+}

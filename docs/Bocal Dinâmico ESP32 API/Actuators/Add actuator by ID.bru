@@ -1,0 +1,41 @@
+meta {
+  name: Add actuator by ID
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/actuator/add
+  body: json
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Add result
+  
+  request: {
+    url: {{baseUrl}}/api/actuator/add
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "id": 3
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

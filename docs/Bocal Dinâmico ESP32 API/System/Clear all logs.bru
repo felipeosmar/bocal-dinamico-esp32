@@ -1,0 +1,36 @@
+meta {
+  name: Clear all logs
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/logs/clear
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Logs cleared
+  
+  request: {
+    url: {{baseUrl}}/api/logs/clear
+    method: POST
+    mode: none
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

@@ -1,0 +1,36 @@
+meta {
+  name: Scan for WiFi networks
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/wifi/scan
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Networks found
+  
+  request: {
+    url: {{baseUrl}}/api/wifi/scan
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

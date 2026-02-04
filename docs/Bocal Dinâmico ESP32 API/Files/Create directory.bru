@@ -1,0 +1,41 @@
+meta {
+  name: Create directory
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/files/mkdir
+  body: json
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Directory created
+  
+  request: {
+    url: {{baseUrl}}/api/files/mkdir
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "path": "/data/newdir"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

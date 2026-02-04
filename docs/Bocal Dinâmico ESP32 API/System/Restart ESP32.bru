@@ -1,0 +1,36 @@
+meta {
+  name: Restart ESP32
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/restart
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Restarting
+  
+  request: {
+    url: {{baseUrl}}/api/restart
+    method: POST
+    mode: none
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

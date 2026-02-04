@@ -1,0 +1,43 @@
+meta {
+  name: Write file content
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/files/write
+  body: text
+  auth: inherit
+}
+
+params:query {
+  path: 
+}
+
+example {
+  name: 200 Response
+  description: File written
+  
+  request: {
+    url: {{baseUrl}}/api/files/write
+    method: POST
+    mode: text
+    params:query: {
+      path: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

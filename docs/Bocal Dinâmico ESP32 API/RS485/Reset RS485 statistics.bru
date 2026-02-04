@@ -1,0 +1,36 @@
+meta {
+  name: Reset RS485 statistics
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/rs485/reset_stats
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Stats reset
+  
+  request: {
+    url: {{baseUrl}}/api/rs485/reset_stats
+    method: POST
+    mode: none
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

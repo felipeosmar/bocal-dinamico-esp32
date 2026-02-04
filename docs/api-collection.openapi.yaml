@@ -1,0 +1,505 @@
+openapi: 3.0.3
+info:
+  title: Bocal Dinâmico ESP32 API
+  description: API para controle de atuadores mightyZAP via RS485/Modbus
+  version: 1.0.0
+  contact:
+    name: Felipe O. de Aviz
+
+servers:
+  - url: http://10.1.82.180
+    description: ESP32 Device (Local Network)
+  - url: http://{device_ip}
+    description: Custom Device IP
+    variables:
+      device_ip:
+        default: "192.168.1.100"
+
+security:
+  - basicAuth: []
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: "Default: admin/admin"
+
+  schemas:
+    ActuatorStatus:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        connected:
+          type: boolean
+        position:
+          type: integer
+          minimum: 0
+          maximum: 4095
+        current:
+          type: integer
+        voltage:
+          type: number
+        moving:
+          type: boolean
+
+    ActuatorControl:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          description: Actuator ID (1-247)
+        position:
+          type: integer
+          minimum: 0
+          maximum: 4095
+        speed:
+          type: integer
+          minimum: 0
+          maximum: 400
+          description: Max 400 (hardware limit)
+        current:
+          type: integer
+          minimum: 0
+          maximum: 800
+        force:
+          type: boolean
+        goal:
+          type: object
+          properties:
+            position:
+              type: integer
+            speed:
+              type: integer
+            current:
+              type: integer
+
+paths:
+  # ============================================================================
+  # System
+  # ============================================================================
+  /api/status:
+    get:
+      tags: [System]
+      summary: Get system status
+      responses:
+        '200':
+          description: System status
+          content:
+            application/json:
+              example:
+                heap_free: 190000
+                uptime_ms: 12345
+                wifi_ip: "10.1.82.180"
+                wifi_ssid: "MyNetwork"
+                wifi_rssi: -45
+                wifi_status: 2
+                modbus_ready: true
+
+  /api/restart:
+    post:
+      tags: [System]
+      summary: Restart ESP32
+      responses:
+        '200':
+          description: Restarting
+
+  /api/tasks:
+    get:
+      tags: [System]
+      summary: Get FreeRTOS tasks info
+      responses:
+        '200':
+          description: Tasks list
+
+  /api/logs:
+    get:
+      tags: [System]
+      summary: Get system logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: since
+          in: query
+          schema:
+            type: integer
+          description: Sequence number to get logs after
+      responses:
+        '200':
+          description: Log entries
+
+  /api/logs/clear:
+    post:
+      tags: [System]
+      summary: Clear all logs
+      responses:
+        '200':
+          description: Logs cleared
+
+  # ============================================================================
+  # Actuators
+  # ============================================================================
+  /api/actuator/status:
+    get:
+      tags: [Actuators]
+      summary: Get all actuators status
+      responses:
+        '200':
+          description: Actuators list
+          content:
+            application/json:
+              example:
+                actuators:
+                  - id: 3
+                    name: "Actuator #3"
+                    connected: true
+                    position: 2048
+                    current: 0
+                    voltage: 12.2
+                    moving: false
+                count: 1
+
+  /api/actuator/control:
+    post:
+      tags: [Actuators]
+      summary: Control actuator (position/speed/current)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActuatorControl'
+            examples:
+              position_only:
+                summary: Set position only
+                value:
+                  id: 3
+                  position: 2000
+              with_speed:
+                summary: Position with speed
+                value:
+                  id: 3
+                  position: 2000
+                  speed: 300
+              goal_combined:
+                summary: Combined goal
+                value:
+                  id: 3
+                  goal:
+                    position: 2000
+                    speed: 300
+                    current: 400
+              force_enable:
+                summary: Enable/disable force
+                value:
+                  id: 3
+                  force: true
+      responses:
+        '200':
+          description: Command result
+          content:
+            application/json:
+              example:
+                success: true
+                message: "OK"
+
+  /api/actuator/scan:
+    post:
+      tags: [Actuators]
+      summary: Scan RS485 bus for actuators
+      responses:
+        '200':
+          description: Scan results
+          content:
+            application/json:
+              example:
+                count: 1
+                found: [3]
+
+  /api/actuator/add:
+    post:
+      tags: [Actuators]
+      summary: Add actuator by ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              id: 3
+      responses:
+        '200':
+          description: Add result
+
+  /api/actuator/remove:
+    post:
+      tags: [Actuators]
+      summary: Remove actuator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              id: 3
+      responses:
+        '200':
+          description: Remove result
+
+  /api/actuator/set-name:
+    post:
+      tags: [Actuators]
+      summary: Set actuator name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              id: 3
+              name: "Bocal Principal"
+      responses:
+        '200':
+          description: Name set
+
+  # ============================================================================
+  # RS485/Modbus
+  # ============================================================================
+  /api/rs485/config:
+    get:
+      tags: [RS485]
+      summary: Get RS485 configuration
+      responses:
+        '200':
+          description: RS485 config
+          content:
+            application/json:
+              example:
+                baud: 57600
+                tx_pin: 17
+                rx_pin: 5
+                de_pin: 18
+    post:
+      tags: [RS485]
+      summary: Set RS485 configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              baud: 57600
+      responses:
+        '200':
+          description: Config updated
+
+  /api/rs485/diag:
+    get:
+      tags: [RS485]
+      summary: Get RS485/Modbus diagnostics
+      responses:
+        '200':
+          description: Diagnostics data
+          content:
+            application/json:
+              example:
+                tx_count: 150
+                rx_count: 148
+                error_count: 2
+                timeout_count: 1
+                crc_error_count: 0
+                retry_count: 3
+
+  /api/rs485/reset_stats:
+    post:
+      tags: [RS485]
+      summary: Reset RS485 statistics
+      responses:
+        '200':
+          description: Stats reset
+
+  /api/rs485/test:
+    post:
+      tags: [RS485]
+      summary: Test RS485 communication
+      requestBody:
+        content:
+          application/json:
+            example:
+              slave_id: 3
+      responses:
+        '200':
+          description: Test result
+
+  # ============================================================================
+  # WiFi
+  # ============================================================================
+  /api/wifi/status:
+    get:
+      tags: [WiFi]
+      summary: Get WiFi status
+      responses:
+        '200':
+          description: WiFi status
+
+  /api/wifi/scan:
+    get:
+      tags: [WiFi]
+      summary: Scan for WiFi networks
+      responses:
+        '200':
+          description: Networks found
+
+  /api/wifi/connect:
+    post:
+      tags: [WiFi]
+      summary: Connect to WiFi network
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              ssid: "MyNetwork"
+              password: "MyPassword"
+      responses:
+        '200':
+          description: Connection initiated
+
+  # ============================================================================
+  # Files
+  # ============================================================================
+  /api/files/list:
+    get:
+      tags: [Files]
+      summary: List files in directory
+      parameters:
+        - name: path
+          in: query
+          schema:
+            type: string
+            default: "/"
+      responses:
+        '200':
+          description: File list
+
+  /api/files/info:
+    get:
+      tags: [Files]
+      summary: Get file info
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File info
+
+  /api/files/read:
+    get:
+      tags: [Files]
+      summary: Read file content
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content
+
+  /api/files/view:
+    get:
+      tags: [Files]
+      summary: View file (inline)
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content
+
+  /api/files/download:
+    get:
+      tags: [Files]
+      summary: Download file
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File download
+
+  /api/files/write:
+    post:
+      tags: [Files]
+      summary: Write file content
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: File written
+
+  /api/files/delete:
+    post:
+      tags: [Files]
+      summary: Delete file
+      requestBody:
+        content:
+          application/json:
+            example:
+              path: "/data/test.txt"
+      responses:
+        '200':
+          description: File deleted
+
+  /api/files/mkdir:
+    post:
+      tags: [Files]
+      summary: Create directory
+      requestBody:
+        content:
+          application/json:
+            example:
+              path: "/data/newdir"
+      responses:
+        '200':
+          description: Directory created
+
+  /api/files/upload:
+    post:
+      tags: [Files]
+      summary: Upload file
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: File uploaded

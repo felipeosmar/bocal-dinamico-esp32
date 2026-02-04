@@ -1,0 +1,47 @@
+meta {
+  name: Get RS485/Modbus diagnostics
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/rs485/diag
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Diagnostics data
+  
+  request: {
+    url: {{baseUrl}}/api/rs485/diag
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "tx_count": 150,
+          "rx_count": 148,
+          "error_count": 2,
+          "timeout_count": 1,
+          "crc_error_count": 0,
+          "retry_count": 3
+        }
+      '''
+    }
+  }
+}

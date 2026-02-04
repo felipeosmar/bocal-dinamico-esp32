@@ -1,0 +1,41 @@
+meta {
+  name: Set RS485 configuration
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/rs485/config
+  body: json
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Config updated
+  
+  request: {
+    url: {{baseUrl}}/api/rs485/config
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "baud": 57600
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

@@ -1,0 +1,41 @@
+meta {
+  name: Test RS485 communication
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/rs485/test
+  body: json
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Test result
+  
+  request: {
+    url: {{baseUrl}}/api/rs485/test
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "slave_id": 3
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

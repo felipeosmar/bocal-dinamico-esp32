@@ -1,0 +1,45 @@
+meta {
+  name: Get system logs
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/logs
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~limit: 
+  ~since: 
+}
+
+example {
+  name: 200 Response
+  description: Log entries
+  
+  request: {
+    url: {{baseUrl}}/api/logs
+    method: GET
+    mode: none
+    params:query: {
+      ~limit: 
+      ~since: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

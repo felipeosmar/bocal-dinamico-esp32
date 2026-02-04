@@ -1,0 +1,48 @@
+meta {
+  name: Get system status
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/status
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: System status
+  
+  request: {
+    url: {{baseUrl}}/api/status
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "heap_free": 190000,
+          "uptime_ms": 12345,
+          "wifi_ip": "10.1.82.180",
+          "wifi_ssid": "MyNetwork",
+          "wifi_rssi": -45,
+          "wifi_status": 2,
+          "modbus_ready": true
+        }
+      '''
+    }
+  }
+}

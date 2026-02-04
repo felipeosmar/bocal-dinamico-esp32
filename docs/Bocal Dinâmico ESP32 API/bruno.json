@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "name": "Bocal Dinâmico ESP32 API",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "size": 0.016130447387695312,
+  "filesCount": 36,
+  "presets": {
+    "requestType": "http",
+    "requestUrl": "http://10.1.82.180/"
+  }
+}

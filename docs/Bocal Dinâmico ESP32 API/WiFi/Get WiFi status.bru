@@ -1,0 +1,36 @@
+meta {
+  name: Get WiFi status
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/wifi/status
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: WiFi status
+  
+  request: {
+    url: {{baseUrl}}/api/wifi/status
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

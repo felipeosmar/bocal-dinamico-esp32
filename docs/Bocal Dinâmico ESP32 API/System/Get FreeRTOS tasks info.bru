@@ -1,0 +1,36 @@
+meta {
+  name: Get FreeRTOS tasks info
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/tasks
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Tasks list
+  
+  request: {
+    url: {{baseUrl}}/api/tasks
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

@@ -1,0 +1,43 @@
+meta {
+  name: Download file
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/files/download
+  body: none
+  auth: inherit
+}
+
+params:query {
+  path: 
+}
+
+example {
+  name: 200 Response
+  description: File download
+  
+  request: {
+    url: {{baseUrl}}/api/files/download
+    method: GET
+    mode: none
+    params:query: {
+      path: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

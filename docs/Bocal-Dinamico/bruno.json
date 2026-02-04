@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Bocal-Dinamico",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

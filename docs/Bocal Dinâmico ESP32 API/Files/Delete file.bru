@@ -1,0 +1,41 @@
+meta {
+  name: Delete file
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/files/delete
+  body: json
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: File deleted
+  
+  request: {
+    url: {{baseUrl}}/api/files/delete
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "path": "/data/test.txt"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

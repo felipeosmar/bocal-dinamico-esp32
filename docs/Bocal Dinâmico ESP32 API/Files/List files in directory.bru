@@ -1,0 +1,43 @@
+meta {
+  name: List files in directory
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/files/list
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~path: 
+}
+
+example {
+  name: 200 Response
+  description: File list
+  
+  request: {
+    url: {{baseUrl}}/api/files/list
+    method: GET
+    mode: none
+    params:query: {
+      ~path: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

@@ -1,0 +1,183 @@
+meta {
+  name: Control actuator (position/speed/current)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/actuator/control
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "id": 0,
+    "position": 0,
+    "speed": 0,
+    "current": 0,
+    "force": false,
+    "goal": {
+      "position": 0,
+      "speed": 0,
+      "current": 0
+    }
+  }
+}
+
+example {
+  name: 200 Response (Set position only)
+  description: Command result
+  
+  request: {
+    url: {{baseUrl}}/api/actuator/control
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "id": 3,
+        "position": 2000
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "success": true,
+          "message": "OK"
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response (Position with speed)
+  description: Command result
+  
+  request: {
+    url: {{baseUrl}}/api/actuator/control
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "id": 3,
+        "position": 2000,
+        "speed": 300
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "success": true,
+          "message": "OK"
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response (Combined goal)
+  description: Command result
+  
+  request: {
+    url: {{baseUrl}}/api/actuator/control
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "id": 3,
+        "goal": {
+          "position": 2000,
+          "speed": 300,
+          "current": 400
+        }
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "success": true,
+          "message": "OK"
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response (Enable/disable force)
+  description: Command result
+  
+  request: {
+    url: {{baseUrl}}/api/actuator/control
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "id": 3,
+        "force": true
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "success": true,
+          "message": "OK"
+        }
+      '''
+    }
+  }
+}

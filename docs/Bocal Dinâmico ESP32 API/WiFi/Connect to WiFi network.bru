@@ -1,0 +1,42 @@
+meta {
+  name: Connect to WiFi network
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/wifi/connect
+  body: json
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Connection initiated
+  
+  request: {
+    url: {{baseUrl}}/api/wifi/connect
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "ssid": "MyNetwork",
+        "password": "MyPassword"
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

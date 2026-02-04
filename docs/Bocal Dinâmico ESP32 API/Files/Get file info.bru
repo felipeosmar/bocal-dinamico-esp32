@@ -1,0 +1,43 @@
+meta {
+  name: Get file info
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/files/info
+  body: none
+  auth: inherit
+}
+
+params:query {
+  path: 
+}
+
+example {
+  name: 200 Response
+  description: File info
+  
+  request: {
+    url: {{baseUrl}}/api/files/info
+    method: GET
+    mode: none
+    params:query: {
+      path: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

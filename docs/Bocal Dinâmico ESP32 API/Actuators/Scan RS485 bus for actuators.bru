@@ -1,0 +1,45 @@
+meta {
+  name: Scan RS485 bus for actuators
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/actuator/scan
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Scan results
+  
+  request: {
+    url: {{baseUrl}}/api/actuator/scan
+    method: POST
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "count": 1,
+          "found": [
+            3
+          ]
+        }
+      '''
+    }
+  }
+}

@@ -1,0 +1,57 @@
+meta {
+  name: Get all actuators status
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/actuator/status
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  baseUrl: 10.1.82.180
+}
+
+example {
+  name: 200 Response
+  description: Actuators list
+  
+  request: {
+    url: {{baseUrl}}/api/actuator/status
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "actuators": [
+            {
+              "id": 3,
+              "name": "Actuator #3",
+              "connected": true,
+              "position": 2048,
+              "current": 0,
+              "voltage": 12.2,
+              "moving": false
+            }
+          ],
+          "count": 1
+        }
+      '''
+    }
+  }
+}

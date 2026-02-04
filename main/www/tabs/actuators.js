@@ -5,15 +5,104 @@ let actuatorsData = [];
 let actuatorsInterval = null;
 
 // ============================================================================
+// Command Lock - Prevent RS485 bus collisions
+// ============================================================================
+
+let commandInProgress = false;
+let commandLockTimeout = null;
+
+/**
+ * Acquire lock before RS485 operation
+ * @param {number} duration - Lock duration in ms (auto-release safety)
+ * @returns {boolean} - true if lock acquired
+ */
+function acquireCommandLock(duration = 5000) {
+    if (commandInProgress) {
+        console.log('[Actuators] Command lock busy, skipping operation');
+        return false;
+    }
+    
+    commandInProgress = true;
+    stopPolling();
+    
+    // Safety: auto-release lock after duration
+    if (commandLockTimeout) clearTimeout(commandLockTimeout);
+    commandLockTimeout = setTimeout(() => {
+        releaseCommandLock();
+        console.log('[Actuators] Command lock auto-released (timeout)');
+    }, duration);
+    
+    return true;
+}
+
+/**
+ * Release lock after RS485 operation completes
+ * @param {number} delayBeforePolling - Delay before resuming polling (ms)
+ */
+function releaseCommandLock(delayBeforePolling = 500) {
+    if (commandLockTimeout) {
+        clearTimeout(commandLockTimeout);
+        commandLockTimeout = null;
+    }
+    
+    commandInProgress = false;
+    
+    // Resume polling after delay
+    setTimeout(() => {
+        if (!commandInProgress) {
+            startPolling();
+        }
+    }, delayBeforePolling);
+}
+
+function stopPolling() {
+    if (actuatorsInterval) {
+        clearInterval(actuatorsInterval);
+        actuatorsInterval = null;
+        console.log('[Actuators] Polling stopped');
+    }
+}
+
+function startPolling() {
+    if (!actuatorsInterval && !commandInProgress) {
+        actuatorsInterval = setInterval(refreshActuators, 5000);
+        console.log('[Actuators] Polling started');
+    }
+}
+
+// ============================================================================
 // Data & Rendering
 // ============================================================================
 
 async function refreshActuators() {
+    // Skip if command in progress
+    if (commandInProgress) {
+        console.log('[Actuators] Refresh skipped - command in progress');
+        return;
+    }
+    
     try {
         const d = await api('actuator/status');
         actuatorsData = d.actuators || [];
         renderActuators();
-    } catch (e) {}
+        updateModalIfOpen();
+    } catch (e) {
+        console.error('[Actuators] Refresh failed:', e);
+    }
+}
+
+function updateModalIfOpen() {
+    if (!selectedActuatorId) return;
+    
+    const act = actuatorsData.find(a => a.id === selectedActuatorId);
+    if (act && act.connected) {
+        // Update position display if not actively editing
+        const posInput = document.getElementById('modal-pos-val');
+        if (posInput && document.activeElement !== posInput) {
+            document.getElementById('modal-pos').value = act.position;
+            posInput.value = act.position;
+        }
+    }
 }
 
 function renderActuators() {
@@ -54,16 +143,28 @@ function renderActuators() {
 // ============================================================================
 
 async function scanActuators() {
+    if (!acquireCommandLock(15000)) {
+        toast('Operation in progress, please wait', 'info');
+        return;
+    }
+    
     toast('Scanning...', 'info');
+    setButtonLoading('scan', true);
+    
     try {
         const r = await api('actuator/scan');
         if (r.count > 0) {
             toast(`Found ${r.count} actuator(s)`, 'success');
-            refreshActuators();
         } else {
             toast('No actuators found', 'error');
         }
-    } catch (e) {}
+    } catch (e) {
+        toast('Scan failed', 'error');
+    } finally {
+        setButtonLoading('scan', false);
+        releaseCommandLock(1000);
+        refreshActuators();
+    }
 }
 
 function addActuatorPrompt() {
@@ -74,26 +175,45 @@ function addActuatorPrompt() {
 }
 
 async function addActuator(id) {
+    if (!acquireCommandLock(5000)) {
+        toast('Operation in progress, please wait', 'info');
+        return;
+    }
+    
     try {
         const r = await api('actuator/add', 'POST', { id });
         if (r.success) {
             toast(`Actuator ${id} added`, 'success');
-            refreshActuators();
         } else {
             toast(r.message || 'Failed to add', 'error');
         }
-    } catch (e) {}
+    } catch (e) {
+        toast('Failed to add actuator', 'error');
+    } finally {
+        releaseCommandLock(1000);
+        refreshActuators();
+    }
 }
 
 async function removeActuator(id) {
     if (!confirm(`Remove actuator ${id}?`)) return;
+    
+    if (!acquireCommandLock(3000)) {
+        toast('Operation in progress, please wait', 'info');
+        return;
+    }
+    
     try {
         const r = await api('actuator/remove', 'POST', { id });
         if (r.success) {
             toast(`Actuator ${id} removed`, 'success');
-            refreshActuators();
         }
-    } catch (e) {}
+    } catch (e) {
+        toast('Failed to remove actuator', 'error');
+    } finally {
+        releaseCommandLock(500);
+        refreshActuators();
+    }
 }
 
 // ============================================================================
@@ -112,6 +232,9 @@ function openActuator(id) {
         document.getElementById('modal-pos').value = act.position;
         document.getElementById('modal-pos-val').value = act.position;
     }
+    
+    // Reset send button state
+    setSendButtonState('idle');
 
     document.getElementById('actuator-modal').classList.add('show');
     syncSliders();
@@ -124,6 +247,11 @@ function closeActuatorModal() {
 
 async function saveActuatorName() {
     if (!selectedActuatorId) return;
+    
+    if (!acquireCommandLock(3000)) {
+        toast('Operation in progress, please wait', 'info');
+        return;
+    }
 
     const name = document.getElementById('modal-act-name').value.trim();
 
@@ -135,11 +263,15 @@ async function saveActuatorName() {
 
         if (r.success) {
             toast('Name saved', 'success');
-            refreshActuators();
         } else {
             toast(r.message || 'Failed to save name', 'error');
         }
-    } catch (e) {}
+    } catch (e) {
+        toast('Failed to save name', 'error');
+    } finally {
+        releaseCommandLock(500);
+        refreshActuators();
+    }
 }
 
 function syncSliders() {
@@ -161,6 +293,12 @@ function syncSliders() {
 
 async function setForce(on) {
     if (!selectedActuatorId) return;
+    
+    if (!acquireCommandLock(3000)) {
+        toast('Operation in progress, please wait', 'info');
+        return;
+    }
+    
     try {
         const r = await api('actuator/control', 'POST', { id: selectedActuatorId, force: on });
         if (r.success) {
@@ -170,7 +308,11 @@ async function setForce(on) {
         } else {
             toast(r.message || 'Failed', 'error');
         }
-    } catch (e) {}
+    } catch (e) {
+        toast('Command failed', 'error');
+    } finally {
+        releaseCommandLock(500);
+    }
 }
 
 function quickPos(pos) {
@@ -178,21 +320,76 @@ function quickPos(pos) {
     document.getElementById('modal-pos-val').value = pos;
 }
 
+// ============================================================================
+// Send Command - with debounce and visual feedback
+// ============================================================================
+
+let sendCommandDebounce = null;
+
+function setSendButtonState(state) {
+    const btn = document.getElementById('btn-send-command');
+    if (!btn) return;
+    
+    btn.disabled = (state === 'sending');
+    
+    switch(state) {
+        case 'sending':
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+            btn.classList.add('loading');
+            break;
+        case 'success':
+            btn.innerHTML = '✓ Sent!';
+            btn.classList.remove('loading');
+            setTimeout(() => setSendButtonState('idle'), 1500);
+            break;
+        case 'error':
+            btn.innerHTML = '✗ Failed';
+            btn.classList.remove('loading');
+            setTimeout(() => setSendButtonState('idle'), 1500);
+            break;
+        default: // idle
+            btn.innerHTML = 'Send Command';
+            btn.classList.remove('loading');
+    }
+}
+
+function setButtonLoading(name, loading) {
+    // Generic button loading state (for scan, etc)
+    const btn = document.querySelector(`[data-btn="${name}"]`);
+    if (btn) {
+        btn.disabled = loading;
+    }
+}
+
 async function sendActuatorCommand() {
     if (!selectedActuatorId) return;
+    
+    // Debounce - prevent double-clicks
+    if (sendCommandDebounce) {
+        console.log('[Actuators] Command debounced');
+        return;
+    }
+    sendCommandDebounce = setTimeout(() => { sendCommandDebounce = null; }, 500);
+    
+    // Acquire lock
+    if (!acquireCommandLock(8000)) {
+        toast('Operation in progress, please wait', 'info');
+        return;
+    }
 
     const pos = parseInt(document.getElementById('modal-pos-val').value);
     let spd = parseInt(document.getElementById('modal-spd-val').value);
     const cur = parseInt(document.getElementById('modal-cur-val').value);
 
-    // Validate and clamp values
+    // Validate and clamp speed
     const MAX_SPEED = 400;
     if (spd > MAX_SPEED) {
         spd = MAX_SPEED;
         document.getElementById('modal-spd').value = spd;
         document.getElementById('modal-spd-val').value = spd;
-        toast(`Speed limited to ${MAX_SPEED}`, 'info');
     }
+    
+    setSendButtonState('sending');
 
     try {
         const r = await api('actuator/control', 'POST', {
@@ -202,11 +399,28 @@ async function sendActuatorCommand() {
 
         if (r.success) {
             toast(`Moving to ${pos}`, 'success');
-            setTimeout(refreshActuators, 1000);
+            setSendButtonState('success');
+            
+            // Wait for movement to complete before refreshing
+            // Estimate time based on position delta and speed
+            const currentPos = actuatorsData.find(a => a.id === selectedActuatorId)?.position || 0;
+            const delta = Math.abs(pos - currentPos);
+            const estimatedTime = Math.max(2000, Math.min(delta * 5, 5000)); // 2-5 seconds
+            
+            setTimeout(() => {
+                releaseCommandLock(500);
+                refreshActuators();
+            }, estimatedTime);
         } else {
             toast(r.message || 'Command failed', 'error');
+            setSendButtonState('error');
+            releaseCommandLock(500);
         }
-    } catch (e) {}
+    } catch (e) {
+        toast('Command failed', 'error');
+        setSendButtonState('error');
+        releaseCommandLock(500);
+    }
 }
 
 // ============================================================================
@@ -222,12 +436,15 @@ function initActuators() {
         });
     }
 
-    // Start refresh interval (5s to avoid RS485 congestion)
-    if (actuatorsInterval) clearInterval(actuatorsInterval);
-    actuatorsInterval = setInterval(refreshActuators, 5000);
+    // Initial load then start polling
+    refreshActuators().then(() => {
+        startPolling();
+    });
+}
 
-    // Initial load
-    refreshActuators();
+// Cleanup when leaving tab
+function cleanupActuators() {
+    stopPolling();
 }
 
 // Register module

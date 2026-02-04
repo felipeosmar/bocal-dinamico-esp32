@@ -1050,3 +1050,39 @@ body {
 body.log-expanded {
     padding-bottom: 300px;
 }
+
+/* ============================================================================
+   Spinner & Button States
+   ============================================================================ */
+
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.btn.loading {
+    opacity: 0.8;
+    cursor: wait;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Command in progress indicator */
+.command-busy .actuator-card {
+    opacity: 0.7;
+    pointer-events: none;
+}

@@ -175,11 +175,33 @@ esp_err_t mightyzap_set_goal(mightyzap_handle_t handle, uint16_t position, uint1
     ESP_LOGD(TAG, "ID=%u: Set goal pos=%u, spd=%u, cur=%u",
              handle->slave_id, position, speed, current);
 
-    // Write all goal registers in a single transaction (3 consecutive registers)
-    // 0x0034: Position, 0x0035: Speed, 0x0036: Current
-    uint16_t regs[3] = {position, speed, current};
-    return modbus_write_multiple_registers(handle->modbus, handle->slave_id,
-                                          MZAP_REG_GOAL_POSITION, 3, regs);
+    // Write registers individually (some actuators don't support FC16 write_multiple)
+    // Order: speed first, then current, then position (position triggers movement)
+    esp_err_t ret;
+    
+    ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                       MZAP_REG_GOAL_SPEED, speed);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ID=%u: Failed to set speed", handle->slave_id);
+        return ret;
+    }
+    
+    ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                       MZAP_REG_GOAL_CURRENT, current);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ID=%u: Failed to set current", handle->slave_id);
+        return ret;
+    }
+    
+    // Position last - this triggers the movement
+    ret = modbus_write_single_register(handle->modbus, handle->slave_id,
+                                       MZAP_REG_GOAL_POSITION, position);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ID=%u: Failed to set position", handle->slave_id);
+        return ret;
+    }
+    
+    return ESP_OK;
 }
 
 esp_err_t mightyzap_get_position(mightyzap_handle_t handle, uint16_t *position)

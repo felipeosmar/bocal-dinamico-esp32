@@ -279,6 +279,129 @@ esp_err_t mightyzap_set_config(mightyzap_handle_t handle, const mightyzap_config
 #define MZAP_CONFIG_ALARM_SHUTDOWN   (1 << 9)
 #define MZAP_CONFIG_ALL              (0x03FF)
 
+// ============================================================================
+// Synchronized Movement (Multi-Actuator)
+// ============================================================================
+
+#define MZAP_SYNC_MAX_ACTUATORS      4    // Max actuators in a sync group
+#define MZAP_SYNC_DEFAULT_TOLERANCE  20   // Default position tolerance (~0.13mm for 27mm stroke)
+
+/**
+ * @brief Sync group result codes
+ */
+typedef enum {
+    MZAP_SYNC_OK = 0,              // Movement completed successfully
+    MZAP_SYNC_TIMEOUT,             // Timeout waiting for position
+    MZAP_SYNC_DESYNC,              // Actuators desynchronized beyond limit
+    MZAP_SYNC_COMM_ERROR,          // Communication error with one or more actuators
+    MZAP_SYNC_INVALID_PARAM,       // Invalid parameters
+} mightyzap_sync_result_t;
+
+/**
+ * @brief Synchronized movement group
+ */
+typedef struct {
+    modbus_handle_t modbus;                      // Modbus handle
+    uint8_t ids[MZAP_SYNC_MAX_ACTUATORS];        // Actuator IDs in the group
+    uint8_t count;                               // Number of actuators in group
+    uint16_t target_position;                    // Target position for all
+    uint16_t speed;                              // Movement speed
+    uint16_t current;                            // Current/force limit
+    uint16_t tolerance;                          // Position tolerance in steps
+    uint16_t max_desync;                         // Max allowed desync between actuators
+    uint16_t present_positions[MZAP_SYNC_MAX_ACTUATORS]; // Last read positions
+} mightyzap_sync_group_t;
+
+/**
+ * @brief Initialize a sync group
+ *
+ * @param group Pointer to sync group structure
+ * @param modbus Modbus handle
+ * @param ids Array of actuator IDs
+ * @param count Number of actuators (1-4)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t mightyzap_sync_init(mightyzap_sync_group_t *group, modbus_handle_t modbus,
+                               const uint8_t *ids, uint8_t count);
+
+/**
+ * @brief Set movement parameters for sync group
+ *
+ * @param group Sync group
+ * @param speed Movement speed (0-1023)
+ * @param current Current limit (0-800)
+ * @param tolerance Position tolerance in steps (default 20)
+ * @param max_desync Max desync allowed between actuators (default 50)
+ */
+void mightyzap_sync_set_params(mightyzap_sync_group_t *group, uint16_t speed,
+                                uint16_t current, uint16_t tolerance, uint16_t max_desync);
+
+/**
+ * @brief Start synchronized movement to position
+ * 
+ * Sends goal position to all actuators in sequence with minimal delay.
+ *
+ * @param group Sync group
+ * @param position Target position
+ * @return esp_err_t ESP_OK if commands sent successfully
+ */
+esp_err_t mightyzap_sync_move_start(mightyzap_sync_group_t *group, uint16_t position);
+
+/**
+ * @brief Check if all actuators reached target position
+ *
+ * @param group Sync group
+ * @param in_position Output: true if all actuators are within tolerance
+ * @param all_stopped Output: true if all actuators stopped moving
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t mightyzap_sync_check_position(mightyzap_sync_group_t *group,
+                                         bool *in_position, bool *all_stopped);
+
+/**
+ * @brief Get maximum desync (difference between actuator positions)
+ *
+ * @param group Sync group
+ * @param max_diff Output: maximum position difference between any two actuators
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t mightyzap_sync_get_desync(mightyzap_sync_group_t *group, uint16_t *max_diff);
+
+/**
+ * @brief Execute synchronized move and wait for completion
+ *
+ * This is a blocking call that:
+ * 1. Sends position commands to all actuators
+ * 2. Polls positions until all reach target or timeout
+ * 3. Checks for desynchronization
+ *
+ * @param group Sync group
+ * @param position Target position
+ * @param timeout_ms Timeout in milliseconds
+ * @return mightyzap_sync_result_t Result code
+ */
+mightyzap_sync_result_t mightyzap_sync_move_wait(mightyzap_sync_group_t *group,
+                                                  uint16_t position, uint32_t timeout_ms);
+
+/**
+ * @brief Emergency stop all actuators in group
+ *
+ * Disables force on all actuators.
+ *
+ * @param group Sync group
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t mightyzap_sync_stop(mightyzap_sync_group_t *group);
+
+/**
+ * @brief Enable force on all actuators in group
+ *
+ * @param group Sync group
+ * @param enable true to enable, false to disable
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t mightyzap_sync_set_force(mightyzap_sync_group_t *group, bool enable);
+
 #ifdef __cplusplus
 }
 #endif

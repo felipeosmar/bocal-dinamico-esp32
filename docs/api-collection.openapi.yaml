@@ -267,6 +267,109 @@ paths:
         '200':
           description: Name set
 
+  /api/actuator/sync-move:
+    post:
+      tags: [Actuators]
+      summary: Synchronized movement of multiple actuators
+      description: |
+        Moves multiple actuators to the same position synchronously.
+        By default, waits for all actuators to reach the target position.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, position]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Actuator IDs to synchronize (1-4)
+                position:
+                  type: integer
+                  description: Target position (0-4095)
+                speed:
+                  type: integer
+                  default: 300
+                  description: Movement speed (0-1023)
+                current:
+                  type: integer
+                  default: 400
+                  description: Current/force limit (0-800)
+                tolerance:
+                  type: integer
+                  default: 20
+                  description: Position tolerance in steps
+                timeout:
+                  type: integer
+                  default: 10000
+                  description: Timeout in milliseconds
+                wait:
+                  type: boolean
+                  default: true
+                  description: Wait for completion (blocking)
+            examples:
+              basic_sync:
+                summary: Basic sync move
+                value:
+                  ids: [1, 2]
+                  position: 2048
+              full_params:
+                summary: With all parameters
+                value:
+                  ids: [1, 2]
+                  position: 3000
+                  speed: 200
+                  current: 500
+                  tolerance: 30
+                  timeout: 15000
+                  wait: true
+      responses:
+        '200':
+          description: Movement result
+          content:
+            application/json:
+              example:
+                success: true
+                message: "Movement completed"
+                result_code: 0
+                desync: 5
+                positions:
+                  - id: 1
+                    position: 2048
+                  - id: 2
+                    position: 2053
+
+  /api/actuator/sync-status:
+    get:
+      tags: [Actuators]
+      summary: Get sync group status
+      description: Returns current status of the last configured sync group
+      responses:
+        '200':
+          description: Sync group status
+          content:
+            application/json:
+              example:
+                initialized: true
+                count: 2
+                target: 2048
+                speed: 300
+                current: 400
+                tolerance: 20
+                in_position: true
+                all_stopped: true
+                desync: 5
+                actuators:
+                  - id: 1
+                    position: 2048
+                    error: 0
+                  - id: 2
+                    position: 2053
+                    error: 5
+
   # ============================================================================
   # RS485/Modbus
   # ============================================================================

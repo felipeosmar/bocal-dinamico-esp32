@@ -1254,3 +1254,246 @@ body.log-expanded {
         order: 1;
     }
 }
+
+/* ============================================================================
+   Control Panels (Actuators Page)
+   ============================================================================ */
+
+.control-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.control-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.control-card .card-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(88, 166, 255, 0.05);
+}
+
+.control-card .card-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+}
+
+.control-card .card-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: block;
+}
+
+.control-card .card-body {
+    padding: 16px;
+}
+
+/* Status Row */
+.status-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 8px;
+}
+
+.status-row.single {
+    justify-content: space-around;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.status-item .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.status-item .value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'SF Mono', Consolas, monospace;
+}
+
+.status-item .value.warn {
+    color: var(--warning);
+}
+
+.status-item.desync .value {
+    font-size: 14px;
+}
+
+/* Control Row */
+.control-card .control-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 80px auto;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.control-card .control-row label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.control-card .control-row input[type="range"] {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+}
+
+.control-card .control-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.control-card .control-row input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+.control-card .control-row input[type="number"] {
+    width: 80px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    text-align: center;
+    font-family: 'SF Mono', Consolas, monospace;
+}
+
+.control-card .control-row input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.control-card .control-row .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Toggle Buttons */
+.control-card .toggle {
+    display: flex;
+    gap: 4px;
+}
+
+.control-card .toggle button {
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.control-card .toggle button:hover {
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.control-card .toggle button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+/* Quick Position Buttons */
+.control-card .quick-pos {
+    display: flex;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.control-card .quick-pos button {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.control-card .quick-pos button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Send Button */
+.control-card .btn.full {
+    width: 100%;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.control-card .btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Status Dot in Cards */
+.status-item .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    margin-top: 4px;
+}
+
+.status-item .status-dot.on {
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+/* Responsive for Control Panels */
+@media (max-width: 500px) {
+    .control-card .control-row {
+        grid-template-columns: 70px 1fr 60px;
+    }
+    
+    .control-card .control-row .hint {
+        display: none;
+    }
+    
+    .status-row {
+        flex-wrap: wrap;
+    }
+    
+    .status-item {
+        min-width: 80px;
+    }
+}

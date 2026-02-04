@@ -122,6 +122,8 @@ esp_err_t api_actuator_scan_handler(httpd_req_t *req);
 esp_err_t api_actuator_add_handler(httpd_req_t *req);
 esp_err_t api_actuator_remove_handler(httpd_req_t *req);
 esp_err_t api_actuator_set_name_handler(httpd_req_t *req);
+esp_err_t api_actuator_sync_move_handler(httpd_req_t *req);
+esp_err_t api_actuator_sync_status_handler(httpd_req_t *req);
 
 // ============================================================================
 // API - RS485 (api_rs485.c)

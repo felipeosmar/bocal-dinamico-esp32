@@ -776,3 +776,211 @@ esp_err_t api_actuator_set_name_handler(httpd_req_t *req)
     cJSON_Delete(root);
     return ESP_OK;
 }
+
+// ============================================================================
+// Synchronized Movement Handlers
+// ============================================================================
+
+// Static sync group (persists between calls)
+static mightyzap_sync_group_t s_sync_group = {0};
+static bool s_sync_group_initialized = false;
+
+// POST /api/actuator/sync-move - Synchronized movement
+esp_err_t api_actuator_sync_move_handler(httpd_req_t *req)
+{
+    char buf[256];
+    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
+    if (ret <= 0) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+    buf[ret] = '\0';
+
+    cJSON *root = cJSON_Parse(buf);
+    if (root == NULL) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+    cJSON *response = cJSON_CreateObject();
+
+    // Parse IDs array
+    cJSON *ids_json = cJSON_GetObjectItem(root, "ids");
+    if (!cJSON_IsArray(ids_json)) {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "message", "Missing 'ids' array");
+        goto send_response;
+    }
+
+    int id_count = cJSON_GetArraySize(ids_json);
+    if (id_count < 1 || id_count > MZAP_SYNC_MAX_ACTUATORS) {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "message", "ids must have 1-4 elements");
+        goto send_response;
+    }
+
+    uint8_t ids[MZAP_SYNC_MAX_ACTUATORS];
+    for (int i = 0; i < id_count; i++) {
+        cJSON *id_item = cJSON_GetArrayItem(ids_json, i);
+        if (!cJSON_IsNumber(id_item)) {
+            cJSON_AddBoolToObject(response, "success", false);
+            cJSON_AddStringToObject(response, "message", "Invalid ID in array");
+            goto send_response;
+        }
+        ids[i] = id_item->valueint;
+    }
+
+    // Parse position
+    cJSON *position_json = cJSON_GetObjectItem(root, "position");
+    if (!cJSON_IsNumber(position_json)) {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "message", "Missing 'position'");
+        goto send_response;
+    }
+    uint16_t position = position_json->valueint;
+
+    // Parse optional parameters
+    cJSON *speed_json = cJSON_GetObjectItem(root, "speed");
+    cJSON *current_json = cJSON_GetObjectItem(root, "current");
+    cJSON *tolerance_json = cJSON_GetObjectItem(root, "tolerance");
+    cJSON *max_desync_json = cJSON_GetObjectItem(root, "max_desync");
+    cJSON *timeout_json = cJSON_GetObjectItem(root, "timeout");
+    cJSON *wait_json = cJSON_GetObjectItem(root, "wait");
+
+    uint16_t speed = cJSON_IsNumber(speed_json) ? speed_json->valueint : 300;
+    uint16_t current = cJSON_IsNumber(current_json) ? current_json->valueint : 400;
+    uint16_t tolerance = cJSON_IsNumber(tolerance_json) ? tolerance_json->valueint : MZAP_SYNC_DEFAULT_TOLERANCE;
+    uint16_t max_desync = cJSON_IsNumber(max_desync_json) ? max_desync_json->valueint : 150;
+    uint32_t timeout_ms = cJSON_IsNumber(timeout_json) ? timeout_json->valueint : 10000;
+    bool wait = cJSON_IsBool(wait_json) ? cJSON_IsTrue(wait_json) : true;
+
+    // Check if Modbus is available
+    if (g_modbus == NULL) {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "message", "Modbus not initialized");
+        goto send_response;
+    }
+
+    // Initialize or reinitialize sync group
+    esp_err_t err = mightyzap_sync_init(&s_sync_group, g_modbus, ids, id_count);
+    if (err != ESP_OK) {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "message", "Failed to init sync group");
+        goto send_response;
+    }
+    s_sync_group_initialized = true;
+
+    // Set parameters
+    mightyzap_sync_set_params(&s_sync_group, speed, current, tolerance, max_desync);
+
+    if (wait) {
+        // Blocking move with wait
+        mightyzap_sync_result_t result = mightyzap_sync_move_wait(&s_sync_group, position, timeout_ms);
+        
+        cJSON_AddBoolToObject(response, "success", result == MZAP_SYNC_OK);
+        
+        // Add result details
+        const char *result_str;
+        switch (result) {
+            case MZAP_SYNC_OK:        result_str = "Movement completed"; break;
+            case MZAP_SYNC_TIMEOUT:   result_str = "Timeout"; break;
+            case MZAP_SYNC_DESYNC:    result_str = "Desynchronization error"; break;
+            case MZAP_SYNC_COMM_ERROR: result_str = "Communication error"; break;
+            default:                   result_str = "Unknown error"; break;
+        }
+        cJSON_AddStringToObject(response, "message", result_str);
+        cJSON_AddNumberToObject(response, "result_code", result);
+
+        // Add final positions
+        cJSON *positions = cJSON_CreateArray();
+        uint16_t max_desync = 0;
+        mightyzap_sync_get_desync(&s_sync_group, &max_desync);
+        
+        for (int i = 0; i < id_count; i++) {
+            cJSON *pos_obj = cJSON_CreateObject();
+            cJSON_AddNumberToObject(pos_obj, "id", ids[i]);
+            cJSON_AddNumberToObject(pos_obj, "position", s_sync_group.present_positions[i]);
+            cJSON_AddItemToArray(positions, pos_obj);
+        }
+        cJSON_AddItemToObject(response, "positions", positions);
+        cJSON_AddNumberToObject(response, "desync", max_desync);
+    } else {
+        // Non-blocking: just start the movement
+        err = mightyzap_sync_move_start(&s_sync_group, position);
+        cJSON_AddBoolToObject(response, "success", err == ESP_OK);
+        cJSON_AddStringToObject(response, "message", err == ESP_OK ? "Movement started" : "Failed to start");
+    }
+
+send_response:
+    {
+        char *json_str = cJSON_PrintUnformatted(response);
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, json_str, strlen(json_str));
+        free(json_str);
+    }
+
+    cJSON_Delete(response);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+// GET /api/actuator/sync-status - Get sync group status
+esp_err_t api_actuator_sync_status_handler(httpd_req_t *req)
+{
+    cJSON *root = cJSON_CreateObject();
+
+    if (!s_sync_group_initialized || g_modbus == NULL) {
+        cJSON_AddBoolToObject(root, "initialized", false);
+        cJSON_AddStringToObject(root, "message", "Sync group not initialized");
+        
+        char *json_str = cJSON_PrintUnformatted(root);
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, json_str, strlen(json_str));
+        free(json_str);
+        cJSON_Delete(root);
+        return ESP_OK;
+    }
+
+    cJSON_AddBoolToObject(root, "initialized", true);
+    cJSON_AddNumberToObject(root, "count", s_sync_group.count);
+    cJSON_AddNumberToObject(root, "target", s_sync_group.target_position);
+    cJSON_AddNumberToObject(root, "speed", s_sync_group.speed);
+    cJSON_AddNumberToObject(root, "current", s_sync_group.current);
+    cJSON_AddNumberToObject(root, "tolerance", s_sync_group.tolerance);
+
+    // Read current positions
+    bool in_position = false;
+    bool all_stopped = false;
+    esp_err_t err = mightyzap_sync_check_position(&s_sync_group, &in_position, &all_stopped);
+
+    if (err == ESP_OK) {
+        cJSON_AddBoolToObject(root, "in_position", in_position);
+        cJSON_AddBoolToObject(root, "all_stopped", all_stopped);
+
+        uint16_t desync = 0;
+        mightyzap_sync_get_desync(&s_sync_group, &desync);
+        cJSON_AddNumberToObject(root, "desync", desync);
+
+        cJSON *actuators = cJSON_CreateArray();
+        for (uint8_t i = 0; i < s_sync_group.count; i++) {
+            cJSON *act = cJSON_CreateObject();
+            cJSON_AddNumberToObject(act, "id", s_sync_group.ids[i]);
+            cJSON_AddNumberToObject(act, "position", s_sync_group.present_positions[i]);
+            
+            int32_t diff = (int32_t)s_sync_group.present_positions[i] - (int32_t)s_sync_group.target_position;
+            cJSON_AddNumberToObject(act, "error", diff);
+            
+            cJSON_AddItemToArray(actuators, act);
+        }
+        cJSON_AddItemToObject(root, "actuators", actuators);
+    } else {
+        cJSON_AddStringToObject(root, "error", "Failed to read positions");
+    }
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+    return ESP_OK;
+}

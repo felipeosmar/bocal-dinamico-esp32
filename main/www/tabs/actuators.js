@@ -1,44 +1,37 @@
-// Actuators Module
+// Actuators Module - Synchronized & Independent Control
 
-let selectedActuatorId = null;
+// Configuration
+const SYNC_IDS = [1, 2];  // IDs for synchronized group
+const IND_ID = 3;         // ID for independent actuator
+
 let actuatorsData = [];
-let actuatorsInterval = null;
+let statusInterval = null;
+let commandInProgress = false;
 
 // ============================================================================
 // Command Lock - Prevent RS485 bus collisions
 // ============================================================================
 
-let commandInProgress = false;
 let commandLockTimeout = null;
 
-/**
- * Acquire lock before RS485 operation
- * @param {number} duration - Lock duration in ms (auto-release safety)
- * @returns {boolean} - true if lock acquired
- */
 function acquireCommandLock(duration = 5000) {
     if (commandInProgress) {
-        console.log('[Actuators] Command lock busy, skipping operation');
+        console.log('[Actuators] Command lock busy');
         return false;
     }
     
     commandInProgress = true;
     stopPolling();
     
-    // Safety: auto-release lock after duration
     if (commandLockTimeout) clearTimeout(commandLockTimeout);
     commandLockTimeout = setTimeout(() => {
         releaseCommandLock();
-        console.log('[Actuators] Command lock auto-released (timeout)');
+        console.log('[Actuators] Command lock auto-released');
     }, duration);
     
     return true;
 }
 
-/**
- * Release lock after RS485 operation completes
- * @param {number} delayBeforePolling - Delay before resuming polling (ms)
- */
 function releaseCommandLock(delayBeforePolling = 500) {
     if (commandLockTimeout) {
         clearTimeout(commandLockTimeout);
@@ -47,109 +40,86 @@ function releaseCommandLock(delayBeforePolling = 500) {
     
     commandInProgress = false;
     
-    // Resume polling after delay
     setTimeout(() => {
-        if (!commandInProgress) {
-            startPolling();
-        }
+        if (!commandInProgress) startPolling();
     }, delayBeforePolling);
 }
 
 function stopPolling() {
-    if (actuatorsInterval) {
-        clearInterval(actuatorsInterval);
-        actuatorsInterval = null;
-        console.log('[Actuators] Polling stopped');
+    if (statusInterval) {
+        clearInterval(statusInterval);
+        statusInterval = null;
     }
 }
 
 function startPolling() {
-    if (!actuatorsInterval && !commandInProgress) {
-        actuatorsInterval = setInterval(refreshActuators, 5000);
-        console.log('[Actuators] Polling started');
+    if (!statusInterval && !commandInProgress) {
+        statusInterval = setInterval(refreshStatus, 3000);
     }
 }
 
 // ============================================================================
-// Data & Rendering
+// Status Refresh
 // ============================================================================
 
-async function refreshActuators() {
-    // Skip if command in progress
-    if (commandInProgress) {
-        console.log('[Actuators] Refresh skipped - command in progress');
-        return;
-    }
+async function refreshStatus() {
+    if (commandInProgress) return;
     
     try {
         const d = await api('actuator/status');
         actuatorsData = d.actuators || [];
-        renderActuators();
-        updateModalIfOpen();
+        updateStatusDisplay();
     } catch (e) {
-        console.error('[Actuators] Refresh failed:', e);
+        console.error('[Actuators] Status refresh failed:', e);
     }
 }
 
-function updateModalIfOpen() {
-    if (!selectedActuatorId) return;
+function updateStatusDisplay() {
+    // Update Sync Group status
+    const act1 = actuatorsData.find(a => a.id === SYNC_IDS[0]);
+    const act2 = actuatorsData.find(a => a.id === SYNC_IDS[1]);
     
-    const act = actuatorsData.find(a => a.id === selectedActuatorId);
-    if (act && act.connected) {
-        // Update position display if not actively editing
-        const posInput = document.getElementById('modal-pos-val');
-        if (posInput && document.activeElement !== posInput) {
-            document.getElementById('modal-pos').value = act.position;
-            posInput.value = act.position;
-        }
+    if (act1) {
+        document.getElementById('sync-pos-1').textContent = act1.connected ? act1.position : '--';
+        document.getElementById('sync-status-1').className = 'status-dot ' + (act1.connected ? 'on' : '');
     }
-}
-
-function renderActuators() {
-    const container = document.getElementById('actuators-container');
-
-    if (actuatorsData.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <p>No actuators</p>
-                <button onclick="scanActuators()" class="btn">Scan for devices</button>
-            </div>`;
-        return;
+    if (act2) {
+        document.getElementById('sync-pos-2').textContent = act2.connected ? act2.position : '--';
+        document.getElementById('sync-status-2').className = 'status-dot ' + (act2.connected ? 'on' : '');
     }
-
-    container.innerHTML = actuatorsData.map(act => `
-        <div class="actuator-card" onclick="openActuator(${act.id})">
-            <div class="id">${act.id}</div>
-            <div class="info">
-                <div class="name">${act.name || 'Actuator #' + act.id}</div>
-                <div class="stats">
-                    ${act.connected ?
-                        `Pos: ${act.position} | ${act.current}mA | ${act.voltage.toFixed(1)}V` :
-                        'Disconnected'}
-                </div>
-            </div>
-            <div class="status-dot ${act.connected ? 'on' : ''}"></div>
-            <button class="remove" onclick="event.stopPropagation(); removeActuator(${act.id})" title="Remove">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                </svg>
-            </button>
-        </div>
-    `).join('');
+    
+    // Calculate desync
+    if (act1?.connected && act2?.connected) {
+        const desync = Math.abs(act1.position - act2.position);
+        const desyncEl = document.getElementById('sync-desync');
+        desyncEl.textContent = desync;
+        desyncEl.className = 'value ' + (desync > 100 ? 'warn' : '');
+    } else {
+        document.getElementById('sync-desync').textContent = '--';
+    }
+    
+    // Update Independent actuator status
+    const act3 = actuatorsData.find(a => a.id === IND_ID);
+    if (act3) {
+        document.getElementById('ind-pos-display').textContent = act3.connected ? act3.position : '--';
+        document.getElementById('ind-cur-display').textContent = act3.connected ? act3.current + 'mA' : '--';
+        document.getElementById('ind-status-display').textContent = act3.connected ? 
+            (act3.moving ? 'Moving' : 'Idle') : 'Offline';
+        document.getElementById('ind-status-dot').className = 'status-dot ' + (act3.connected ? 'on' : '');
+    }
 }
 
 // ============================================================================
-// Actions
+// Scan
 // ============================================================================
 
 async function scanActuators() {
     if (!acquireCommandLock(15000)) {
-        toast('Operation in progress, please wait', 'info');
+        toast('Operation in progress', 'info');
         return;
     }
     
-    toast('Scanning...', 'info');
-    setButtonLoading('scan', true);
+    toast('Scanning RS485 bus...', 'info');
     
     try {
         const r = await api('actuator/scan');
@@ -161,124 +131,20 @@ async function scanActuators() {
     } catch (e) {
         toast('Scan failed', 'error');
     } finally {
-        setButtonLoading('scan', false);
         releaseCommandLock(1000);
-        refreshActuators();
-    }
-}
-
-function addActuatorPrompt() {
-    const id = prompt('Enter actuator ID (1-247):');
-    if (id && !isNaN(id) && id >= 1 && id <= 247) {
-        addActuator(parseInt(id));
-    }
-}
-
-async function addActuator(id) {
-    if (!acquireCommandLock(5000)) {
-        toast('Operation in progress, please wait', 'info');
-        return;
-    }
-    
-    try {
-        const r = await api('actuator/add', 'POST', { id });
-        if (r.success) {
-            toast(`Actuator ${id} added`, 'success');
-        } else {
-            toast(r.message || 'Failed to add', 'error');
-        }
-    } catch (e) {
-        toast('Failed to add actuator', 'error');
-    } finally {
-        releaseCommandLock(1000);
-        refreshActuators();
-    }
-}
-
-async function removeActuator(id) {
-    if (!confirm(`Remove actuator ${id}?`)) return;
-    
-    if (!acquireCommandLock(3000)) {
-        toast('Operation in progress, please wait', 'info');
-        return;
-    }
-    
-    try {
-        const r = await api('actuator/remove', 'POST', { id });
-        if (r.success) {
-            toast(`Actuator ${id} removed`, 'success');
-        }
-    } catch (e) {
-        toast('Failed to remove actuator', 'error');
-    } finally {
-        releaseCommandLock(500);
-        refreshActuators();
+        refreshStatus();
     }
 }
 
 // ============================================================================
-// Modal
+// Synchronized Group Controls
 // ============================================================================
 
-function openActuator(id) {
-    selectedActuatorId = id;
-    const act = actuatorsData.find(a => a.id === id);
-    if (!act) return;
-
-    document.getElementById('modal-act-id').textContent = '#' + id;
-    document.getElementById('modal-act-name').value = act.name || '';
-
-    if (act.connected) {
-        document.getElementById('modal-pos').value = act.position;
-        document.getElementById('modal-pos-val').value = act.position;
-    }
-    
-    // Reset send button state
-    setSendButtonState('idle');
-
-    document.getElementById('actuator-modal').classList.add('show');
-    syncSliders();
-}
-
-function closeActuatorModal() {
-    document.getElementById('actuator-modal').classList.remove('show');
-    selectedActuatorId = null;
-}
-
-async function saveActuatorName() {
-    if (!selectedActuatorId) return;
-    
-    if (!acquireCommandLock(3000)) {
-        toast('Operation in progress, please wait', 'info');
-        return;
-    }
-
-    const name = document.getElementById('modal-act-name').value.trim();
-
-    try {
-        const r = await api('actuator/set-name', 'POST', {
-            id: selectedActuatorId,
-            name: name
-        });
-
-        if (r.success) {
-            toast('Name saved', 'success');
-        } else {
-            toast(r.message || 'Failed to save name', 'error');
-        }
-    } catch (e) {
-        toast('Failed to save name', 'error');
-    } finally {
-        releaseCommandLock(500);
-        refreshActuators();
-    }
-}
-
-function syncSliders() {
+function syncSliders(prefix) {
     const pairs = [
-        ['modal-pos', 'modal-pos-val'],
-        ['modal-spd', 'modal-spd-val'],
-        ['modal-cur', 'modal-cur-val']
+        [prefix + '-pos', prefix + '-pos-val'],
+        [prefix + '-spd', prefix + '-spd-val'],
+        [prefix + '-cur', prefix + '-cur-val']
     ];
 
     pairs.forEach(([slider, input]) => {
@@ -291,43 +157,13 @@ function syncSliders() {
     });
 }
 
-async function setForce(on) {
-    if (!selectedActuatorId) return;
-    
-    if (!acquireCommandLock(3000)) {
-        toast('Operation in progress, please wait', 'info');
-        return;
-    }
-    
-    try {
-        const r = await api('actuator/control', 'POST', { id: selectedActuatorId, force: on });
-        if (r.success) {
-            toast(`Force ${on ? 'enabled' : 'disabled'}`, 'success');
-            document.getElementById('btn-force-on').classList.toggle('active', on);
-            document.getElementById('btn-force-off').classList.toggle('active', !on);
-        } else {
-            toast(r.message || 'Failed', 'error');
-        }
-    } catch (e) {
-        toast('Command failed', 'error');
-    } finally {
-        releaseCommandLock(500);
-    }
+function syncQuickPos(pos) {
+    document.getElementById('sync-pos').value = pos;
+    document.getElementById('sync-pos-val').value = pos;
 }
 
-function quickPos(pos) {
-    document.getElementById('modal-pos').value = pos;
-    document.getElementById('modal-pos-val').value = pos;
-}
-
-// ============================================================================
-// Send Command - with debounce and visual feedback
-// ============================================================================
-
-let sendCommandDebounce = null;
-
-function setSendButtonState(state) {
-    const btn = document.getElementById('btn-send-command');
+function setButtonState(btnId, state) {
+    const btn = document.getElementById(btnId);
     if (!btn) return;
     
     btn.disabled = (state === 'sending');
@@ -338,88 +174,138 @@ function setSendButtonState(state) {
             btn.classList.add('loading');
             break;
         case 'success':
-            btn.innerHTML = '✓ Sent!';
+            btn.innerHTML = '✓ Done!';
             btn.classList.remove('loading');
-            setTimeout(() => setSendButtonState('idle'), 1500);
+            setTimeout(() => setButtonState(btnId, 'idle'), 1500);
             break;
         case 'error':
             btn.innerHTML = '✗ Failed';
             btn.classList.remove('loading');
-            setTimeout(() => setSendButtonState('idle'), 1500);
+            setTimeout(() => setButtonState(btnId, 'idle'), 1500);
             break;
-        default: // idle
-            btn.innerHTML = 'Send Command';
+        default:
+            btn.innerHTML = btnId === 'btn-sync-command' ? 
+                'Send Synchronized Command' : 'Send Command';
             btn.classList.remove('loading');
     }
 }
 
-function setButtonLoading(name, loading) {
-    // Generic button loading state (for scan, etc)
-    const btn = document.querySelector(`[data-btn="${name}"]`);
-    if (btn) {
-        btn.disabled = loading;
+async function sendSyncCommand() {
+    if (!acquireCommandLock(15000)) {
+        toast('Operation in progress', 'info');
+        return;
+    }
+
+    const pos = parseInt(document.getElementById('sync-pos-val').value);
+    let spd = parseInt(document.getElementById('sync-spd-val').value);
+    const cur = parseInt(document.getElementById('sync-cur-val').value);
+
+    // Clamp speed
+    if (spd > 400) {
+        spd = 400;
+        document.getElementById('sync-spd').value = spd;
+        document.getElementById('sync-spd-val').value = spd;
+    }
+    
+    setButtonState('btn-sync-command', 'sending');
+
+    try {
+        const r = await api('actuator/sync-move', 'POST', {
+            ids: SYNC_IDS,
+            position: pos,
+            speed: spd,
+            current: cur,
+            wait: true,
+            timeout: 10000
+        });
+
+        if (r.success) {
+            toast(`Sync move complete (desync: ${r.desync})`, 'success');
+            setButtonState('btn-sync-command', 'success');
+        } else {
+            toast(r.message || 'Sync move failed', 'error');
+            setButtonState('btn-sync-command', 'error');
+        }
+    } catch (e) {
+        toast('Command failed', 'error');
+        setButtonState('btn-sync-command', 'error');
+    } finally {
+        releaseCommandLock(500);
+        refreshStatus();
     }
 }
 
-async function sendActuatorCommand() {
-    if (!selectedActuatorId) return;
-    
-    // Debounce - prevent double-clicks
-    if (sendCommandDebounce) {
-        console.log('[Actuators] Command debounced');
+// ============================================================================
+// Independent Actuator Controls
+// ============================================================================
+
+function indQuickPos(pos) {
+    document.getElementById('ind-pos').value = pos;
+    document.getElementById('ind-pos-val').value = pos;
+}
+
+async function setIndForce(on) {
+    if (!acquireCommandLock(3000)) {
+        toast('Operation in progress', 'info');
         return;
     }
-    sendCommandDebounce = setTimeout(() => { sendCommandDebounce = null; }, 500);
     
-    // Acquire lock
+    try {
+        const r = await api('actuator/control', 'POST', { id: IND_ID, force: on });
+        if (r.success) {
+            toast(`Force ${on ? 'enabled' : 'disabled'}`, 'success');
+            document.getElementById('btn-ind-force-on').classList.toggle('active', on);
+            document.getElementById('btn-ind-force-off').classList.toggle('active', !on);
+        } else {
+            toast(r.message || 'Failed', 'error');
+        }
+    } catch (e) {
+        toast('Command failed', 'error');
+    } finally {
+        releaseCommandLock(500);
+    }
+}
+
+async function sendIndCommand() {
     if (!acquireCommandLock(8000)) {
-        toast('Operation in progress, please wait', 'info');
+        toast('Operation in progress', 'info');
         return;
     }
 
-    const pos = parseInt(document.getElementById('modal-pos-val').value);
-    let spd = parseInt(document.getElementById('modal-spd-val').value);
-    const cur = parseInt(document.getElementById('modal-cur-val').value);
+    const pos = parseInt(document.getElementById('ind-pos-val').value);
+    let spd = parseInt(document.getElementById('ind-spd-val').value);
+    const cur = parseInt(document.getElementById('ind-cur-val').value);
 
-    // Validate and clamp speed
-    const MAX_SPEED = 400;
-    if (spd > MAX_SPEED) {
-        spd = MAX_SPEED;
-        document.getElementById('modal-spd').value = spd;
-        document.getElementById('modal-spd-val').value = spd;
+    if (spd > 400) {
+        spd = 400;
+        document.getElementById('ind-spd').value = spd;
+        document.getElementById('ind-spd-val').value = spd;
     }
     
-    setSendButtonState('sending');
+    setButtonState('btn-ind-command', 'sending');
 
     try {
         const r = await api('actuator/control', 'POST', {
-            id: selectedActuatorId,
+            id: IND_ID,
             goal: { position: pos, speed: spd, current: cur }
         });
 
         if (r.success) {
             toast(`Moving to ${pos}`, 'success');
-            setSendButtonState('success');
-            
-            // Wait for movement to complete before refreshing
-            // Estimate time based on position delta and speed
-            const currentPos = actuatorsData.find(a => a.id === selectedActuatorId)?.position || 0;
-            const delta = Math.abs(pos - currentPos);
-            const estimatedTime = Math.max(2000, Math.min(delta * 5, 5000)); // 2-5 seconds
-            
-            setTimeout(() => {
-                releaseCommandLock(500);
-                refreshActuators();
-            }, estimatedTime);
+            setButtonState('btn-ind-command', 'success');
         } else {
             toast(r.message || 'Command failed', 'error');
-            setSendButtonState('error');
-            releaseCommandLock(500);
+            setButtonState('btn-ind-command', 'error');
         }
     } catch (e) {
         toast('Command failed', 'error');
-        setSendButtonState('error');
-        releaseCommandLock(500);
+        setButtonState('btn-ind-command', 'error');
+    } finally {
+        // Wait for movement before releasing
+        setTimeout(() => {
+            releaseCommandLock(500);
+            refreshStatus();
+        }, 2000);
     }
 }
 
@@ -428,21 +314,14 @@ async function sendActuatorCommand() {
 // ============================================================================
 
 function initActuators() {
-    // Setup modal close on outside click
-    const modal = document.getElementById('actuator-modal');
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target.id === 'actuator-modal') closeActuatorModal();
-        });
-    }
-
-    // Initial load then start polling
-    refreshActuators().then(() => {
-        startPolling();
-    });
+    // Setup slider sync
+    syncSliders('sync');
+    syncSliders('ind');
+    
+    // Initial load
+    refreshStatus().then(() => startPolling());
 }
 
-// Cleanup when leaving tab
 function cleanupActuators() {
     stopPolling();
 }

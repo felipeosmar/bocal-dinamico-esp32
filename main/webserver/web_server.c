@@ -203,6 +203,8 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_uri_t act_config_post = { .uri = "/api/actuator/config", .method = HTTP_POST, .handler = api_actuator_config_post_handler };
     httpd_uri_t act_restart = { .uri = "/api/actuator/restart", .method = HTTP_POST, .handler = api_actuator_restart_handler };
     httpd_uri_t act_factory = { .uri = "/api/actuator/factory-reset", .method = HTTP_POST, .handler = api_actuator_factory_reset_handler };
+    httpd_uri_t act_sync_move = { .uri = "/api/actuator/sync-move", .method = HTTP_POST, .handler = api_actuator_sync_move_handler };
+    httpd_uri_t act_sync_status = { .uri = "/api/actuator/sync-status", .method = HTTP_GET, .handler = api_actuator_sync_status_handler };
     
     httpd_register_uri_handler(s_server, &act_status);
     httpd_register_uri_handler(s_server, &act_control);
@@ -214,6 +216,8 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_register_uri_handler(s_server, &act_config_post);
     httpd_register_uri_handler(s_server, &act_restart);
     httpd_register_uri_handler(s_server, &act_factory);
+    httpd_register_uri_handler(s_server, &act_sync_move);
+    httpd_register_uri_handler(s_server, &act_sync_status);
 
     // ========================================================================
     // Initialization Complete

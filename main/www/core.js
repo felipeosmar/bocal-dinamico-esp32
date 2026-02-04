@@ -236,6 +236,169 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 });
 
 // ============================================================================
+// Log Viewer
+// ============================================================================
+
+const logState = {
+    expanded: false,
+    lastSequence: 0,
+    pollInterval: null,
+    entries: [],
+    errorCount: 0,
+    warnCount: 0
+};
+
+const LOG_LEVELS = ['', 'E', 'W', 'I', 'D', 'V'];
+const LOG_LEVEL_NAMES = ['None', 'Error', 'Warn', 'Info', 'Debug', 'Verbose'];
+
+function toggleLogViewer() {
+    const viewer = document.getElementById('log-viewer');
+    logState.expanded = !logState.expanded;
+
+    if (logState.expanded) {
+        viewer.classList.remove('collapsed');
+        viewer.classList.add('expanded');
+        document.body.classList.add('log-expanded');
+        startLogPolling();
+    } else {
+        viewer.classList.remove('expanded');
+        viewer.classList.add('collapsed');
+        document.body.classList.remove('log-expanded');
+        stopLogPolling();
+    }
+}
+
+function startLogPolling() {
+    if (logState.pollInterval) return;
+    fetchLogs();
+    logState.pollInterval = setInterval(fetchLogs, 1500);
+}
+
+function stopLogPolling() {
+    if (logState.pollInterval) {
+        clearInterval(logState.pollInterval);
+        logState.pollInterval = null;
+    }
+}
+
+async function fetchLogs() {
+    try {
+        const data = await api(`logs?since=${logState.lastSequence}`);
+
+        if (data.logs && data.logs.length > 0) {
+            // Add new entries
+            for (const log of data.logs) {
+                logState.entries.push(log);
+                if (log.lvl === 1) logState.errorCount++;
+                if (log.lvl === 2) logState.warnCount++;
+            }
+
+            // Keep only last 200 entries in memory
+            if (logState.entries.length > 200) {
+                const removed = logState.entries.splice(0, logState.entries.length - 200);
+                // Adjust counts for removed entries
+                for (const log of removed) {
+                    if (log.lvl === 1) logState.errorCount--;
+                    if (log.lvl === 2) logState.warnCount--;
+                }
+            }
+
+            logState.lastSequence = data.sequence;
+            renderLogs();
+        }
+
+        updateLogBadge();
+    } catch (e) {
+        // Silently ignore - connection handling is done elsewhere
+    }
+}
+
+function renderLogs() {
+    const container = document.getElementById('log-entries');
+    const levelFilter = parseInt(document.getElementById('log-level-filter').value);
+    const tagFilter = document.getElementById('log-tag-filter').value.toLowerCase();
+    const autoScroll = document.getElementById('log-autoscroll').checked;
+
+    // Filter entries
+    const filtered = logState.entries.filter(log => {
+        if (levelFilter > 0 && log.lvl > levelFilter) return false;
+        if (tagFilter && !log.tag.toLowerCase().includes(tagFilter)) return false;
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="log-empty">No logs to display</div>';
+        return;
+    }
+
+    // Build HTML
+    let html = '';
+    for (const log of filtered) {
+        const ts = formatLogTimestamp(log.ts);
+        const lvl = LOG_LEVELS[log.lvl] || '?';
+        html += `<div class="log-entry level-${log.lvl}">
+            <span class="log-ts">${ts}</span>
+            <span class="log-lvl">${lvl}</span>
+            <span class="log-tag">${escapeHtml(log.tag)}</span>
+            <span class="log-msg">${escapeHtml(log.msg)}</span>
+        </div>`;
+    }
+
+    container.innerHTML = html;
+
+    // Auto-scroll to bottom
+    if (autoScroll) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+function formatLogTimestamp(ms) {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    const msec = ms % 1000;
+    return `${m}:${sec.toString().padStart(2, '0')}.${msec.toString().padStart(3, '0')}`;
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function updateLogBadge() {
+    const badge = document.getElementById('log-count');
+    const count = logState.entries.length;
+    badge.textContent = count;
+
+    badge.classList.remove('has-errors', 'has-warnings');
+    if (logState.errorCount > 0) {
+        badge.classList.add('has-errors');
+    } else if (logState.warnCount > 0) {
+        badge.classList.add('has-warnings');
+    }
+}
+
+async function clearLogs() {
+    try {
+        await api('logs/clear', 'POST');
+        logState.entries = [];
+        logState.lastSequence = 0;
+        logState.errorCount = 0;
+        logState.warnCount = 0;
+        renderLogs();
+        updateLogBadge();
+        toast('Logs cleared', 'success');
+    } catch (e) {
+        toast('Failed to clear logs', 'error');
+    }
+}
+
+function updateLogFilter() {
+    renderLogs();
+}
+
+// ============================================================================
 // Initialization
 // ============================================================================
 
@@ -246,4 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load initial tab (actuators)
     loadModule('actuators');
+
+    // Setup log filter listeners
+    document.getElementById('log-level-filter').addEventListener('change', updateLogFilter);
+    document.getElementById('log-tag-filter').addEventListener('input', updateLogFilter);
 });

@@ -171,20 +171,54 @@ esp_err_t rs485_receive(rs485_handle_t handle, uint8_t *data, size_t max_len, si
     struct rs485_driver *drv = handle;
     *received = 0;
 
-    int len = uart_read_bytes(drv->uart_num, data, max_len, pdMS_TO_TICKS(timeout_ms));
+    // Calculate inter-character timeout based on baud rate
+    // Modbus RTU frame end = 3.5 character times of silence
+    // At 57600 baud: 1 char = 10 bits, so 3.5 chars ~= 0.6ms
+    // We use 5ms as minimum to be safe with FreeRTOS tick resolution
+    uint32_t char_time_us = (10 * 1000000) / drv->baud_rate;  // microseconds per char
+    uint32_t interchar_timeout_ms = (char_time_us * 4) / 1000;  // 4 char times in ms
+    if (interchar_timeout_ms < 5) {
+        interchar_timeout_ms = 5;  // Minimum due to FreeRTOS tick resolution
+    }
+
+    size_t total_received = 0;
+    TickType_t start_tick = xTaskGetTickCount();
+    TickType_t max_ticks = pdMS_TO_TICKS(timeout_ms);
+
+    // Wait for first byte with full timeout
+    int len = uart_read_bytes(drv->uart_num, data, max_len, max_ticks);
     if (len < 0) {
         ESP_LOGE(TAG, "UART read failed");
         return ESP_FAIL;
     }
-
     if (len == 0) {
         ESP_LOGW(TAG, "RX timeout - no response from slave");
         return ESP_ERR_TIMEOUT;
     }
 
-    hex_dump("RX", data, len);
+    total_received = len;
 
-    *received = len;
+    // Continue reading with short inter-character timeout until silence detected
+    while (total_received < max_len) {
+        // Check if we've exceeded total timeout
+        if ((xTaskGetTickCount() - start_tick) >= max_ticks) {
+            break;
+        }
+
+        len = uart_read_bytes(drv->uart_num,
+                             data + total_received,
+                             max_len - total_received,
+                             pdMS_TO_TICKS(interchar_timeout_ms));
+        if (len <= 0) {
+            // No more data - frame complete (silence detected)
+            break;
+        }
+        total_received += len;
+    }
+
+    hex_dump("RX", data, total_received);
+
+    *received = total_received;
     return ESP_OK;
 }
 

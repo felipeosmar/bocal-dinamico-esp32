@@ -16,6 +16,7 @@
 #include "rs485_driver.h"
 #include "modbus_rtu.h"
 #include "mightyzap.h"
+#include "log_buffer.h"
 
 static const char *TAG = "WEB_SRV";
 
@@ -1867,6 +1868,96 @@ static esp_err_t api_restart_handler(httpd_req_t *req)
 }
 
 // ============================================================================
+// API Handlers - Log Viewer
+// ============================================================================
+
+// GET /api/logs?since=N - Get logs since sequence N
+static esp_err_t api_logs_handler(httpd_req_t *req)
+{
+    char query_buf[64] = {0};
+    uint32_t since_sequence = 0;
+
+    // Parse 'since' parameter
+    if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) == ESP_OK) {
+        char param[16] = {0};
+        if (httpd_query_key_value(query_buf, "since", param, sizeof(param)) == ESP_OK) {
+            since_sequence = (uint32_t)strtoul(param, NULL, 10);
+        }
+    }
+
+    // Allocate buffer for log entries (max 50 at a time to limit response size)
+    #define MAX_LOG_RESPONSE 50
+    log_entry_t *entries = malloc(MAX_LOG_RESPONSE * sizeof(log_entry_t));
+    if (entries == NULL) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
+
+    uint16_t count = 0;
+    esp_err_t ret = log_buffer_get_since(since_sequence, entries, MAX_LOG_RESPONSE, &count);
+
+    if (ret != ESP_OK) {
+        free(entries);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get logs");
+        return ESP_FAIL;
+    }
+
+    // Get buffer stats
+    log_buffer_stats_t stats;
+    log_buffer_get_stats(&stats);
+
+    // Build JSON response
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "sequence", stats.current_sequence);
+    cJSON_AddNumberToObject(root, "count", count);
+    cJSON_AddNumberToObject(root, "total_capacity", stats.buffer_size);
+    cJSON_AddNumberToObject(root, "buffer_used", stats.buffer_used);
+    cJSON_AddNumberToObject(root, "dropped", stats.dropped_entries);
+
+    cJSON *logs_array = cJSON_CreateArray();
+    for (uint16_t i = 0; i < count; i++) {
+        cJSON *entry = cJSON_CreateObject();
+        cJSON_AddNumberToObject(entry, "seq", entries[i].sequence);
+        cJSON_AddNumberToObject(entry, "ts", entries[i].timestamp_ms);
+        cJSON_AddNumberToObject(entry, "lvl", entries[i].level);
+        cJSON_AddStringToObject(entry, "tag", entries[i].tag);
+        cJSON_AddStringToObject(entry, "msg", entries[i].message);
+        cJSON_AddItemToArray(logs_array, entry);
+    }
+    cJSON_AddItemToObject(root, "logs", logs_array);
+
+    free(entries);
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+// POST /api/logs/clear - Clear log buffer
+static esp_err_t api_logs_clear_handler(httpd_req_t *req)
+{
+    esp_err_t ret = log_buffer_clear();
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddBoolToObject(root, "success", ret == ESP_OK);
+    cJSON_AddStringToObject(root, "message", ret == ESP_OK ? "Log buffer cleared" : "Failed to clear");
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+// ============================================================================
 // Server Setup
 // ============================================================================
 
@@ -2164,6 +2255,21 @@ esp_err_t web_server_init(const web_server_config_t *config)
         .handler = api_actuator_set_name_handler,
     };
     httpd_register_uri_handler(s_server, &actuator_set_name_uri);
+
+    // API - Logs
+    httpd_uri_t logs_uri = {
+        .uri = "/api/logs",
+        .method = HTTP_GET,
+        .handler = api_logs_handler,
+    };
+    httpd_register_uri_handler(s_server, &logs_uri);
+
+    httpd_uri_t logs_clear_uri = {
+        .uri = "/api/logs/clear",
+        .method = HTTP_POST,
+        .handler = api_logs_clear_handler,
+    };
+    httpd_register_uri_handler(s_server, &logs_clear_uri);
 
     s_running = true;
     ESP_LOGI(TAG, "Web server started");

@@ -8,6 +8,7 @@ idf_component_register(
         "webserver/web_server.c"
         "config/config_manager.c"
         "health/health_monitor.c"
+        "logs/log_buffer.c"
     INCLUDE_DIRS
         "."
         "rs485"
@@ -17,6 +18,7 @@ idf_component_register(
         "webserver"
         "config"
         "health"
+        "logs"
     REQUIRES
         driver
         nvs_flash

@@ -45,6 +45,32 @@
     </main>
 
     <div id="toast"></div>
+
+    <footer id="log-viewer" class="log-viewer collapsed">
+        <div class="log-header" onclick="toggleLogViewer()">
+            <span class="log-title">Logs</span>
+            <span class="log-badge" id="log-count">0</span>
+            <span class="log-toggle" id="log-toggle-icon">&#9650;</span>
+        </div>
+        <div class="log-content">
+            <div class="log-toolbar">
+                <select id="log-level-filter">
+                    <option value="0">All Levels</option>
+                    <option value="1">Error+</option>
+                    <option value="2">Warn+</option>
+                    <option value="3">Info+</option>
+                    <option value="4">Debug+</option>
+                </select>
+                <input type="text" id="log-tag-filter" placeholder="Filter by tag...">
+                <button class="btn btn-small" onclick="clearLogs()">Clear</button>
+                <label class="log-autoscroll">
+                    <input type="checkbox" id="log-autoscroll" checked> Auto-scroll
+                </label>
+            </div>
+            <div class="log-entries" id="log-entries"></div>
+        </div>
+    </footer>
+
     <script src="core.js"></script>
 </body>
 </html>

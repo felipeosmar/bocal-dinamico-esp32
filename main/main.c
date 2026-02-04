@@ -24,6 +24,7 @@
 #include "web_server.h"
 #include "config_manager.h"
 #include "health_monitor.h"
+#include "log_buffer.h"
 
 static const char *TAG = "MASTER";
 
@@ -142,6 +143,9 @@ static esp_err_t init_wifi(void)
 
 void app_main(void)
 {
+    // Initialize log buffer FIRST to capture all logs
+    log_buffer_init();
+
     // Set log level to WARN (suppress INFO and DEBUG messages)
     esp_log_level_set("*", ESP_LOG_WARN);
 

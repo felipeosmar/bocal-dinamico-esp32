@@ -25,9 +25,10 @@ void web_server_get_default_config(web_server_config_t *config)
 {
     if (config == NULL) return;
 
+    memset(config, 0, sizeof(*config));
     config->port = 80;
-    config->username = "admin";
-    config->password = "admin";
+    strncpy(config->username, "admin", sizeof(config->username) - 1);
+    strncpy(config->password, "admin", sizeof(config->password) - 1);
     config->auth_enabled = false;
 }
 
@@ -275,7 +276,13 @@ bool web_server_is_running(void)
 
 esp_err_t web_server_set_auth(const char *username, const char *password)
 {
-    if (username) g_web_config.username = username;
-    if (password) g_web_config.password = password;
+    if (username) {
+        strncpy(g_web_config.username, username, sizeof(g_web_config.username) - 1);
+        g_web_config.username[sizeof(g_web_config.username) - 1] = '\0';
+    }
+    if (password) {
+        strncpy(g_web_config.password, password, sizeof(g_web_config.password) - 1);
+        g_web_config.password[sizeof(g_web_config.password) - 1] = '\0';
+    }
     return ESP_OK;
 }

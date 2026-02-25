@@ -183,10 +183,12 @@ void app_main(void)
     ESP_LOGI(TAG, "Starting web server...");
     web_server_config_t web_cfg = {
         .port = 80,
-        .username = config_get_web_username(),
-        .password = config_get_web_password(),
         .auth_enabled = config_get_web_auth_enabled(),
     };
+    strncpy(web_cfg.username, config_get_web_username(), sizeof(web_cfg.username) - 1);
+    web_cfg.username[sizeof(web_cfg.username) - 1] = '\0';
+    strncpy(web_cfg.password, config_get_web_password(), sizeof(web_cfg.password) - 1);
+    web_cfg.password[sizeof(web_cfg.password) - 1] = '\0';
 
     if (web_server_init(&web_cfg) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start web server!");

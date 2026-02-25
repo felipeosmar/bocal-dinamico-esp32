@@ -14,8 +14,8 @@ extern "C" {
  */
 typedef struct {
     uint16_t port;              // HTTP port (default 80)
-    const char *username;       // Basic auth username
-    const char *password;       // Basic auth password
+    char username[64];          // Basic auth username (owned copy)
+    char password[64];          // Basic auth password (owned copy)
     bool auth_enabled;          // Enable authentication
 } web_server_config_t;
 

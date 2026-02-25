@@ -33,16 +33,19 @@ esp_err_t serve_file(httpd_req_t *req, const char *filepath, const char *content
 
 esp_err_t index_handler(httpd_req_t *req)
 {
+    httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
     return serve_file(req, "/www/index.html", "text/html");
 }
 
 esp_err_t css_handler(httpd_req_t *req)
 {
+    httpd_resp_set_hdr(req, "Cache-Control", "max-age=3600");
     return serve_file(req, "/www/style.css", "text/css");
 }
 
 esp_err_t js_handler(httpd_req_t *req)
 {
+    httpd_resp_set_hdr(req, "Cache-Control", "max-age=3600");
     return serve_file(req, "/www/core.js", "application/javascript");
 }
 
@@ -56,6 +59,8 @@ esp_err_t tabs_html_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
     filename++; // Skip the '/'
+
+    httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
 
     char filepath[64];
     snprintf(filepath, sizeof(filepath), "/www/tabs/%s", filename);
@@ -71,6 +76,8 @@ esp_err_t tabs_js_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
     filename++;
+
+    httpd_resp_set_hdr(req, "Cache-Control", "max-age=3600");
 
     char filepath[64];
     snprintf(filepath, sizeof(filepath), "/www/tabs/%s", filename);

@@ -16,8 +16,8 @@ esp_err_t api_wifi_scan_handler(httpd_req_t *req)
 
     esp_err_t ret = wifi_manager_scan(results, 20, &found);
     if (ret != ESP_OK) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
 
     cJSON *root = cJSON_CreateArray();
@@ -41,15 +41,15 @@ esp_err_t api_wifi_connect_handler(httpd_req_t *req)
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *ssid_json = cJSON_GetObjectItem(root, "ssid");
@@ -58,7 +58,7 @@ esp_err_t api_wifi_connect_handler(httpd_req_t *req)
     if (!cJSON_IsString(ssid_json)) {
         cJSON_Delete(root);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing SSID");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     const char *ssid = ssid_json->valuestring;

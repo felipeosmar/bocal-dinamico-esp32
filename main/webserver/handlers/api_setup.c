@@ -175,15 +175,15 @@ esp_err_t api_actuator_roles_post_handler(httpd_req_t *req)
     char buf[512];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *response = cJSON_CreateObject();
@@ -235,15 +235,15 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *response = cJSON_CreateObject();
@@ -339,15 +339,15 @@ esp_err_t api_actuator_standardize_handler(httpd_req_t *req)
     char buf[512];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *response = cJSON_CreateObject();

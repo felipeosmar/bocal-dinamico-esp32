@@ -141,7 +141,7 @@ esp_err_t api_logs_handler(httpd_req_t *req)
     log_entry_t *entries = malloc(MAX_LOG_RESPONSE * sizeof(log_entry_t));
     if (entries == NULL) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     uint16_t count = 0;
@@ -150,7 +150,7 @@ esp_err_t api_logs_handler(httpd_req_t *req)
     if (ret != ESP_OK) {
         free(entries);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get logs");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     // Get buffer stats

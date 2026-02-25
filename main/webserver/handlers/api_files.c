@@ -90,7 +90,7 @@ esp_err_t api_files_list_handler(httpd_req_t *req)
 
     if (!is_valid_path(dir_param)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char full_path[160];
@@ -179,13 +179,13 @@ esp_err_t api_files_download_handler(httpd_req_t *req)
     if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) != ESP_OK ||
         httpd_query_key_value(query_buf, "file", file_param, sizeof(file_param)) != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing file parameter");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     url_decode(file_param);
 
     if (!is_valid_path(file_param)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char full_path[160];
@@ -194,7 +194,7 @@ esp_err_t api_files_download_handler(httpd_req_t *req)
     FILE *f = fopen(full_path, "r");
     if (!f) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File not found");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     // Get filename for Content-Disposition
@@ -229,13 +229,13 @@ esp_err_t api_files_view_handler(httpd_req_t *req)
     if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) != ESP_OK ||
         httpd_query_key_value(query_buf, "file", file_param, sizeof(file_param)) != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing file parameter");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     url_decode(file_param);
 
     if (!is_valid_path(file_param)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char full_path[160];
@@ -256,13 +256,13 @@ esp_err_t api_files_read_handler(httpd_req_t *req)
     if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) != ESP_OK ||
         httpd_query_key_value(query_buf, "file", file_param, sizeof(file_param)) != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing file parameter");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     url_decode(file_param);
 
     if (!is_valid_path(file_param)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char full_path[160];
@@ -271,7 +271,7 @@ esp_err_t api_files_read_handler(httpd_req_t *req)
     FILE *f = fopen(full_path, "r");
     if (!f) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File not found");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     // Get file size
@@ -283,14 +283,14 @@ esp_err_t api_files_read_handler(httpd_req_t *req)
     if (fsize > 50 * 1024) {
         fclose(f);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large (max 50KB)");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char *content = malloc(fsize + 1);
     if (!content) {
         fclose(f);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     fread(content, 1, fsize, f);
@@ -318,13 +318,13 @@ esp_err_t api_files_write_handler(httpd_req_t *req)
     int total_len = req->content_len;
     if (total_len > 60 * 1024) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Content too large");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char *buf = malloc(total_len + 1);
     if (!buf) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     int received = 0;
@@ -333,7 +333,7 @@ esp_err_t api_files_write_handler(httpd_req_t *req)
         if (ret <= 0) {
             free(buf);
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
-            return ESP_FAIL;
+            return ESP_OK;
         }
         received += ret;
     }
@@ -379,13 +379,13 @@ esp_err_t api_files_write_handler(httpd_req_t *req)
     if (!file_param[0] || !content_start) {
         free(buf);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing parameters");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     if (!is_valid_path(file_param)) {
         free(buf);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char full_path[160];
@@ -395,7 +395,7 @@ esp_err_t api_files_write_handler(httpd_req_t *req)
     if (!f) {
         free(buf);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open file");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     fwrite(content_start, 1, content_len, f);
@@ -419,7 +419,7 @@ esp_err_t api_files_delete_handler(httpd_req_t *req)
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No data");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
@@ -443,12 +443,12 @@ esp_err_t api_files_delete_handler(httpd_req_t *req)
 
     if (!file_param[0]) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing file parameter");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     if (!is_valid_path(file_param)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char full_path[160];
@@ -457,7 +457,7 @@ esp_err_t api_files_delete_handler(httpd_req_t *req)
     struct stat st;
     if (stat(full_path, &st) != 0) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "File not found");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     int result;
@@ -469,7 +469,7 @@ esp_err_t api_files_delete_handler(httpd_req_t *req)
 
     if (result != 0) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to delete");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *root = cJSON_CreateObject();
@@ -489,7 +489,7 @@ esp_err_t api_files_mkdir_handler(httpd_req_t *req)
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No data");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
@@ -513,12 +513,12 @@ esp_err_t api_files_mkdir_handler(httpd_req_t *req)
 
     if (!dir_param[0]) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing dir parameter");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     if (!is_valid_path(dir_param)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char full_path[160];
@@ -526,7 +526,7 @@ esp_err_t api_files_mkdir_handler(httpd_req_t *req)
 
     if (mkdir(full_path, 0755) != 0) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create directory");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *root = cJSON_CreateObject();
@@ -552,20 +552,20 @@ esp_err_t api_files_upload_handler(httpd_req_t *req)
 
     if (!is_valid_path(dir_param)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid path");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     // Read multipart data
     int total_len = req->content_len;
     if (total_len > 100 * 1024) {  // 100KB max
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large (max 100KB)");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     char *buf = malloc(total_len + 1);
     if (!buf) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     int received = 0;
@@ -574,7 +574,7 @@ esp_err_t api_files_upload_handler(httpd_req_t *req)
         if (ret <= 0) {
             free(buf);
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
-            return ESP_FAIL;
+            return ESP_OK;
         }
         received += ret;
     }
@@ -594,7 +594,7 @@ esp_err_t api_files_upload_handler(httpd_req_t *req)
     if (!filename[0]) {
         free(buf);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No filename");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     // Find file content (after double CRLF)
@@ -602,7 +602,7 @@ esp_err_t api_files_upload_handler(httpd_req_t *req)
     if (!content_start) {
         free(buf);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid format");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     content_start += 4;
 
@@ -628,7 +628,7 @@ esp_err_t api_files_upload_handler(httpd_req_t *req)
     if (!f) {
         free(buf);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create file");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     fwrite(content_start, 1, content_len, f);

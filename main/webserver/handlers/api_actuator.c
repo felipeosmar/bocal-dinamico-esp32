@@ -179,15 +179,15 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req)
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *response = cJSON_CreateObject();
@@ -277,13 +277,13 @@ esp_err_t api_actuator_config_get_handler(httpd_req_t *req)
     char query[32] = {0};
     if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing id parameter");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     char id_str[8] = {0};
     if (httpd_query_key_value(query, "id", id_str, sizeof(id_str)) != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing id parameter");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     uint8_t act_id = atoi(id_str);
@@ -291,7 +291,7 @@ esp_err_t api_actuator_config_get_handler(httpd_req_t *req)
     
     if (slot == NULL || slot->handle == NULL) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Actuator not found");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     cJSON *root = cJSON_CreateObject();
@@ -340,15 +340,15 @@ esp_err_t api_actuator_config_post_handler(httpd_req_t *req)
     char buf[512];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
     
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     cJSON *response = cJSON_CreateObject();
@@ -445,22 +445,22 @@ esp_err_t api_actuator_restart_handler(httpd_req_t *req)
     char buf[64];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
     
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     cJSON *id_json = cJSON_GetObjectItem(root, "id");
     if (!cJSON_IsNumber(id_json)) {
         cJSON_Delete(root);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing actuator ID");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     uint8_t act_id = id_json->valueint;
@@ -469,7 +469,7 @@ esp_err_t api_actuator_restart_handler(httpd_req_t *req)
     
     if (slot == NULL || slot->handle == NULL) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Actuator not found");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     esp_err_t err = mightyzap_restart(slot->handle);
@@ -489,15 +489,15 @@ esp_err_t api_actuator_factory_reset_handler(httpd_req_t *req)
     char buf[64];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
     
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     cJSON *id_json = cJSON_GetObjectItem(root, "id");
@@ -506,13 +506,13 @@ esp_err_t api_actuator_factory_reset_handler(httpd_req_t *req)
     if (!cJSON_IsNumber(id_json)) {
         cJSON_Delete(root);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing actuator ID");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     if (!cJSON_IsTrue(confirm)) {
         cJSON_Delete(root);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Confirmation required (confirm: true)");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     uint8_t act_id = id_json->valueint;
@@ -521,7 +521,7 @@ esp_err_t api_actuator_factory_reset_handler(httpd_req_t *req)
     
     if (slot == NULL || slot->handle == NULL) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Actuator not found");
-        return ESP_FAIL;
+        return ESP_OK;
     }
     
     ESP_LOGW(TAG, "Factory reset requested for actuator ID=%u", act_id);
@@ -621,15 +621,15 @@ esp_err_t api_actuator_add_handler(httpd_req_t *req)
     char buf[128];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *id_json = cJSON_GetObjectItem(root, "id");
@@ -664,15 +664,15 @@ esp_err_t api_actuator_remove_handler(httpd_req_t *req)
     char buf[128];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *id_json = cJSON_GetObjectItem(root, "id");
@@ -707,15 +707,15 @@ esp_err_t api_actuator_set_name_handler(httpd_req_t *req)
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *id_json = cJSON_GetObjectItem(root, "id");
@@ -777,15 +777,15 @@ esp_err_t api_actuator_sync_move_handler(httpd_req_t *req)
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
         xSemaphoreGive(g_bus_mutex);
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
+        return ESP_OK;
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_FAIL;
+        return ESP_OK;
     }
 
     cJSON *response = cJSON_CreateObject();

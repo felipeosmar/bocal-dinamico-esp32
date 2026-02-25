@@ -9,7 +9,7 @@ async function refreshTasks() {
         // Update stats
         document.getElementById('heap-free').textContent = formatBytes(data.heap_free);
         document.getElementById('heap-min').textContent = formatBytes(data.heap_min);
-        document.getElementById('uptime').textContent = formatUptime(data.uptime_s);
+        document.getElementById('uptime').textContent = formatUptime(data.uptime_s * 1000);
         document.getElementById('task-count').textContent = data.task_count;
         
         // Sort tasks by CPU usage
@@ -64,20 +64,6 @@ async function refreshTasks() {
     } catch (error) {
         console.error('Failed to fetch tasks:', error);
     }
-}
-
-function formatBytes(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-}
-
-function formatUptime(seconds) {
-    if (seconds < 60) return seconds + 's';
-    if (seconds < 3600) return Math.floor(seconds / 60) + 'm ' + (seconds % 60) + 's';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return h + 'h ' + m + 'm';
 }
 
 function initTasksTab() {

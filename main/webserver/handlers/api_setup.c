@@ -247,6 +247,7 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
     }
 
     cJSON *response = cJSON_CreateObject();
+    bool bus_locked = false;
 
     cJSON *id_json = cJSON_GetObjectItem(root, "id");
     cJSON *baud_json = cJSON_GetObjectItem(root, "baud_rate");
@@ -254,7 +255,7 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
     if (!cJSON_IsNumber(id_json)) {
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "message", "Missing actuator ID");
-        goto send_response;
+        goto cleanup;
     }
 
     uint8_t act_id = id_json->valueint;
@@ -263,14 +264,15 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
     if (g_rs485 == NULL || g_modbus == NULL) {
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "message", "RS485/Modbus not initialized");
-        goto send_response;
+        goto cleanup;
     }
 
     if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(5000)) != pdTRUE) {
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "message", "Bus busy");
-        goto send_response;
+        goto cleanup;
     }
+    bus_locked = true;
 
     {
         // Save current baud, switch if needed
@@ -289,10 +291,9 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
             if (target_baud > 0 && target_baud != original_baud) {
                 rs485_set_baud(g_rs485, original_baud);
             }
-            xSemaphoreGive(g_bus_mutex);
             cJSON_AddBoolToObject(response, "success", false);
             cJSON_AddStringToObject(response, "message", "Cannot read actuator position");
-            goto send_response;
+            goto cleanup;
         }
 
         // Enable force
@@ -302,7 +303,7 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
         // Set speed
         modbus_write_single_register(g_modbus, act_id, MZAP_REG_GOAL_SPEED, 300);
 
-        // Move +200 from current position (clamped to 4095)
+        // Move +200 from current position (clamped to max)
         uint16_t jog_pos = (cur_pos + 200 > MZAP_MAX_POSITION) ? cur_pos - 200 : cur_pos + 200;
         modbus_write_single_register(g_modbus, act_id, MZAP_REG_GOAL_POSITION, jog_pos);
 
@@ -318,13 +319,12 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
             rs485_set_baud(g_rs485, original_baud);
         }
 
-        xSemaphoreGive(g_bus_mutex);
-
         cJSON_AddBoolToObject(response, "success", true);
         cJSON_AddStringToObject(response, "message", "Jog complete");
     }
 
-send_response:
+cleanup:
+    if (bus_locked) xSemaphoreGive(g_bus_mutex);
     cJSON_Delete(root);
     return send_json(req, response);
 }
@@ -351,18 +351,20 @@ esp_err_t api_actuator_standardize_handler(httpd_req_t *req)
     }
 
     cJSON *response = cJSON_CreateObject();
+    bool bus_locked = false;
 
     if (g_rs485 == NULL || g_modbus == NULL) {
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "message", "RS485/Modbus not initialized");
-        goto send_response;
+        goto cleanup;
     }
 
     if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(30000)) != pdTRUE) {
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "message", "Bus busy");
-        goto send_response;
+        goto cleanup;
     }
+    bus_locked = true;
 
     {
         cJSON *target_baud_json = cJSON_GetObjectItem(root, "target_baud");
@@ -374,7 +376,7 @@ esp_err_t api_actuator_standardize_handler(httpd_req_t *req)
         if (!cJSON_IsArray(acts)) {
             cJSON_AddBoolToObject(response, "success", false);
             cJSON_AddStringToObject(response, "message", "Missing actuators array");
-            goto send_response;
+            goto cleanup;
         }
 
         int original_baud = rs485_get_baud(g_rs485);
@@ -463,11 +465,10 @@ esp_err_t api_actuator_standardize_handler(httpd_req_t *req)
         cJSON_AddItemToObject(response, "results", results);
         cJSON_AddNumberToObject(response, "success_count", success_count);
         cJSON_AddNumberToObject(response, "total", act_count);
-
-        xSemaphoreGive(g_bus_mutex);
     }
 
-send_response:
+cleanup:
+    if (bus_locked) xSemaphoreGive(g_bus_mutex);
     cJSON_Delete(root);
     return send_json(req, response);
 }

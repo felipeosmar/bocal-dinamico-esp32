@@ -76,6 +76,7 @@ function initTasksTab() {
                 tasksRefreshInterval = setInterval(refreshTasks, 2000);
             } else {
                 clearInterval(tasksRefreshInterval);
+                tasksRefreshInterval = null;
             }
         });
         
@@ -86,9 +87,12 @@ function initTasksTab() {
     }
 }
 
-// Initialize when tab is loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTasksTab);
-} else {
-    initTasksTab();
+function cleanupTasks() {
+    if (tasksRefreshInterval) {
+        clearInterval(tasksRefreshInterval);
+        tasksRefreshInterval = null;
+    }
 }
+
+// Register module
+registerModule('tasks', initTasksTab);

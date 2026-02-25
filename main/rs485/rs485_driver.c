@@ -9,7 +9,7 @@ static const char *TAG = "RS485";
 
 // Enable verbose hex dump of TX/RX data (set to 1 for debugging)
 #ifndef RS485_DEBUG_HEX_DUMP
-#define RS485_DEBUG_HEX_DUMP 1
+#define RS485_DEBUG_HEX_DUMP 0
 #endif
 
 #if RS485_DEBUG_HEX_DUMP

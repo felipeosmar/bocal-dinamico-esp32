@@ -143,8 +143,8 @@ static int log_vprintf_hook(const char *fmt, va_list args)
 
     s_in_hook = true;
 
-    // Format the message
-    static char line_buffer[256];
+    // Format the message (stack-allocated for thread safety)
+    char line_buffer[256];
     int len = vsnprintf(line_buffer, sizeof(line_buffer), fmt, args);
 
     // Try to parse and store

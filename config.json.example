@@ -1,7 +1,7 @@
 {
     "wifi": {
-        "ssid": "Escalador",
-        "password": "Escalador@123",
+        "ssid": "YourNetwork",
+        "password": "YourPassword",
         "ap_mode": false,
         "ap_ssid": "Bocal-Dinamico",
         "ap_password": "12345678"

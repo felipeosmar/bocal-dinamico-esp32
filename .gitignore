@@ -1,5 +1,6 @@
 build/*
 managed_components/*
+config.json
 
 # Auto Claude data directory
 .auto-claude/

@@ -459,6 +459,8 @@ void config_deinit(void)
 // ============================================================================
 // Getters - WiFi
 // ============================================================================
+// NOTE: Getters return pointers to static s_config data. These are safe to use
+// as long as the single-writer model is respected (see config_manager.h).
 
 const char* config_get_wifi_ssid(void) { return s_config.wifi_ssid; }
 const char* config_get_wifi_password(void) { return s_config.wifi_password; }
@@ -469,6 +471,7 @@ const char* config_get_ap_password(void) { return s_config.ap_password; }
 // ============================================================================
 // Setters - WiFi
 // ============================================================================
+// NOTE: All setters must only be called from the HTTP server task.
 
 void config_set_wifi_ssid(const char *ssid) {
     if (ssid) strncpy(s_config.wifi_ssid, ssid, sizeof(s_config.wifi_ssid) - 1);

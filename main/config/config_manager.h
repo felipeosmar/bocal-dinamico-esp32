@@ -10,6 +10,23 @@ extern "C" {
 #endif
 
 /**
+ * @brief Configuration Manager
+ *
+ * Threading model:
+ * - Getters return pointers to internal static data (s_config struct).
+ *   These pointers remain valid for the lifetime of the application but
+ *   the data they point to may change if a setter or config_load() is called.
+ * - Setters and config_save() must only be called from the HTTP server task
+ *   (single-writer model). Since all writes originate from HTTP API handlers
+ *   and ESP-IDF's HTTP server dispatches handlers on a single task, this is
+ *   safe in practice.
+ * - config_init() and config_load() during startup run before the HTTP server
+ *   starts, so there are no concurrent readers at that point.
+ * - Do NOT call setters or config_save() from other tasks (e.g., timer tasks,
+ *   health monitor) without adding proper synchronization.
+ */
+
+/**
  * @brief Initialize config manager and SPIFFS
  * @return esp_err_t ESP_OK on success
  */

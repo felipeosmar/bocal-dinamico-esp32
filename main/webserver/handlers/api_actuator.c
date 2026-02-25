@@ -21,6 +21,13 @@ typedef struct {
     bool active;
 } actuator_slot_t;
 
+/*
+ * Thread safety: s_actuators[] and s_num_actuators are accessed without a mutex.
+ * This is safe because ESP-IDF's httpd runs all URI handlers on a single task
+ * (core_id = tskNO_AFFINITY, max_open_sockets controls concurrency but handlers
+ * are serialized on the httpd task). If httpd is ever configured with multiple
+ * worker tasks, a mutex must be added here.
+ */
 static actuator_slot_t s_actuators[MAX_ACTUATORS] = {0};
 static uint8_t s_num_actuators = 0;
 

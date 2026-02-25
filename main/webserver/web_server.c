@@ -69,6 +69,9 @@ esp_err_t web_server_init(const web_server_config_t *config)
     }
 
     // Configure HTTP server
+    // NOTE: HTTPD_DEFAULT_CONFIG uses a single task to process requests.
+    // Handlers rely on this for thread safety (e.g. s_actuators[] in api_actuator.c).
+    // Do NOT increase max_open_sockets or add worker tasks without adding mutexes.
     httpd_config_t http_config = HTTPD_DEFAULT_CONFIG();
     http_config.server_port = g_web_config.port;
     http_config.max_uri_handlers = 64;

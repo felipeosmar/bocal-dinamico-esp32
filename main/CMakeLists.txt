@@ -33,7 +33,7 @@ idf_component_register(
         nvs_flash
         esp_wifi
         esp_http_server
-        spiffs
+        esp_littlefs
         json
         mbedtls
         esp_timer

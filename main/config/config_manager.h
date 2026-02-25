@@ -27,7 +27,7 @@ extern "C" {
  */
 
 /**
- * @brief Initialize config manager and SPIFFS
+ * @brief Initialize config manager and LittleFS
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t config_init(void);

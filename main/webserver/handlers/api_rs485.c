@@ -150,9 +150,11 @@ esp_err_t api_rs485_diag_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(config, "timeout_ms", config_get_modbus_timeout());
     cJSON_AddItemToObject(root, "config", config);
 
-    // Modbus statistics
-    const modbus_stats_t *stats = modbus_get_stats();
-    if (stats) {
+    // Modbus statistics (atomic snapshot for consistent reads)
+    modbus_stats_t stats_snap;
+    modbus_get_stats_snapshot(&stats_snap);
+    {
+        const modbus_stats_t *stats = &stats_snap;
         cJSON *modbus_stats = cJSON_CreateObject();
         cJSON_AddNumberToObject(modbus_stats, "tx_count", stats->tx_count);
         cJSON_AddNumberToObject(modbus_stats, "rx_count", stats->rx_count);

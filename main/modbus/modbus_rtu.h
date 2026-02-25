@@ -169,11 +169,21 @@ typedef struct {
 } modbus_stats_t;
 
 /**
- * @brief Get Modbus communication statistics
+ * @brief Get Modbus communication statistics (direct pointer — not thread-safe)
  *
  * @return const modbus_stats_t* Pointer to stats structure
  */
 const modbus_stats_t* modbus_get_stats(void);
+
+/**
+ * @brief Get an atomic snapshot of Modbus statistics
+ *
+ * Copies the stats inside a critical section so all fields are consistent.
+ * Use this from contexts where stats may be updated concurrently (e.g. API handlers).
+ *
+ * @param[out] snapshot Destination for the snapshot copy
+ */
+void modbus_get_stats_snapshot(modbus_stats_t *snapshot);
 
 /**
  * @brief Reset Modbus statistics

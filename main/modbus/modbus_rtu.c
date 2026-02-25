@@ -125,6 +125,15 @@ const modbus_stats_t* modbus_get_stats(void)
     return &s_modbus_stats;
 }
 
+void modbus_get_stats_snapshot(modbus_stats_t *snapshot)
+{
+    if (snapshot == NULL) return;
+    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+    taskENTER_CRITICAL(&mux);
+    memcpy(snapshot, &s_modbus_stats, sizeof(modbus_stats_t));
+    taskEXIT_CRITICAL(&mux);
+}
+
 void modbus_reset_stats(void)
 {
     memset(&s_modbus_stats, 0, sizeof(s_modbus_stats));

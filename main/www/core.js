@@ -43,11 +43,46 @@ function formatBytes(b) {
 // API Helper
 // ============================================================================
 
+// Authentication state
+let authCredentials = null; // base64-encoded "user:pass"
+
+function getAuthHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (authCredentials) {
+        headers['Authorization'] = 'Basic ' + authCredentials;
+    }
+    return headers;
+}
+
+function promptLogin() {
+    const user = prompt('Username:');
+    if (!user) return false;
+    const pass = prompt('Password:');
+    if (pass === null) return false;
+    authCredentials = btoa(user + ':' + pass);
+    return true;
+}
+
 async function api(endpoint, method = 'GET', data = null) {
     try {
-        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        const opts = { method, headers: getAuthHeaders() };
         if (data) opts.body = JSON.stringify(data);
-        const res = await fetch('/api/' + endpoint, opts);
+        let res = await fetch('/api/' + endpoint, opts);
+
+        // Handle 401 - prompt for credentials and retry once
+        if (res.status === 401) {
+            if (promptLogin()) {
+                opts.headers = getAuthHeaders();
+                res = await fetch('/api/' + endpoint, opts);
+                if (res.status === 401) {
+                    authCredentials = null;
+                    toast('Authentication failed', 'error');
+                    throw new Error('Authentication failed');
+                }
+            } else {
+                throw new Error('Authentication required');
+            }
+        }
 
         // Any successful response means connection is working
         connectionState.connected = true;
@@ -56,9 +91,11 @@ async function api(endpoint, method = 'GET', data = null) {
         return await res.json();
     } catch (e) {
         // Network error - trigger reconnection if we were connected
-        if (connectionState.connected) {
-            toast('Communication error', 'error');
-            startReconnection();
+        if (e.message !== 'Authentication failed' && e.message !== 'Authentication required') {
+            if (connectionState.connected) {
+                toast('Communication error', 'error');
+                startReconnection();
+            }
         }
 
         throw e;

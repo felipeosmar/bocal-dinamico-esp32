@@ -251,6 +251,7 @@ esp_err_t config_load(void)
     char *json_str = malloc(fsize + 1);
     if (json_str == NULL) {
         fclose(f);
+        if (s_config_mutex) xSemaphoreGive(s_config_mutex);
         return ESP_ERR_NO_MEM;
     }
 
@@ -265,6 +266,7 @@ esp_err_t config_load(void)
     if (root == NULL) {
         ESP_LOGE(TAG, "Failed to parse config file");
         config_reset_defaults();
+        if (s_config_mutex) xSemaphoreGive(s_config_mutex);
         return ESP_FAIL;
     }
 

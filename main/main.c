@@ -25,6 +25,7 @@
 #include "config_manager.h"
 #include "health_monitor.h"
 #include "log_buffer.h"
+#include "freertos/semphr.h"
 
 static const char *TAG = "MASTER";
 
@@ -32,6 +33,9 @@ static const char *TAG = "MASTER";
 rs485_handle_t g_rs485 = NULL;
 modbus_handle_t g_modbus = NULL;
 mightyzap_handle_t g_actuator = NULL;
+
+// Global RS485 bus mutex — protects bus access at the API layer
+SemaphoreHandle_t g_bus_mutex = NULL;
 
 // Actuator configuration
 #define ACTUATOR_SLAVE_ID   1   // mightyZAP default ID
@@ -178,6 +182,13 @@ void app_main(void)
 
     // Wait for WiFi to be ready
     vTaskDelay(pdMS_TO_TICKS(1000));
+
+    // Create RS485 bus mutex before starting web server
+    g_bus_mutex = xSemaphoreCreateMutex();
+    if (g_bus_mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create bus mutex!");
+        return;
+    }
 
     // Start web server
     ESP_LOGI(TAG, "Starting web server...");

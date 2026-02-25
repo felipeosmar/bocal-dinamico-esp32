@@ -27,6 +27,7 @@
 #include "mightyzap.h"
 #include "log_buffer.h"
 #include "web_server.h"
+#include "freertos/semphr.h"
 
 // ============================================================================
 // External globals (from main.c)
@@ -35,6 +36,9 @@
 extern rs485_handle_t g_rs485;
 extern modbus_handle_t g_modbus;
 extern mightyzap_handle_t g_actuator;
+
+/** @brief Global RS485 bus mutex — take before any bus operation from API handlers */
+extern SemaphoreHandle_t g_bus_mutex;
 
 // ============================================================================
 // Shared state (from web_server.c)

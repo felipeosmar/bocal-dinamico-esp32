@@ -44,7 +44,16 @@ static uint8_t mzap_rate_to_baud_code(uint32_t rate)
 esp_err_t api_actuator_smart_scan_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
+
+    if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(30000)) != pdTRUE) {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, "{\"success\":false,\"error\":\"Bus busy\"}", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
     if (g_rs485 == NULL || g_modbus == NULL) {
+        xSemaphoreGive(g_bus_mutex);
         cJSON *err = cJSON_CreateObject();
         cJSON_AddBoolToObject(err, "success", false);
         cJSON_AddStringToObject(err, "error", "RS485/Modbus not initialized");
@@ -121,6 +130,8 @@ esp_err_t api_actuator_smart_scan_handler(httpd_req_t *req)
     cJSON_AddBoolToObject(root, "success", true);
     cJSON_AddItemToObject(root, "actuators", actuators);
     cJSON_AddNumberToObject(root, "count", total_found);
+
+    xSemaphoreGive(g_bus_mutex);
 
     char *json_str = cJSON_PrintUnformatted(root);
     httpd_resp_set_type(req, "application/json");
@@ -273,6 +284,12 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
         goto send_response;
     }
 
+    if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(5000)) != pdTRUE) {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "message", "Bus busy");
+        goto send_response;
+    }
+
     {
         // Save current baud, switch if needed
         int original_baud = rs485_get_baud(g_rs485);
@@ -290,6 +307,7 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
             if (target_baud > 0 && target_baud != original_baud) {
                 rs485_set_baud(g_rs485, original_baud);
             }
+            xSemaphoreGive(g_bus_mutex);
             cJSON_AddBoolToObject(response, "success", false);
             cJSON_AddStringToObject(response, "message", "Cannot read actuator position");
             goto send_response;
@@ -317,6 +335,8 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
         if (target_baud > 0 && target_baud != original_baud) {
             rs485_set_baud(g_rs485, original_baud);
         }
+
+        xSemaphoreGive(g_bus_mutex);
 
         cJSON_AddBoolToObject(response, "success", true);
         cJSON_AddStringToObject(response, "message", "Jog complete");
@@ -361,6 +381,12 @@ esp_err_t api_actuator_standardize_handler(httpd_req_t *req)
     if (g_rs485 == NULL || g_modbus == NULL) {
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "message", "RS485/Modbus not initialized");
+        goto send_response;
+    }
+
+    if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(30000)) != pdTRUE) {
+        cJSON_AddBoolToObject(response, "success", false);
+        cJSON_AddStringToObject(response, "message", "Bus busy");
         goto send_response;
     }
 
@@ -463,6 +489,8 @@ esp_err_t api_actuator_standardize_handler(httpd_req_t *req)
         cJSON_AddItemToObject(response, "results", results);
         cJSON_AddNumberToObject(response, "success_count", success_count);
         cJSON_AddNumberToObject(response, "total", act_count);
+
+        xSemaphoreGive(g_bus_mutex);
     }
 
 send_response:

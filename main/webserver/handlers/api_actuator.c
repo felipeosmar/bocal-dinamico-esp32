@@ -164,6 +164,14 @@ esp_err_t api_actuator_status_handler(httpd_req_t *req)
 esp_err_t api_actuator_control_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
+
+    if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(5000)) != pdTRUE) {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, "{\"success\":false,\"message\":\"Bus busy\"}", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -252,6 +260,7 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req)
     cJSON_AddStringToObject(response, "message", err == ESP_OK ? "OK" : "Command failed");
 
 send_response:
+    xSemaphoreGive(g_bus_mutex);
     {
         char *json_str = cJSON_PrintUnformatted(response);
         httpd_resp_set_type(req, "application/json");
@@ -554,10 +563,19 @@ esp_err_t api_actuator_factory_reset_handler(httpd_req_t *req)
 esp_err_t api_actuator_scan_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
+
+    if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(30000)) != pdTRUE) {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, "{\"success\":false,\"error\":\"Bus busy\"}", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
     cJSON *root = cJSON_CreateObject();
     cJSON *found = cJSON_CreateArray();
 
     if (g_modbus == NULL) {
+        xSemaphoreGive(g_bus_mutex);
         cJSON_AddItemToObject(root, "found", found);
         cJSON_AddNumberToObject(root, "count", 0);
         cJSON_AddStringToObject(root, "error", "Modbus not initialized");
@@ -617,6 +635,8 @@ esp_err_t api_actuator_scan_handler(httpd_req_t *req)
         config_save();
         ESP_LOGI(TAG, "Saved actuator config with %d actuators", count);
     }
+
+    xSemaphoreGive(g_bus_mutex);
 
     cJSON_AddItemToObject(root, "found", found);
     cJSON_AddNumberToObject(root, "count", count);
@@ -799,9 +819,18 @@ static bool s_sync_group_initialized = false;
 esp_err_t api_actuator_sync_move_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
+
+    if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(5000)) != pdTRUE) {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, "{\"success\":false,\"message\":\"Bus busy\"}", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
+        xSemaphoreGive(g_bus_mutex);
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
@@ -923,6 +952,7 @@ esp_err_t api_actuator_sync_move_handler(httpd_req_t *req)
     }
 
 send_response:
+    xSemaphoreGive(g_bus_mutex);
     {
         char *json_str = cJSON_PrintUnformatted(response);
         httpd_resp_set_type(req, "application/json");

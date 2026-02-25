@@ -506,10 +506,44 @@ uint8_t config_get_rs485_de_pin(void) { return s_config.rs485_de_pin; }
 // Setters - RS485
 // ============================================================================
 
+/**
+ * @brief Validate GPIO pin number for RS485 use.
+ * Rejects: >39, 6-11 (flash), 20, 24, 28-31 (reserved/unavailable).
+ */
+static bool is_valid_gpio_pin(uint8_t pin)
+{
+    if (pin > 39) return false;
+    if (pin >= 6 && pin <= 11) return false;  // SPI flash
+    if (pin == 20 || pin == 24) return false;  // Reserved
+    if (pin >= 28 && pin <= 31) return false;  // Reserved
+    return true;
+}
+
 void config_set_rs485_baud(uint32_t baud) { s_config.rs485_baud = baud; }
-void config_set_rs485_tx_pin(uint8_t pin) { s_config.rs485_tx_pin = pin; }
-void config_set_rs485_rx_pin(uint8_t pin) { s_config.rs485_rx_pin = pin; }
-void config_set_rs485_de_pin(uint8_t pin) { s_config.rs485_de_pin = pin; }
+
+void config_set_rs485_tx_pin(uint8_t pin) {
+    if (!is_valid_gpio_pin(pin)) {
+        ESP_LOGE(TAG, "Invalid GPIO pin for RS485 TX: %d", pin);
+        return;
+    }
+    s_config.rs485_tx_pin = pin;
+}
+
+void config_set_rs485_rx_pin(uint8_t pin) {
+    if (!is_valid_gpio_pin(pin)) {
+        ESP_LOGE(TAG, "Invalid GPIO pin for RS485 RX: %d", pin);
+        return;
+    }
+    s_config.rs485_rx_pin = pin;
+}
+
+void config_set_rs485_de_pin(uint8_t pin) {
+    if (!is_valid_gpio_pin(pin)) {
+        ESP_LOGE(TAG, "Invalid GPIO pin for RS485 DE: %d", pin);
+        return;
+    }
+    s_config.rs485_de_pin = pin;
+}
 
 // ============================================================================
 // Getters - Modbus

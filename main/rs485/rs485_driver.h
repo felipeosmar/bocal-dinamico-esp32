@@ -107,6 +107,23 @@ esp_err_t rs485_transaction(rs485_handle_t handle,
                            uint8_t *rx_data, size_t rx_max_len, size_t *rx_received,
                            uint32_t timeout_ms);
 
+/**
+ * @brief Change UART baud rate at runtime
+ *
+ * @param handle RS485 handle
+ * @param baud_rate New baud rate
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t rs485_set_baud(rs485_handle_t handle, int baud_rate);
+
+/**
+ * @brief Get current baud rate
+ *
+ * @param handle RS485 handle
+ * @return int Current baud rate, or -1 on error
+ */
+int rs485_get_baud(rs485_handle_t handle);
+
 #ifdef __cplusplus
 }
 #endif

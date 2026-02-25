@@ -1,8 +1,9 @@
 // Actuators Module - Synchronized & Independent Control
 
-// Configuration
-const SYNC_IDS = [1, 2];  // IDs for synchronized group
-const IND_ID = 3;         // ID for independent actuator
+// Configuration - loaded dynamically from /api/actuator/roles
+let SYNC_IDS = [1, 2];  // Default IDs for synchronized group
+let IND_ID = 3;          // Default ID for independent actuator
+let rolesLoaded = false;
 
 let actuatorsData = [];
 let statusInterval = null;
@@ -313,13 +314,40 @@ async function sendIndCommand() {
 // Module Init
 // ============================================================================
 
+async function loadRoles() {
+    try {
+        const r = await api('actuator/roles');
+        if (r.success) {
+            SYNC_IDS = [r.lens_a.id, r.lens_b.id];
+            IND_ID = r.nozzle.id;
+            rolesLoaded = true;
+
+            // Update UI labels
+            const syncSub = document.querySelector('.control-card .card-subtitle');
+            if (syncSub && syncSub.textContent.includes('Lens Focus')) {
+                syncSub.textContent = `Lens Focus (IDs: ${SYNC_IDS[0]}, ${SYNC_IDS[1]})`;
+            }
+            const indSub = document.querySelectorAll('.control-card .card-subtitle');
+            if (indSub.length > 1 && indSub[1].textContent.includes('Actuator #')) {
+                indSub[1].textContent = `Actuator #${IND_ID}`;
+            }
+
+            console.log('[Actuators] Roles loaded: sync=' + SYNC_IDS + ' ind=' + IND_ID);
+        }
+    } catch (e) {
+        console.warn('[Actuators] Failed to load roles, using defaults:', e);
+    }
+}
+
 function initActuators() {
     // Setup slider sync
     syncSliders('sync');
     syncSliders('ind');
     
-    // Initial load
-    refreshStatus().then(() => startPolling());
+    // Load roles then start
+    loadRoles().then(() => {
+        refreshStatus().then(() => startPolling());
+    });
 }
 
 function cleanupActuators() {

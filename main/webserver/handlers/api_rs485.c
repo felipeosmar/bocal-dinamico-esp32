@@ -79,6 +79,7 @@ static void add_exception_stats_to_json(cJSON *parent, const modbus_stats_t *sta
 // GET/POST /api/rs485/config
 esp_err_t api_rs485_config_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     if (req->method == HTTP_GET) {
         cJSON *root = cJSON_CreateObject();
 
@@ -140,6 +141,7 @@ esp_err_t api_rs485_config_handler(httpd_req_t *req)
 // GET /api/rs485/diag - Get RS485/Modbus diagnostics
 esp_err_t api_rs485_diag_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
 
     // RS485 status
@@ -192,6 +194,7 @@ esp_err_t api_rs485_diag_handler(httpd_req_t *req)
 // POST /api/rs485/test - Test communication with a Modbus slave
 esp_err_t api_rs485_test_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -294,6 +297,7 @@ send_test_response:
 // POST /api/rs485/reset_stats - Reset Modbus statistics
 esp_err_t api_rs485_reset_stats_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     modbus_reset_stats();
 
     cJSON *response = cJSON_CreateObject();

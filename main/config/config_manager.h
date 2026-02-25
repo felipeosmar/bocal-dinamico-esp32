@@ -102,6 +102,27 @@ const char* config_get_actuator_name(uint8_t id);
 bool config_set_actuator_name(uint8_t id, const char *name);
 
 // ============================================================================
+// Role Mapping Configuration
+// ============================================================================
+
+typedef struct {
+    uint8_t id;
+    uint32_t baud;
+} config_role_t;
+
+config_role_t config_get_role_lens_a(void);
+config_role_t config_get_role_lens_b(void);
+config_role_t config_get_role_nozzle(void);
+
+void config_set_role_lens_a(uint8_t id, uint32_t baud);
+void config_set_role_lens_b(uint8_t id, uint32_t baud);
+void config_set_role_nozzle(uint8_t id, uint32_t baud);
+
+uint8_t config_get_role_lens_a_id(void);
+uint8_t config_get_role_lens_b_id(void);
+uint8_t config_get_role_nozzle_id(void);
+
+// ============================================================================
 // Web Server Configuration
 // ============================================================================
 

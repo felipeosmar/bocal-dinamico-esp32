@@ -76,6 +76,7 @@ static void build_full_path(char *dest, size_t dest_size, const char *base, cons
 // GET /api/files/list - List files in directory
 esp_err_t api_files_list_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[256] = {0};
     char dir_param[128] = "/";
 
@@ -153,6 +154,7 @@ esp_err_t api_files_list_handler(httpd_req_t *req)
 // GET /api/files/info - Get storage info for all partitions
 esp_err_t api_files_info_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
 
     size_t total, used;
@@ -185,6 +187,7 @@ esp_err_t api_files_info_handler(httpd_req_t *req)
 // GET /api/files/download - Download a file
 esp_err_t api_files_download_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[256] = {0};
     char file_param[128] = {0};
 
@@ -234,6 +237,7 @@ esp_err_t api_files_download_handler(httpd_req_t *req)
 // GET /api/files/view - View file content inline
 esp_err_t api_files_view_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[256] = {0};
     char file_param[128] = {0};
 
@@ -260,6 +264,7 @@ esp_err_t api_files_view_handler(httpd_req_t *req)
 // GET /api/files/read - Read file content for editing
 esp_err_t api_files_read_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[256] = {0};
     char file_param[128] = {0};
 
@@ -328,6 +333,7 @@ esp_err_t api_files_read_handler(httpd_req_t *req)
 // POST /api/files/write - Write file content
 esp_err_t api_files_write_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[64] = {0};
     const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
 
@@ -434,6 +440,7 @@ esp_err_t api_files_write_handler(httpd_req_t *req)
 // POST /api/files/delete - Delete file or folder
 esp_err_t api_files_delete_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[64] = {0};
     const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
 
@@ -509,6 +516,7 @@ esp_err_t api_files_delete_handler(httpd_req_t *req)
 // POST /api/files/mkdir - Create directory
 esp_err_t api_files_mkdir_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[64] = {0};
     const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
 
@@ -571,6 +579,7 @@ esp_err_t api_files_mkdir_handler(httpd_req_t *req)
 // POST /api/files/upload - Upload file
 esp_err_t api_files_upload_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[256] = {0};
     char dir_param[128] = "/";
 

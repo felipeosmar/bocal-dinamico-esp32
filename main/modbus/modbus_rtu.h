@@ -204,6 +204,11 @@ bool modbus_exception_is_retryable(modbus_exception_t ex);
  */
 modbus_error_type_t modbus_get_last_error_type(modbus_handle_t handle);
 
+/**
+ * @brief Set retry count override (0 = no retries, -1 = restore default)
+ */
+void modbus_set_retry_count(int8_t count);
+
 #ifdef __cplusplus
 }
 #endif

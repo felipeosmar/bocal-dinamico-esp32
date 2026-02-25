@@ -70,7 +70,7 @@ esp_err_t web_server_init(const web_server_config_t *config)
     // Configure HTTP server
     httpd_config_t http_config = HTTPD_DEFAULT_CONFIG();
     http_config.server_port = g_web_config.port;
-    http_config.max_uri_handlers = 50;
+    http_config.max_uri_handlers = 64;
     http_config.stack_size = 8192;
 
     ESP_LOGI(TAG, "Starting server on port %d", http_config.server_port);
@@ -108,6 +108,9 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_register_uri_handler(s_server, &tabs_files_html);
     httpd_register_uri_handler(s_server, &tabs_tasks_html);
 
+    httpd_uri_t tabs_setup_html = { .uri = "/tabs/setup.html", .method = HTTP_GET, .handler = tabs_html_handler };
+    httpd_register_uri_handler(s_server, &tabs_setup_html);
+
     // Tabs JS
     httpd_uri_t tabs_actuators_js = { .uri = "/tabs/actuators.js", .method = HTTP_GET, .handler = tabs_js_handler };
     httpd_uri_t tabs_system_js = { .uri = "/tabs/system.js", .method = HTTP_GET, .handler = tabs_js_handler };
@@ -120,6 +123,9 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_register_uri_handler(s_server, &tabs_config_js);
     httpd_register_uri_handler(s_server, &tabs_files_js);
     httpd_register_uri_handler(s_server, &tabs_tasks_js);
+
+    httpd_uri_t tabs_setup_js = { .uri = "/tabs/setup.js", .method = HTTP_GET, .handler = tabs_js_handler };
+    httpd_register_uri_handler(s_server, &tabs_setup_js);
 
     // ========================================================================
     // Register Routes - API: File Manager
@@ -218,6 +224,22 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_register_uri_handler(s_server, &act_factory);
     httpd_register_uri_handler(s_server, &act_sync_move);
     httpd_register_uri_handler(s_server, &act_sync_status);
+
+    // ========================================================================
+    // Register Routes - API: Setup Wizard
+    // ========================================================================
+    
+    httpd_uri_t setup_smart_scan = { .uri = "/api/actuator/smart-scan", .method = HTTP_POST, .handler = api_actuator_smart_scan_handler };
+    httpd_uri_t setup_roles_get = { .uri = "/api/actuator/roles", .method = HTTP_GET, .handler = api_actuator_roles_get_handler };
+    httpd_uri_t setup_roles_post = { .uri = "/api/actuator/roles", .method = HTTP_POST, .handler = api_actuator_roles_post_handler };
+    httpd_uri_t setup_jog = { .uri = "/api/actuator/jog", .method = HTTP_POST, .handler = api_actuator_jog_handler };
+    httpd_uri_t setup_standardize = { .uri = "/api/actuator/standardize", .method = HTTP_POST, .handler = api_actuator_standardize_handler };
+    
+    httpd_register_uri_handler(s_server, &setup_smart_scan);
+    httpd_register_uri_handler(s_server, &setup_roles_get);
+    httpd_register_uri_handler(s_server, &setup_roles_post);
+    httpd_register_uri_handler(s_server, &setup_jog);
+    httpd_register_uri_handler(s_server, &setup_standardize);
 
     // ========================================================================
     // Initialization Complete

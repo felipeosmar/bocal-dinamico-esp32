@@ -59,6 +59,12 @@ bool check_auth(httpd_req_t *req);
  */
 esp_err_t send_unauthorized(httpd_req_t *req);
 
+/**
+ * @brief Macro to require authentication at the top of API handlers.
+ * Returns 401 Unauthorized if auth check fails.
+ */
+#define REQUIRE_AUTH(req) do { if (!check_auth(req)) return send_unauthorized(req); } while(0)
+
 // ============================================================================
 // Static file handlers (static_files.c)
 // ============================================================================
@@ -124,6 +130,16 @@ esp_err_t api_actuator_remove_handler(httpd_req_t *req);
 esp_err_t api_actuator_set_name_handler(httpd_req_t *req);
 esp_err_t api_actuator_sync_move_handler(httpd_req_t *req);
 esp_err_t api_actuator_sync_status_handler(httpd_req_t *req);
+
+// ============================================================================
+// API - Setup Wizard (api_setup.c)
+// ============================================================================
+
+esp_err_t api_actuator_smart_scan_handler(httpd_req_t *req);
+esp_err_t api_actuator_roles_get_handler(httpd_req_t *req);
+esp_err_t api_actuator_roles_post_handler(httpd_req_t *req);
+esp_err_t api_actuator_jog_handler(httpd_req_t *req);
+esp_err_t api_actuator_standardize_handler(httpd_req_t *req);
 
 // ============================================================================
 // API - RS485 (api_rs485.c)

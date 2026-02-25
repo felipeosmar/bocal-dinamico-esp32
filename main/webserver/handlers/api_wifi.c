@@ -10,6 +10,7 @@ static const char *TAG = "API_WIFI";
 // GET /api/wifi/scan
 esp_err_t api_wifi_scan_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     wifi_scan_result_t results[20];
     uint16_t found = 0;
 
@@ -40,6 +41,7 @@ esp_err_t api_wifi_scan_handler(httpd_req_t *req)
 // POST /api/wifi/connect
 esp_err_t api_wifi_connect_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -93,6 +95,7 @@ esp_err_t api_wifi_connect_handler(httpd_req_t *req)
 // GET /api/wifi/status
 esp_err_t api_wifi_status_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
 
     char ip[16] = {0};

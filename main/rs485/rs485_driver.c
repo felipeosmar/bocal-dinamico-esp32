@@ -272,3 +272,41 @@ esp_err_t rs485_transaction(rs485_handle_t handle,
     xSemaphoreGive(drv->mutex);
     return ret;
 }
+
+esp_err_t rs485_set_baud(rs485_handle_t handle, int baud_rate)
+{
+    if (handle == NULL || baud_rate <= 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    struct rs485_driver *drv = handle;
+
+    if (xSemaphoreTake(drv->mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    // Flush before changing baud
+    uart_flush_input(drv->uart_num);
+    uart_wait_tx_done(drv->uart_num, pdMS_TO_TICKS(100));
+
+    esp_err_t ret = uart_set_baudrate(drv->uart_num, baud_rate);
+    if (ret == ESP_OK) {
+        drv->baud_rate = baud_rate;
+        ESP_LOGI(TAG, "Baud rate changed to %d", baud_rate);
+    } else {
+        ESP_LOGE(TAG, "Failed to set baud rate %d: %s", baud_rate, esp_err_to_name(ret));
+    }
+
+    xSemaphoreGive(drv->mutex);
+    return ret;
+}
+
+int rs485_get_baud(rs485_handle_t handle)
+{
+    if (handle == NULL) {
+        return -1;
+    }
+
+    struct rs485_driver *drv = handle;
+    return drv->baud_rate;
+}

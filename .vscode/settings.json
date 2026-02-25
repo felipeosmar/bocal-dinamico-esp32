@@ -16,5 +16,6 @@
     "--background-index",
     "--query-driver=/home/felipe/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
     "--compile-commands-dir=/home/felipe/work/bocal-dinamico-esp32/build"
-  ]
+  ],
+  "idf.currentSetup": "/home/felipe/.espressif/v5.5.3/esp-idf"
 }

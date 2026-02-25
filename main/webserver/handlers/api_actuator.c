@@ -113,6 +113,7 @@ void actuator_handlers_init(void)
 // GET /api/actuator/status - Get status of all active actuators
 esp_err_t api_actuator_status_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
     cJSON *actuators = cJSON_CreateArray();
 
@@ -162,6 +163,7 @@ esp_err_t api_actuator_status_handler(httpd_req_t *req)
 // POST /api/actuator/control - Control specific actuator by ID
 esp_err_t api_actuator_control_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -265,6 +267,7 @@ send_response:
 // GET /api/actuator/config - Get actuator configuration
 esp_err_t api_actuator_config_get_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     // Parse query string for ID
     char query[32] = {0};
     if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) {
@@ -332,6 +335,7 @@ esp_err_t api_actuator_config_get_handler(httpd_req_t *req)
 // POST /api/actuator/config - Set actuator configuration
 esp_err_t api_actuator_config_post_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[512];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -444,6 +448,7 @@ send_response:
 // POST /api/actuator/restart - Restart actuator
 esp_err_t api_actuator_restart_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[64];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -491,6 +496,7 @@ esp_err_t api_actuator_restart_handler(httpd_req_t *req)
 // POST /api/actuator/factory-reset - Factory reset actuator
 esp_err_t api_actuator_factory_reset_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[64];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -547,6 +553,7 @@ esp_err_t api_actuator_factory_reset_handler(httpd_req_t *req)
 // GET /api/actuator/scan - Scan for actuators and auto-add them
 esp_err_t api_actuator_scan_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
     cJSON *found = cJSON_CreateArray();
 
@@ -626,6 +633,7 @@ esp_err_t api_actuator_scan_handler(httpd_req_t *req)
 // POST /api/actuator/add - Add actuator by ID
 esp_err_t api_actuator_add_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[128];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -674,6 +682,7 @@ esp_err_t api_actuator_add_handler(httpd_req_t *req)
 // POST /api/actuator/remove - Remove actuator by ID
 esp_err_t api_actuator_remove_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[128];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -722,6 +731,7 @@ esp_err_t api_actuator_remove_handler(httpd_req_t *req)
 // POST /api/actuator/set-name - Set friendly name for actuator
 esp_err_t api_actuator_set_name_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -788,6 +798,7 @@ static bool s_sync_group_initialized = false;
 // POST /api/actuator/sync-move - Synchronized movement
 esp_err_t api_actuator_sync_move_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -927,6 +938,7 @@ send_response:
 // GET /api/actuator/sync-status - Get sync group status
 esp_err_t api_actuator_sync_status_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
 
     if (!s_sync_group_initialized || g_modbus == NULL) {

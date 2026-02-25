@@ -8,8 +8,16 @@
 static const char *TAG = "MODBUS";
 
 #define MODBUS_MAX_PDU_SIZE 256
-#define MODBUS_RETRY_COUNT 3
+#define MODBUS_RETRY_COUNT_DEFAULT 3
 #define MODBUS_RETRY_BASE_DELAY_MS 100
+
+static int8_t s_retry_count_override = -1;  // -1 = use default
+
+void modbus_set_retry_count(int8_t count) {
+    s_retry_count_override = count;
+}
+
+#define MODBUS_RETRY_COUNT (s_retry_count_override >= 0 ? s_retry_count_override : MODBUS_RETRY_COUNT_DEFAULT)
 
 /**
  * @brief Internal Modbus RTU structure

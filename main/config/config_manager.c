@@ -39,6 +39,11 @@ typedef struct {
     char saved_actuator_names[MAX_SAVED_ACTUATORS][32];
     uint8_t saved_actuator_count;
 
+    // Role mapping
+    config_role_t role_lens_a;
+    config_role_t role_lens_b;
+    config_role_t role_nozzle;
+
     // Web
     char web_username[32];
     char web_password[64];
@@ -112,6 +117,14 @@ void config_reset_defaults(void)
     s_config.scan_max_id = 3;  // Scan IDs 1-3 by default
     s_config.saved_actuator_count = 0;  // No saved actuators initially
 
+    // Role mapping defaults
+    s_config.role_lens_a.id = 1;
+    s_config.role_lens_a.baud = 57600;
+    s_config.role_lens_b.id = 2;
+    s_config.role_lens_b.baud = 57600;
+    s_config.role_nozzle.id = 3;
+    s_config.role_nozzle.baud = 57600;
+
     // Web defaults
     strcpy(s_config.web_username, "admin");
     strcpy(s_config.web_password, "admin");
@@ -168,6 +181,22 @@ static esp_err_t _config_save_internal(void)
     }
     cJSON_AddItemToObject(actuator, "names", saved_names);
     cJSON_AddItemToObject(root, "actuator", actuator);
+
+    // Roles section
+    cJSON *roles = cJSON_CreateObject();
+    cJSON *lens_a = cJSON_CreateObject();
+    cJSON_AddNumberToObject(lens_a, "id", s_config.role_lens_a.id);
+    cJSON_AddNumberToObject(lens_a, "baud", s_config.role_lens_a.baud);
+    cJSON_AddItemToObject(roles, "lens_a", lens_a);
+    cJSON *lens_b = cJSON_CreateObject();
+    cJSON_AddNumberToObject(lens_b, "id", s_config.role_lens_b.id);
+    cJSON_AddNumberToObject(lens_b, "baud", s_config.role_lens_b.baud);
+    cJSON_AddItemToObject(roles, "lens_b", lens_b);
+    cJSON *nozzle = cJSON_CreateObject();
+    cJSON_AddNumberToObject(nozzle, "id", s_config.role_nozzle.id);
+    cJSON_AddNumberToObject(nozzle, "baud", s_config.role_nozzle.baud);
+    cJSON_AddItemToObject(roles, "nozzle", nozzle);
+    cJSON_AddItemToObject(root, "roles", roles);
 
     // Web section
     cJSON *web = cJSON_CreateObject();
@@ -324,6 +353,35 @@ esp_err_t config_load(void)
                 }
             }
             ESP_LOGI(TAG, "Loaded %d saved actuator names", array_size);
+        }
+    }
+
+    // Roles section
+    cJSON *roles = cJSON_GetObjectItem(root, "roles");
+    if (roles) {
+        cJSON *la = cJSON_GetObjectItem(roles, "lens_a");
+        if (la) {
+            cJSON *item;
+            if ((item = cJSON_GetObjectItem(la, "id")) && cJSON_IsNumber(item))
+                s_config.role_lens_a.id = item->valueint;
+            if ((item = cJSON_GetObjectItem(la, "baud")) && cJSON_IsNumber(item))
+                s_config.role_lens_a.baud = item->valueint;
+        }
+        cJSON *lb = cJSON_GetObjectItem(roles, "lens_b");
+        if (lb) {
+            cJSON *item;
+            if ((item = cJSON_GetObjectItem(lb, "id")) && cJSON_IsNumber(item))
+                s_config.role_lens_b.id = item->valueint;
+            if ((item = cJSON_GetObjectItem(lb, "baud")) && cJSON_IsNumber(item))
+                s_config.role_lens_b.baud = item->valueint;
+        }
+        cJSON *nz = cJSON_GetObjectItem(roles, "nozzle");
+        if (nz) {
+            cJSON *item;
+            if ((item = cJSON_GetObjectItem(nz, "id")) && cJSON_IsNumber(item))
+                s_config.role_nozzle.id = item->valueint;
+            if ((item = cJSON_GetObjectItem(nz, "baud")) && cJSON_IsNumber(item))
+                s_config.role_nozzle.baud = item->valueint;
         }
     }
 
@@ -611,6 +669,31 @@ bool config_set_actuator_name(uint8_t id, const char *name)
     ESP_LOGW(TAG, "Cannot set actuator name: ID %d not found in saved actuators", id);
     return false;
 }
+
+// ============================================================================
+// Getters/Setters - Roles
+// ============================================================================
+
+config_role_t config_get_role_lens_a(void) { return s_config.role_lens_a; }
+config_role_t config_get_role_lens_b(void) { return s_config.role_lens_b; }
+config_role_t config_get_role_nozzle(void) { return s_config.role_nozzle; }
+
+void config_set_role_lens_a(uint8_t id, uint32_t baud) {
+    s_config.role_lens_a.id = id;
+    s_config.role_lens_a.baud = baud;
+}
+void config_set_role_lens_b(uint8_t id, uint32_t baud) {
+    s_config.role_lens_b.id = id;
+    s_config.role_lens_b.baud = baud;
+}
+void config_set_role_nozzle(uint8_t id, uint32_t baud) {
+    s_config.role_nozzle.id = id;
+    s_config.role_nozzle.baud = baud;
+}
+
+uint8_t config_get_role_lens_a_id(void) { return s_config.role_lens_a.id; }
+uint8_t config_get_role_lens_b_id(void) { return s_config.role_lens_b.id; }
+uint8_t config_get_role_nozzle_id(void) { return s_config.role_nozzle.id; }
 
 // ============================================================================
 // Getters - Web

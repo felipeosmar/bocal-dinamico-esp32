@@ -10,6 +10,7 @@ static const char *TAG = "API_SYSTEM";
 // GET /api/status
 esp_err_t api_status_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
 
     // System info
@@ -42,6 +43,7 @@ esp_err_t api_status_handler(httpd_req_t *req)
 // GET /api/tasks - Get FreeRTOS task statistics
 esp_err_t api_tasks_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
     
     // System overview
@@ -119,6 +121,7 @@ esp_err_t api_tasks_handler(httpd_req_t *req)
 // POST /api/restart
 esp_err_t api_restart_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
     cJSON_AddBoolToObject(root, "success", true);
     cJSON_AddStringToObject(root, "message", "Restarting...");
@@ -140,6 +143,7 @@ esp_err_t api_restart_handler(httpd_req_t *req)
 // GET /api/logs?since=N - Get logs since sequence N
 esp_err_t api_logs_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     char query_buf[64] = {0};
     uint32_t since_sequence = 0;
 
@@ -207,6 +211,7 @@ esp_err_t api_logs_handler(httpd_req_t *req)
 // POST /api/logs/clear - Clear log buffer
 esp_err_t api_logs_clear_handler(httpd_req_t *req)
 {
+    REQUIRE_AUTH(req);
     esp_err_t ret = log_buffer_clear();
 
     cJSON *root = cJSON_CreateObject();

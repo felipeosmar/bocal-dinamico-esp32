@@ -13,6 +13,7 @@ idf_component_register(
         "webserver/handlers/api_wifi.c"
         "webserver/handlers/api_actuator.c"
         "webserver/handlers/api_rs485.c"
+        "webserver/handlers/api_setup.c"
         "config/config_manager.c"
         "health/health_monitor.c"
         "logs/log_buffer.c"

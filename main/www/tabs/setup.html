@@ -1,0 +1,165 @@
+<div class="setup-wizard">
+    <h2>🔧 Setup Wizard</h2>
+    <p class="subtitle">Discover actuators, assign roles, and standardize communication</p>
+
+    <!-- Step indicator -->
+    <div class="steps-indicator">
+        <span id="step-ind-1" class="step-dot active">1. Scan</span>
+        <span id="step-ind-2" class="step-dot">2. Assign</span>
+        <span id="step-ind-3" class="step-dot">3. Standardize</span>
+        <span id="step-ind-4" class="step-dot">4. Save</span>
+    </div>
+
+    <!-- Step 1: Scan -->
+    <div id="setup-step-1" class="setup-step active">
+        <div class="control-card">
+            <div class="card-header">
+                <h3>🔍 Step 1: Discover Actuators</h3>
+                <span class="card-subtitle">Scans all baud rates (9600–115200) and IDs 1–20</span>
+            </div>
+            <div class="card-body">
+                <button id="btn-smart-scan" onclick="startSmartScan()" class="btn btn-primary full">
+                    Start Smart Scan
+                </button>
+                <div id="scan-progress" class="hidden">
+                    <div class="progress-bar">
+                        <div id="scan-progress-fill" class="progress-fill" style="width:0%"></div>
+                    </div>
+                    <p id="scan-progress-text" class="progress-text">Scanning...</p>
+                </div>
+
+                <div id="scan-results" class="hidden">
+                    <h4>Found Actuators</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Baud Rate</th>
+                                <th>Model</th>
+                                <th>Protocol</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scan-results-body"></tbody>
+                    </table>
+                    <div id="scan-no-results" class="hidden info-box">
+                        No Modbus actuators found. Actuators may be configured with Own Protocol (support coming soon).
+                    </div>
+                </div>
+
+                <div class="step-nav">
+                    <span></span>
+                    <button id="btn-step1-next" onclick="goToStep(2)" class="btn" disabled>
+                        Next: Assign Roles →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Assign Roles -->
+    <div id="setup-step-2" class="setup-step">
+        <div class="control-card">
+            <div class="card-header">
+                <h3>🏷️ Step 2: Assign Roles</h3>
+                <span class="card-subtitle">Assign each actuator to a role. Use "Jog" to identify physically.</span>
+            </div>
+            <div class="card-body">
+                <div id="role-assignments"></div>
+
+                <div id="role-validation" class="hidden info-box warn">
+                    <span id="role-validation-text"></span>
+                </div>
+
+                <div class="step-nav">
+                    <button onclick="goToStep(1)" class="btn">← Back</button>
+                    <button id="btn-step2-next" onclick="goToStep(3)" class="btn" disabled>
+                        Next: Standardize →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Standardize -->
+    <div id="setup-step-3" class="setup-step">
+        <div class="control-card">
+            <div class="card-header">
+                <h3>⚡ Step 3: Standardize Communication</h3>
+                <span class="card-subtitle">Reconfigure all actuators to the same baud rate with sequential IDs</span>
+            </div>
+            <div class="card-body">
+                <div class="control-row">
+                    <label>Target Baud Rate</label>
+                    <select id="std-target-baud">
+                        <option value="57600" selected>57600 (recommended)</option>
+                        <option value="115200">115200</option>
+                        <option value="38400">38400</option>
+                        <option value="19200">19200</option>
+                        <option value="9600">9600</option>
+                    </select>
+                </div>
+
+                <div id="std-changes" class="info-box">
+                    <h4>Planned Changes</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Role</th>
+                                <th>Current ID</th>
+                                <th>New ID</th>
+                                <th>Current Baud</th>
+                                <th>New Baud</th>
+                            </tr>
+                        </thead>
+                        <tbody id="std-changes-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="info-box warn">
+                    ⚠️ <strong>Warning:</strong> This will change actuator EEPROM settings and restart them.
+                    Make sure the bus is not in use.
+                </div>
+
+                <button id="btn-standardize" onclick="doStandardize()" class="btn btn-primary full">
+                    Apply Standardization
+                </button>
+
+                <div id="std-result" class="hidden"></div>
+
+                <div class="step-nav">
+                    <button onclick="goToStep(2)" class="btn">← Back</button>
+                    <button id="btn-step3-next" onclick="goToStep(4)" class="btn" disabled>
+                        Next: Save →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 4: Save & Apply -->
+    <div id="setup-step-4" class="setup-step">
+        <div class="control-card">
+            <div class="card-header">
+                <h3>✅ Step 4: Save & Apply</h3>
+                <span class="card-subtitle">Save the role configuration</span>
+            </div>
+            <div class="card-body">
+                <div id="save-summary" class="info-box">
+                    <h4>Configuration Summary</h4>
+                    <div id="save-summary-content"></div>
+                </div>
+
+                <button id="btn-save-roles" onclick="saveAndApply()" class="btn btn-primary full">
+                    Save Configuration
+                </button>
+
+                <div id="save-result" class="hidden"></div>
+
+                <div class="step-nav">
+                    <button onclick="goToStep(3)" class="btn">← Back</button>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

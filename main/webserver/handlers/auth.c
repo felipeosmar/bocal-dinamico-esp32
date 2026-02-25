@@ -7,6 +7,14 @@
 
 static const char *TAG = "WEB_AUTH";
 
+// Rate limiting for failed auth attempts
+static uint32_t s_fail_count = 0;
+static TickType_t s_last_fail_tick = 0;
+
+#define AUTH_MAX_DELAY_MS  10000
+#define AUTH_FAIL_THRESHOLD 3
+#define AUTH_RESET_PERIOD_MS 60000
+
 bool check_auth(httpd_req_t *req)
 {
     if (!g_web_config.auth_enabled) return true;
@@ -48,6 +56,21 @@ bool check_auth(httpd_req_t *req)
     
     if (!match) {
         ESP_LOGW(TAG, "Authentication failed");
+
+        // Rate limiting: progressive delay after repeated failures
+        s_fail_count++;
+        s_last_fail_tick = xTaskGetTickCount();
+
+        if (s_fail_count >= AUTH_FAIL_THRESHOLD) {
+            uint32_t delay_ms = 1000 * (1 << (s_fail_count - AUTH_FAIL_THRESHOLD));
+            if (delay_ms > AUTH_MAX_DELAY_MS) delay_ms = AUTH_MAX_DELAY_MS;
+            ESP_LOGW(TAG, "Rate limiting: delaying %lu ms (attempt %lu)",
+                     (unsigned long)delay_ms, (unsigned long)s_fail_count);
+            vTaskDelay(pdMS_TO_TICKS(delay_ms));
+        }
+    } else {
+        // Reset on successful auth
+        s_fail_count = 0;
     }
     
     return match;

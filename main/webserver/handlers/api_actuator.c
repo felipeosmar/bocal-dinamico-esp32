@@ -222,7 +222,7 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req)
     cJSON *position = cJSON_GetObjectItem(root, "position");
     if (cJSON_IsNumber(position)) {
         int val = position->valueint;
-        if (val >= 0 && val <= 4095) {
+        if (val >= 0 && val <= MZAP_MAX_POSITION) {
             err = mightyzap_set_position(handle, val);
         }
     }
@@ -231,7 +231,7 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req)
     cJSON *speed = cJSON_GetObjectItem(root, "speed");
     if (cJSON_IsNumber(speed)) {
         int val = speed->valueint;
-        if (val >= 0 && val <= 1023) {
+        if (val >= 0 && val <= MZAP_MAX_SPEED) {
             err = mightyzap_set_speed(handle, val);
         }
     }
@@ -240,7 +240,7 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req)
     cJSON *current = cJSON_GetObjectItem(root, "current");
     if (cJSON_IsNumber(current)) {
         int val = current->valueint;
-        if (val >= 0 && val <= 800) {
+        if (val >= 0 && val <= MZAP_MAX_CURRENT) {
             err = mightyzap_set_current(handle, val);
         }
     }
@@ -560,7 +560,7 @@ esp_err_t api_actuator_scan_handler(httpd_req_t *req)
 
     uint8_t max_id = config_get_scan_max_id();
     if (max_id < 1) max_id = 1;
-    if (max_id > 247) max_id = 247;
+    if (max_id > MODBUS_MAX_SLAVE_ADDR) max_id = MODBUS_MAX_SLAVE_ADDR;
 
     ESP_LOGI(TAG, "Scanning for mightyZAP actuators (IDs 1-%d)...", max_id);
 
@@ -635,7 +635,7 @@ esp_err_t api_actuator_add_handler(httpd_req_t *req)
     cJSON *id_json = cJSON_GetObjectItem(root, "id");
     cJSON *response = cJSON_CreateObject();
 
-    if (!cJSON_IsNumber(id_json) || id_json->valueint < 1 || id_json->valueint > 247) {
+    if (!cJSON_IsNumber(id_json) || id_json->valueint < 1 || id_json->valueint > MODBUS_MAX_SLAVE_ADDR) {
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "message", "Invalid ID (1-247)");
     } else {
@@ -722,7 +722,7 @@ esp_err_t api_actuator_set_name_handler(httpd_req_t *req)
     cJSON *name_json = cJSON_GetObjectItem(root, "name");
     cJSON *response = cJSON_CreateObject();
 
-    if (!cJSON_IsNumber(id_json) || id_json->valueint < 1 || id_json->valueint > 247) {
+    if (!cJSON_IsNumber(id_json) || id_json->valueint < 1 || id_json->valueint > MODBUS_MAX_SLAVE_ADDR) {
         cJSON_AddBoolToObject(response, "success", false);
         cJSON_AddStringToObject(response, "message", "Invalid ID (1-247)");
     } else if (!cJSON_IsString(name_json)) {

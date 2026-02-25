@@ -279,6 +279,12 @@ esp_err_t mightyzap_set_config(mightyzap_handle_t handle, const mightyzap_config
 #define MZAP_CONFIG_ALARM_SHUTDOWN   (1 << 9)
 #define MZAP_CONFIG_ALL              (0x03FF)
 
+// mightyZAP parameter limits
+#define MZAP_MAX_POSITION            4095
+#define MZAP_MAX_SPEED               1023
+#define MZAP_MAX_CURRENT             1600
+#define MODBUS_MAX_SLAVE_ADDR        247
+
 // ============================================================================
 // Synchronized Movement (Multi-Actuator)
 // ============================================================================

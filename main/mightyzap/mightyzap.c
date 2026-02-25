@@ -20,7 +20,7 @@ struct mightyzap {
 
 esp_err_t mightyzap_init(modbus_handle_t modbus, uint8_t slave_id, mightyzap_handle_t *handle)
 {
-    if (modbus == NULL || handle == NULL || slave_id == 0 || slave_id > 247) {
+    if (modbus == NULL || handle == NULL || slave_id == 0 || slave_id > MODBUS_MAX_SLAVE_ADDR) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -32,8 +32,8 @@ esp_err_t mightyzap_init(modbus_handle_t modbus, uint8_t slave_id, mightyzap_han
 
     zap->modbus = modbus;
     zap->slave_id = slave_id;
-    zap->speed_limit = 1023;   // Default max
-    zap->current_limit = 1600; // Default max
+    zap->speed_limit = MZAP_MAX_SPEED;     // Default max
+    zap->current_limit = MZAP_MAX_CURRENT;  // Default max
     zap->limits_cached = false;
 
     ESP_LOGI(TAG, "mightyZAP initialized, ID=%u", slave_id);
@@ -62,11 +62,11 @@ static void cache_limits(mightyzap_handle_t handle)
     // Try to read limits - use defaults if fails
     if (modbus_read_holding_registers(handle->modbus, handle->slave_id,
                                       MZAP_REG_SPEED_LIMIT, 1, &handle->speed_limit) != ESP_OK) {
-        handle->speed_limit = 1023;
+        handle->speed_limit = MZAP_MAX_SPEED;
     }
     if (modbus_read_holding_registers(handle->modbus, handle->slave_id,
                                       MZAP_REG_CURRENT_LIMIT, 1, &handle->current_limit) != ESP_OK) {
-        handle->current_limit = 1600;
+        handle->current_limit = MZAP_MAX_CURRENT;
     }
 
     handle->limits_cached = true;
@@ -263,7 +263,7 @@ esp_err_t mightyzap_set_led(mightyzap_handle_t handle, uint8_t state)
 
 esp_err_t mightyzap_set_id(mightyzap_handle_t handle, uint8_t new_id)
 {
-    if (handle == NULL || new_id == 0 || new_id > 247) {
+    if (handle == NULL || new_id == 0 || new_id > MODBUS_MAX_SLAVE_ADDR) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -411,7 +411,7 @@ esp_err_t mightyzap_set_config(mightyzap_handle_t handle, const mightyzap_config
     ESP_LOGI(TAG, "ID=%u: Setting config (mask=0x%04X)", handle->slave_id, mask);
     
     if (mask & MZAP_CONFIG_SLAVE_ID) {
-        if (config->slave_id == 0 || config->slave_id > 247) {
+        if (config->slave_id == 0 || config->slave_id > MODBUS_MAX_SLAVE_ADDR) {
             ESP_LOGE(TAG, "Invalid slave ID: %u", config->slave_id);
             return ESP_ERR_INVALID_ARG;
         }
@@ -506,7 +506,7 @@ esp_err_t mightyzap_sync_init(mightyzap_sync_group_t *group, modbus_handle_t mod
     group->count = count;
     
     for (uint8_t i = 0; i < count; i++) {
-        if (ids[i] == 0 || ids[i] > 247) {
+        if (ids[i] == 0 || ids[i] > MODBUS_MAX_SLAVE_ADDR) {
             ESP_LOGE(TAG, "Invalid actuator ID: %d", ids[i]);
             return ESP_ERR_INVALID_ARG;
         }

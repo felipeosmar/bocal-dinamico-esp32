@@ -303,7 +303,7 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
         modbus_write_single_register(g_modbus, act_id, MZAP_REG_GOAL_SPEED, 300);
 
         // Move +200 from current position (clamped to 4095)
-        uint16_t jog_pos = (cur_pos + 200 > 4095) ? cur_pos - 200 : cur_pos + 200;
+        uint16_t jog_pos = (cur_pos + 200 > MZAP_MAX_POSITION) ? cur_pos - 200 : cur_pos + 200;
         modbus_write_single_register(g_modbus, act_id, MZAP_REG_GOAL_POSITION, jog_pos);
 
         // Wait for movement

@@ -283,7 +283,10 @@ const logState = {
     pollInterval: null,
     entries: [],
     errorCount: 0,
-    warnCount: 0
+    warnCount: 0,
+    lastRenderedIndex: 0,
+    lastLevelFilter: '0',
+    lastTagFilter: ''
 };
 
 const LOG_LEVELS = ['', 'E', 'W', 'I', 'D', 'V'];
@@ -339,6 +342,8 @@ async function fetchLogs() {
                     if (log.lvl === 1) logState.errorCount--;
                     if (log.lvl === 2) logState.warnCount--;
                 }
+                // Force full rebuild after trimming
+                logState.lastRenderedIndex = 0;
             }
 
             logState.lastSequence = data.sequence;
@@ -351,38 +356,64 @@ async function fetchLogs() {
     }
 }
 
+function renderLogEntry(log) {
+    const ts = formatLogTimestamp(log.ts);
+    const lvl = LOG_LEVELS[log.lvl] || '?';
+    return `<div class="log-entry level-${log.lvl}">
+        <span class="log-ts">${ts}</span>
+        <span class="log-lvl">${lvl}</span>
+        <span class="log-tag">${escapeHtml(log.tag)}</span>
+        <span class="log-msg">${escapeHtml(log.msg)}</span>
+    </div>`;
+}
+
+function logMatchesFilter(log, levelFilter, tagFilter) {
+    if (levelFilter > 0 && log.lvl > levelFilter) return false;
+    if (tagFilter && !log.tag.toLowerCase().includes(tagFilter)) return false;
+    return true;
+}
+
 function renderLogs() {
     const container = document.getElementById('log-entries');
     const levelFilter = parseInt(document.getElementById('log-level-filter').value);
     const tagFilter = document.getElementById('log-tag-filter').value.toLowerCase();
     const autoScroll = document.getElementById('log-autoscroll').checked;
 
-    // Filter entries
-    const filtered = logState.entries.filter(log => {
-        if (levelFilter > 0 && log.lvl > levelFilter) return false;
-        if (tagFilter && !log.tag.toLowerCase().includes(tagFilter)) return false;
-        return true;
-    });
+    // Check if filters changed - if so, do full rebuild
+    const filtersChanged = (levelFilter.toString() !== logState.lastLevelFilter ||
+                           tagFilter !== logState.lastTagFilter);
+    logState.lastLevelFilter = levelFilter.toString();
+    logState.lastTagFilter = tagFilter;
 
-    if (filtered.length === 0) {
+    if (filtersChanged) {
+        // Full rebuild
+        logState.lastRenderedIndex = 0;
+        container.innerHTML = '';
+    }
+
+    // Incremental append: only render entries from lastRenderedIndex onward
+    let html = '';
+    let hasNew = false;
+    for (let i = logState.lastRenderedIndex; i < logState.entries.length; i++) {
+        const log = logState.entries[i];
+        if (logMatchesFilter(log, levelFilter, tagFilter)) {
+            html += renderLogEntry(log);
+            hasNew = true;
+        }
+    }
+    logState.lastRenderedIndex = logState.entries.length;
+
+    if (hasNew) {
+        // Remove empty state if present
+        const emptyEl = container.querySelector('.log-empty');
+        if (emptyEl) emptyEl.remove();
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    if (container.children.length === 0) {
         container.innerHTML = '<div class="log-empty">No logs to display</div>';
         return;
     }
-
-    // Build HTML
-    let html = '';
-    for (const log of filtered) {
-        const ts = formatLogTimestamp(log.ts);
-        const lvl = LOG_LEVELS[log.lvl] || '?';
-        html += `<div class="log-entry level-${log.lvl}">
-            <span class="log-ts">${ts}</span>
-            <span class="log-lvl">${lvl}</span>
-            <span class="log-tag">${escapeHtml(log.tag)}</span>
-            <span class="log-msg">${escapeHtml(log.msg)}</span>
-        </div>`;
-    }
-
-    container.innerHTML = html;
 
     // Auto-scroll to bottom
     if (autoScroll) {
@@ -424,6 +455,7 @@ async function clearLogs() {
         logState.lastSequence = 0;
         logState.errorCount = 0;
         logState.warnCount = 0;
+        logState.lastRenderedIndex = 0;
         renderLogs();
         updateLogBadge();
         toast('Logs cleared', 'success');

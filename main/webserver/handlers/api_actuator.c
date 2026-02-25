@@ -913,8 +913,8 @@ esp_err_t api_actuator_sync_move_handler(httpd_req_t *req)
 
         // Add final positions
         cJSON *positions = cJSON_CreateArray();
-        uint16_t max_desync = 0;
-        mightyzap_sync_get_desync(&s_sync_group, &max_desync);
+        uint16_t final_desync = 0;
+        mightyzap_sync_get_desync(&s_sync_group, &final_desync);
         
         for (int i = 0; i < id_count; i++) {
             cJSON *pos_obj = cJSON_CreateObject();
@@ -923,7 +923,7 @@ esp_err_t api_actuator_sync_move_handler(httpd_req_t *req)
             cJSON_AddItemToArray(positions, pos_obj);
         }
         cJSON_AddItemToObject(response, "positions", positions);
-        cJSON_AddNumberToObject(response, "desync", max_desync);
+        cJSON_AddNumberToObject(response, "desync", final_desync);
     } else {
         // Non-blocking: just start the movement
         err = mightyzap_sync_move_start(&s_sync_group, position);

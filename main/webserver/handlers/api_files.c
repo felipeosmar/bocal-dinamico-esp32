@@ -100,15 +100,10 @@ esp_err_t api_files_list_handler(httpd_req_t *req)
     if (!dir) {
         // If directory doesn't exist, return empty list
         cJSON *root = cJSON_CreateObject();
+        if (root == NULL) return send_json(req, NULL);
         cJSON *files = cJSON_CreateArray();
         cJSON_AddItemToObject(root, "files", files);
-
-        char *json_str = cJSON_PrintUnformatted(root);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-        cJSON_Delete(root);
-        return ESP_OK;
+        return send_json(req, root);
     }
 
     cJSON *root = cJSON_CreateObject();
@@ -142,13 +137,7 @@ esp_err_t api_files_list_handler(httpd_req_t *req)
 
     cJSON_AddItemToObject(root, "files", files);
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // GET /api/files/info - Get storage info for all partitions
@@ -175,13 +164,7 @@ esp_err_t api_files_info_handler(httpd_req_t *req)
         cJSON_AddItemToObject(root, "userdata", userdata);
     }
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // GET /api/files/download - Download a file
@@ -321,13 +304,7 @@ esp_err_t api_files_read_handler(httpd_req_t *req)
 
     free(content);
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/files/write - Write file content
@@ -428,13 +405,7 @@ esp_err_t api_files_write_handler(httpd_req_t *req)
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "status", "ok");
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/files/delete - Delete file or folder
@@ -504,13 +475,7 @@ esp_err_t api_files_delete_handler(httpd_req_t *req)
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "status", "ok");
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/files/mkdir - Create directory
@@ -567,13 +532,7 @@ esp_err_t api_files_mkdir_handler(httpd_req_t *req)
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "status", "ok");
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/files/upload - Upload file
@@ -679,11 +638,7 @@ esp_err_t api_files_upload_handler(httpd_req_t *req)
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "status", "ok");
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
+    send_json(req, root);
 
     ESP_LOGI(TAG, "File uploaded: %s", full_path);
     return ESP_OK;

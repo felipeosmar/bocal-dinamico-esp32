@@ -54,15 +54,11 @@ esp_err_t api_actuator_smart_scan_handler(httpd_req_t *req)
 
     if (g_rs485 == NULL || g_modbus == NULL) {
         xSemaphoreGive(g_bus_mutex);
-        cJSON *err = cJSON_CreateObject();
-        cJSON_AddBoolToObject(err, "success", false);
-        cJSON_AddStringToObject(err, "error", "RS485/Modbus not initialized");
-        char *json_str = cJSON_PrintUnformatted(err);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-        cJSON_Delete(err);
-        return ESP_OK;
+        cJSON *err_obj = cJSON_CreateObject();
+        if (err_obj == NULL) return send_json(req, NULL);
+        cJSON_AddBoolToObject(err_obj, "success", false);
+        cJSON_AddStringToObject(err_obj, "error", "RS485/Modbus not initialized");
+        return send_json(req, err_obj);
     }
 
     // Save original baud rate to restore later
@@ -133,12 +129,7 @@ esp_err_t api_actuator_smart_scan_handler(httpd_req_t *req)
 
     xSemaphoreGive(g_bus_mutex);
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // ============================================================================
@@ -149,6 +140,7 @@ esp_err_t api_actuator_roles_get_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
     cJSON_AddBoolToObject(root, "success", true);
 
     config_role_t la = config_get_role_lens_a();
@@ -170,12 +162,7 @@ esp_err_t api_actuator_roles_get_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(nozzle, "baud", nz.baud);
     cJSON_AddItemToObject(root, "nozzle", nozzle);
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // ============================================================================
@@ -234,13 +221,8 @@ esp_err_t api_actuator_roles_post_handler(httpd_req_t *req)
     cJSON_AddBoolToObject(response, "success", true);
     cJSON_AddStringToObject(response, "message", "Roles saved");
 
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // ============================================================================
@@ -343,16 +325,8 @@ esp_err_t api_actuator_jog_handler(httpd_req_t *req)
     }
 
 send_response:
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // ============================================================================
@@ -494,14 +468,6 @@ esp_err_t api_actuator_standardize_handler(httpd_req_t *req)
     }
 
 send_response:
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }

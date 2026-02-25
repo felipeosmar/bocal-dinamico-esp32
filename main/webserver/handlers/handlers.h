@@ -30,6 +30,41 @@
 #include "freertos/semphr.h"
 
 // ============================================================================
+// JSON response helper
+// ============================================================================
+
+/**
+ * @brief Send a cJSON object as HTTP response, handling NULL and cleanup.
+ *
+ * If @p root is NULL (OOM), sends a 500 error. Otherwise prints to string,
+ * sends the response, and frees both the string and the cJSON tree.
+ *
+ * @param req  HTTP request handle
+ * @param root cJSON object to send (consumed — caller must NOT cJSON_Delete)
+ * @return ESP_OK on success, ESP_FAIL on NULL root
+ */
+static inline esp_err_t send_json(httpd_req_t *req, cJSON *root)
+{
+    if (root == NULL) {
+        ESP_LOGE("JSON", "cJSON allocation failed (OOM)");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
+    char *json_str = cJSON_PrintUnformatted(root);
+    if (json_str == NULL) {
+        ESP_LOGE("JSON", "cJSON_PrintUnformatted failed (OOM)");
+        cJSON_Delete(root);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
+// ============================================================================
 // External globals (from main.c)
 // ============================================================================
 

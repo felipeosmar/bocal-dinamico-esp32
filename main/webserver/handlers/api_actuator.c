@@ -115,11 +115,14 @@ esp_err_t api_actuator_status_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
     cJSON *actuators = cJSON_CreateArray();
+    if (actuators == NULL) { cJSON_Delete(root); return send_json(req, NULL); }
 
     for (int i = 0; i < MAX_ACTUATORS; i++) {
         if (s_actuators[i].active && s_actuators[i].handle) {
             cJSON *act = cJSON_CreateObject();
+            if (act == NULL) continue;
             cJSON_AddNumberToObject(act, "id", s_actuators[i].id);
 
             // Add actuator name (or default if not set)
@@ -151,13 +154,7 @@ esp_err_t api_actuator_status_handler(httpd_req_t *req)
     cJSON_AddItemToObject(root, "actuators", actuators);
     cJSON_AddNumberToObject(root, "count", s_num_actuators);
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/actuator/control - Control specific actuator by ID
@@ -261,16 +258,8 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req)
 
 send_response:
     xSemaphoreGive(g_bus_mutex);
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // GET /api/actuator/config - Get actuator configuration
@@ -299,6 +288,7 @@ esp_err_t api_actuator_config_get_handler(httpd_req_t *req)
     }
     
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
     cJSON_AddBoolToObject(root, "success", true);
     cJSON_AddNumberToObject(root, "id", act_id);
     
@@ -333,12 +323,7 @@ esp_err_t api_actuator_config_get_handler(httpd_req_t *req)
         cJSON_AddStringToObject(root, "error", "Failed to read config");
     }
     
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/actuator/config - Set actuator configuration
@@ -442,16 +427,8 @@ esp_err_t api_actuator_config_post_handler(httpd_req_t *req)
     cJSON_AddStringToObject(response, "message", err == ESP_OK ? "Config saved" : "Failed to save config");
     
 send_response:
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-    
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // POST /api/actuator/restart - Restart actuator
@@ -491,15 +468,11 @@ esp_err_t api_actuator_restart_handler(httpd_req_t *req)
     esp_err_t err = mightyzap_restart(slot->handle);
     
     cJSON *response = cJSON_CreateObject();
+    if (response == NULL) return send_json(req, NULL);
     cJSON_AddBoolToObject(response, "success", err == ESP_OK);
     cJSON_AddStringToObject(response, "message", err == ESP_OK ? "Actuator restarting" : "Restart failed");
     
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(response);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // POST /api/actuator/factory-reset - Factory reset actuator
@@ -548,15 +521,11 @@ esp_err_t api_actuator_factory_reset_handler(httpd_req_t *req)
     esp_err_t err = mightyzap_factory_reset(slot->handle);
     
     cJSON *response = cJSON_CreateObject();
+    if (response == NULL) return send_json(req, NULL);
     cJSON_AddBoolToObject(response, "success", err == ESP_OK);
     cJSON_AddStringToObject(response, "message", err == ESP_OK ? "Factory reset complete - actuator will restart" : "Factory reset failed");
     
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(response);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // GET /api/actuator/scan - Scan for actuators and auto-add them
@@ -579,13 +548,7 @@ esp_err_t api_actuator_scan_handler(httpd_req_t *req)
         cJSON_AddItemToObject(root, "found", found);
         cJSON_AddNumberToObject(root, "count", 0);
         cJSON_AddStringToObject(root, "error", "Modbus not initialized");
-
-        char *json_str = cJSON_PrintUnformatted(root);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-        cJSON_Delete(root);
-        return ESP_OK;
+        return send_json(req, root);
     }
 
     uint8_t max_id = config_get_scan_max_id();
@@ -641,13 +604,7 @@ esp_err_t api_actuator_scan_handler(httpd_req_t *req)
     cJSON_AddItemToObject(root, "found", found);
     cJSON_AddNumberToObject(root, "count", count);
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/actuator/add - Add actuator by ID
@@ -689,14 +646,8 @@ esp_err_t api_actuator_add_handler(httpd_req_t *req)
         }
     }
 
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // POST /api/actuator/remove - Remove actuator by ID
@@ -738,14 +689,8 @@ esp_err_t api_actuator_remove_handler(httpd_req_t *req)
         cJSON_AddStringToObject(response, "message", "Actuator removed");
     }
 
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // POST /api/actuator/set-name - Set friendly name for actuator
@@ -797,14 +742,8 @@ esp_err_t api_actuator_set_name_handler(httpd_req_t *req)
         }
     }
 
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // ============================================================================
@@ -953,16 +892,8 @@ esp_err_t api_actuator_sync_move_handler(httpd_req_t *req)
 
 send_response:
     xSemaphoreGive(g_bus_mutex);
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // GET /api/actuator/sync-status - Get sync group status
@@ -974,13 +905,7 @@ esp_err_t api_actuator_sync_status_handler(httpd_req_t *req)
     if (!s_sync_group_initialized || g_modbus == NULL) {
         cJSON_AddBoolToObject(root, "initialized", false);
         cJSON_AddStringToObject(root, "message", "Sync group not initialized");
-        
-        char *json_str = cJSON_PrintUnformatted(root);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-        cJSON_Delete(root);
-        return ESP_OK;
+        return send_json(req, root);
     }
 
     cJSON_AddBoolToObject(root, "initialized", true);
@@ -1019,10 +944,5 @@ esp_err_t api_actuator_sync_status_handler(httpd_req_t *req)
         cJSON_AddStringToObject(root, "error", "Failed to read positions");
     }
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }

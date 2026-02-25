@@ -82,6 +82,7 @@ esp_err_t api_rs485_config_handler(httpd_req_t *req)
     REQUIRE_AUTH(req);
     if (req->method == HTTP_GET) {
         cJSON *root = cJSON_CreateObject();
+        if (root == NULL) return send_json(req, NULL);
 
         cJSON_AddNumberToObject(root, "baud_rate", config_get_rs485_baud());
         cJSON_AddNumberToObject(root, "tx_pin", config_get_rs485_tx_pin());
@@ -89,12 +90,7 @@ esp_err_t api_rs485_config_handler(httpd_req_t *req)
         cJSON_AddNumberToObject(root, "de_pin", config_get_rs485_de_pin());
         cJSON_AddNumberToObject(root, "slave_id", config_get_modbus_slave_id());
 
-        char *json_str = cJSON_PrintUnformatted(root);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-
-        free(json_str);
-        cJSON_Delete(root);
+        return send_json(req, root);
     } else {
         // POST - update config
         char buf[256];
@@ -124,16 +120,12 @@ esp_err_t api_rs485_config_handler(httpd_req_t *req)
         config_save();
 
         cJSON *response = cJSON_CreateObject();
+        cJSON_Delete(root);
+        if (response == NULL) return send_json(req, NULL);
         cJSON_AddBoolToObject(response, "success", true);
         cJSON_AddStringToObject(response, "message", "Config saved. Restart to apply.");
 
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-
-        free(json_str);
-        cJSON_Delete(response);
-        cJSON_Delete(root);
+        return send_json(req, response);
     }
     return ESP_OK;
 }
@@ -143,6 +135,7 @@ esp_err_t api_rs485_diag_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
 
     // RS485 status
     cJSON_AddBoolToObject(root, "rs485_ready", g_rs485 != NULL);
@@ -182,13 +175,7 @@ esp_err_t api_rs485_diag_handler(httpd_req_t *req)
         add_exception_stats_to_json(root, stats);
     }
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/rs485/test - Test communication with a Modbus slave
@@ -282,16 +269,8 @@ esp_err_t api_rs485_test_handler(httpd_req_t *req)
     }
 
 send_test_response:
-    {
-        char *json_str = cJSON_PrintUnformatted(response);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-    }
-
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // POST /api/rs485/reset_stats - Reset Modbus statistics
@@ -301,14 +280,9 @@ esp_err_t api_rs485_reset_stats_handler(httpd_req_t *req)
     modbus_reset_stats();
 
     cJSON *response = cJSON_CreateObject();
+    if (response == NULL) return send_json(req, NULL);
     cJSON_AddBoolToObject(response, "success", true);
     cJSON_AddStringToObject(response, "message", "Statistics reset");
 
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(response);
-    return ESP_OK;
+    return send_json(req, response);
 }

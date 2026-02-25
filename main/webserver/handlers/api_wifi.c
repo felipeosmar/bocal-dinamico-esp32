@@ -21,21 +21,17 @@ esp_err_t api_wifi_scan_handler(httpd_req_t *req)
     }
 
     cJSON *root = cJSON_CreateArray();
+    if (root == NULL) return send_json(req, NULL);
     for (int i = 0; i < found; i++) {
         cJSON *net = cJSON_CreateObject();
+        if (net == NULL) continue;
         cJSON_AddStringToObject(net, "ssid", results[i].ssid);
         cJSON_AddNumberToObject(net, "rssi", results[i].rssi);
         cJSON_AddNumberToObject(net, "auth", results[i].authmode);
         cJSON_AddItemToArray(root, net);
     }
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/wifi/connect
@@ -79,17 +75,12 @@ esp_err_t api_wifi_connect_handler(httpd_req_t *req)
     esp_err_t err = wifi_manager_connect(ssid, password);
 
     cJSON *response = cJSON_CreateObject();
+    if (response == NULL) { cJSON_Delete(root); return send_json(req, NULL); }
     cJSON_AddBoolToObject(response, "success", err == ESP_OK);
     cJSON_AddStringToObject(response, "message", err == ESP_OK ? "Connected" : "Failed to connect");
 
-    char *json_str = cJSON_PrintUnformatted(response);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(response);
     cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, response);
 }
 
 // GET /api/wifi/status
@@ -97,6 +88,7 @@ esp_err_t api_wifi_status_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
 
     char ip[16] = {0};
     char ssid[33] = {0};
@@ -109,11 +101,5 @@ esp_err_t api_wifi_status_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "status", wifi_manager_get_status());
     cJSON_AddBoolToObject(root, "connected", wifi_manager_is_connected());
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }

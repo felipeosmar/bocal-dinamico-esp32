@@ -12,6 +12,7 @@ esp_err_t api_status_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
 
     // System info
     cJSON_AddNumberToObject(root, "heap_free", esp_get_free_heap_size());
@@ -31,13 +32,7 @@ esp_err_t api_status_handler(httpd_req_t *req)
     // Modbus status
     cJSON_AddBoolToObject(root, "modbus_ready", g_modbus != NULL);
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // GET /api/tasks - Get FreeRTOS task statistics
@@ -45,6 +40,7 @@ esp_err_t api_tasks_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
     
     // System overview
     cJSON_AddNumberToObject(root, "heap_free", esp_get_free_heap_size());
@@ -58,12 +54,7 @@ esp_err_t api_tasks_handler(httpd_req_t *req)
     
     if (task_array == NULL) {
         cJSON_AddStringToObject(root, "error", "Out of memory");
-        char *json_str = cJSON_PrintUnformatted(root);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, json_str, strlen(json_str));
-        free(json_str);
-        cJSON_Delete(root);
-        return ESP_OK;
+        return send_json(req, root);
     }
     
     configRUN_TIME_COUNTER_TYPE total_runtime;
@@ -109,13 +100,7 @@ esp_err_t api_tasks_handler(httpd_req_t *req)
     cJSON_AddItemToObject(root, "tasks", tasks);
     cJSON_AddNumberToObject(root, "total_runtime", total_runtime);
     
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-    
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/restart
@@ -123,15 +108,11 @@ esp_err_t api_restart_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
     cJSON_AddBoolToObject(root, "success", true);
     cJSON_AddStringToObject(root, "message", "Restarting...");
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
+    send_json(req, root);
 
     // Delay before restart
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -198,14 +179,7 @@ esp_err_t api_logs_handler(httpd_req_t *req)
 
     free(entries);
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-
-    return ESP_OK;
+    return send_json(req, root);
 }
 
 // POST /api/logs/clear - Clear log buffer
@@ -215,15 +189,9 @@ esp_err_t api_logs_clear_handler(httpd_req_t *req)
     esp_err_t ret = log_buffer_clear();
 
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) return send_json(req, NULL);
     cJSON_AddBoolToObject(root, "success", ret == ESP_OK);
     cJSON_AddStringToObject(root, "message", ret == ESP_OK ? "Log buffer cleared" : "Failed to clear");
 
-    char *json_str = cJSON_PrintUnformatted(root);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-
-    free(json_str);
-    cJSON_Delete(root);
-
-    return ESP_OK;
+    return send_json(req, root);
 }

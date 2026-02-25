@@ -59,6 +59,12 @@ static bool is_valid_path(const char *path)
     return true;
 }
 
+// Helper: Check if partition is www (read-only for API writes)
+static bool is_www_partition(const char *base_path)
+{
+    return (strcmp(base_path, "/www") == 0);
+}
+
 // Helper: Build full path
 static void build_full_path(char *dest, size_t dest_size, const char *base, const char *path)
 {
@@ -314,6 +320,12 @@ esp_err_t api_files_write_handler(httpd_req_t *req)
     char query_buf[64] = {0};
     const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
 
+    if (is_www_partition(base_path)) {
+        httpd_resp_set_status(req, "403 Forbidden");
+        httpd_resp_send(req, "Write access to www partition is not allowed", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
     // Read POST data
     int total_len = req->content_len;
     if (total_len > 60 * 1024) {
@@ -415,6 +427,12 @@ esp_err_t api_files_delete_handler(httpd_req_t *req)
     char query_buf[64] = {0};
     const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
 
+    if (is_www_partition(base_path)) {
+        httpd_resp_set_status(req, "403 Forbidden");
+        httpd_resp_send(req, "Delete access to www partition is not allowed", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -485,6 +503,12 @@ esp_err_t api_files_mkdir_handler(httpd_req_t *req)
     char query_buf[64] = {0};
     const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
 
+    if (is_www_partition(base_path)) {
+        httpd_resp_set_status(req, "403 Forbidden");
+        httpd_resp_send(req, "Write access to www partition is not allowed", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
@@ -543,6 +567,12 @@ esp_err_t api_files_upload_handler(httpd_req_t *req)
     char dir_param[128] = "/";
 
     const char *base_path = get_partition_path(req, query_buf, sizeof(query_buf));
+
+    if (is_www_partition(base_path)) {
+        httpd_resp_set_status(req, "403 Forbidden");
+        httpd_resp_send(req, "Upload to www partition is not allowed", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
 
     // Get dir parameter
     if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) == ESP_OK) {

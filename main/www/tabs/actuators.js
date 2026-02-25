@@ -216,21 +216,48 @@ async function sendSyncCommand() {
             position: pos,
             speed: spd,
             current: cur,
-            wait: true,
+            wait: false,
             timeout: 10000
         });
 
-        if (r.success) {
-            toast(`Sync move complete (desync: ${r.desync})`, 'success');
-            setButtonState('btn-sync-command', 'success');
-        } else {
+        if (!r.success) {
             toast(r.message || 'Sync move failed', 'error');
             setButtonState('btn-sync-command', 'error');
+            releaseCommandLock(500);
+            refreshStatus();
+            return;
         }
+
+        // Poll sync-status until movement completes
+        const pollSync = async () => {
+            try {
+                const s = await api('actuator/sync-status');
+                if (!s.initialized) {
+                    toast('Sync group lost', 'error');
+                    setButtonState('btn-sync-command', 'error');
+                    releaseCommandLock(500);
+                    return;
+                }
+                if (s.in_position || s.all_stopped) {
+                    toast(`Sync move complete (desync: ${s.desync})`, 'success');
+                    setButtonState('btn-sync-command', 'success');
+                    releaseCommandLock(500);
+                    refreshStatus();
+                    return;
+                }
+                // Still moving — poll again
+                setTimeout(pollSync, 500);
+            } catch (e) {
+                toast('Status poll failed', 'error');
+                setButtonState('btn-sync-command', 'error');
+                releaseCommandLock(500);
+            }
+        };
+        // Start polling after a short delay for movement to begin
+        setTimeout(pollSync, 300);
     } catch (e) {
         toast('Command failed', 'error');
         setButtonState('btn-sync-command', 'error');
-    } finally {
         releaseCommandLock(500);
         refreshStatus();
     }

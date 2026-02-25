@@ -31,6 +31,15 @@ typedef struct {
 static actuator_slot_t s_actuators[MAX_ACTUATORS] = {0};
 static uint8_t s_num_actuators = 0;
 
+// Cached status JSON for polling optimization
+static char s_status_cache[1024] = {0};
+static size_t s_status_cache_len = 0;
+static bool s_status_dirty = true;
+
+static void mark_status_dirty(void) {
+    s_status_dirty = true;
+}
+
 // Helper: Find actuator by ID
 static actuator_slot_t* find_actuator(uint8_t id) {
     for (int i = 0; i < MAX_ACTUATORS; i++) {
@@ -55,6 +64,7 @@ static esp_err_t add_actuator(uint8_t id) {
                 s_actuators[i].handle = handle;
                 s_actuators[i].active = true;
                 s_num_actuators++;
+                mark_status_dirty();
                 return ESP_OK;
             }
             return ret;
@@ -73,6 +83,7 @@ static void remove_actuator(uint8_t id) {
             s_actuators[i].active = false;
             s_actuators[i].handle = NULL;
             s_num_actuators--;
+            mark_status_dirty();
             break;
         }
     }
@@ -117,51 +128,73 @@ void actuator_handlers_init(void)
 // API Handlers
 // ============================================================================
 
+// Minimum interval between status cache rebuilds (ms)
+#define STATUS_CACHE_MIN_INTERVAL_MS 500
+static TickType_t s_status_cache_tick = 0;
+
+/**
+ * @brief Rebuild the cached status JSON using snprintf (hot path optimization)
+ */
+static void rebuild_status_cache(void)
+{
+    char *p = s_status_cache;
+    char *end = s_status_cache + sizeof(s_status_cache) - 2;
+
+    p += snprintf(p, end - p, "{\"actuators\":[");
+
+    bool first = true;
+    for (int i = 0; i < MAX_ACTUATORS && p < end; i++) {
+        if (!s_actuators[i].active || !s_actuators[i].handle) continue;
+
+        if (!first) *p++ = ',';
+        first = false;
+
+        const char *name = config_get_actuator_name(s_actuators[i].id);
+        char name_buf[32];
+        if (!name || strlen(name) == 0) {
+            snprintf(name_buf, sizeof(name_buf), "Actuator #%d", s_actuators[i].id);
+            name = name_buf;
+        }
+
+        mightyzap_status_t status;
+        esp_err_t ret = mightyzap_get_status(s_actuators[i].handle, &status);
+
+        if (ret == ESP_OK) {
+            p += snprintf(p, end - p,
+                "{\"id\":%d,\"name\":\"%s\",\"connected\":true,"
+                "\"position\":%d,\"current\":%d,\"voltage\":%.1f,\"moving\":%s}",
+                s_actuators[i].id, name,
+                status.position, status.current, status.voltage / 10.0,
+                status.moving ? "true" : "false");
+        } else {
+            p += snprintf(p, end - p,
+                "{\"id\":%d,\"name\":\"%s\",\"connected\":false}",
+                s_actuators[i].id, name);
+        }
+    }
+
+    p += snprintf(p, end - p, "],\"count\":%d}", s_num_actuators);
+
+    s_status_cache_len = (size_t)(p - s_status_cache);
+    s_status_dirty = false;
+    s_status_cache_tick = xTaskGetTickCount();
+}
+
 // GET /api/actuator/status - Get status of all active actuators
 esp_err_t api_actuator_status_handler(httpd_req_t *req)
 {
     REQUIRE_AUTH(req);
-    cJSON *root = cJSON_CreateObject();
-    if (root == NULL) return send_json(req, NULL);
-    cJSON *actuators = cJSON_CreateArray();
-    if (actuators == NULL) { cJSON_Delete(root); return send_json(req, NULL); }
 
-    for (int i = 0; i < MAX_ACTUATORS; i++) {
-        if (s_actuators[i].active && s_actuators[i].handle) {
-            cJSON *act = cJSON_CreateObject();
-            if (act == NULL) continue;
-            cJSON_AddNumberToObject(act, "id", s_actuators[i].id);
-
-            // Add actuator name (or default if not set)
-            const char *name = config_get_actuator_name(s_actuators[i].id);
-            if (name && strlen(name) > 0) {
-                cJSON_AddStringToObject(act, "name", name);
-            } else {
-                char default_name[32];
-                snprintf(default_name, sizeof(default_name), "Actuator #%d", s_actuators[i].id);
-                cJSON_AddStringToObject(act, "name", default_name);
-            }
-
-            mightyzap_status_t status;
-            esp_err_t ret = mightyzap_get_status(s_actuators[i].handle, &status);
-
-            if (ret == ESP_OK) {
-                cJSON_AddBoolToObject(act, "connected", true);
-                cJSON_AddNumberToObject(act, "position", status.position);
-                cJSON_AddNumberToObject(act, "current", status.current);
-                cJSON_AddNumberToObject(act, "voltage", status.voltage / 10.0);
-                cJSON_AddBoolToObject(act, "moving", status.moving != 0);
-            } else {
-                cJSON_AddBoolToObject(act, "connected", false);
-            }
-            cJSON_AddItemToArray(actuators, act);
-        }
+    // Rebuild cache if dirty or stale
+    TickType_t now = xTaskGetTickCount();
+    uint32_t elapsed_ms = (now - s_status_cache_tick) * portTICK_PERIOD_MS;
+    if (s_status_dirty || elapsed_ms >= STATUS_CACHE_MIN_INTERVAL_MS || s_status_cache_len == 0) {
+        rebuild_status_cache();
     }
 
-    cJSON_AddItemToObject(root, "actuators", actuators);
-    cJSON_AddNumberToObject(root, "count", s_num_actuators);
-
-    return send_json(req, root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, s_status_cache, s_status_cache_len);
+    return ESP_OK;
 }
 
 // POST /api/actuator/control - Control specific actuator by ID
@@ -262,6 +295,7 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req)
 
     cJSON_AddBoolToObject(response, "success", err == ESP_OK);
     cJSON_AddStringToObject(response, "message", err == ESP_OK ? "OK" : "Command failed");
+    if (err == ESP_OK) mark_status_dirty();
 
 send_response:
     xSemaphoreGive(g_bus_mutex);

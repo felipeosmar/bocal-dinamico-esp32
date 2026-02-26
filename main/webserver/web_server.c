@@ -8,6 +8,11 @@
 #include "web_server.h"
 #include "handlers/handlers.h"
 
+// From web_baumer.c
+extern void register_baumer_handlers(httpd_handle_t server);
+// From web_control.c
+extern void register_control_handlers(httpd_handle_t server);
+
 static const char *TAG = "WEB_SRV";
 
 // Server handle
@@ -113,7 +118,9 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_register_uri_handler(s_server, &tabs_tasks_html);
 
     httpd_uri_t tabs_setup_html = { .uri = "/tabs/setup.html", .method = HTTP_GET, .handler = tabs_html_handler };
+    httpd_uri_t tabs_profiler_html = { .uri = "/tabs/profiler.html", .method = HTTP_GET, .handler = tabs_html_handler };
     httpd_register_uri_handler(s_server, &tabs_setup_html);
+    httpd_register_uri_handler(s_server, &tabs_profiler_html);
 
     // Tabs JS
     httpd_uri_t tabs_actuators_js = { .uri = "/tabs/actuators.js", .method = HTTP_GET, .handler = tabs_js_handler };
@@ -129,7 +136,9 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_register_uri_handler(s_server, &tabs_tasks_js);
 
     httpd_uri_t tabs_setup_js = { .uri = "/tabs/setup.js", .method = HTTP_GET, .handler = tabs_js_handler };
+    httpd_uri_t tabs_profiler_js = { .uri = "/tabs/profiler.js", .method = HTTP_GET, .handler = tabs_js_handler };
     httpd_register_uri_handler(s_server, &tabs_setup_js);
+    httpd_register_uri_handler(s_server, &tabs_profiler_js);
 
     // ========================================================================
     // Register Routes - API: File Manager
@@ -244,6 +253,13 @@ esp_err_t web_server_init(const web_server_config_t *config)
     httpd_register_uri_handler(s_server, &setup_roles_post);
     httpd_register_uri_handler(s_server, &setup_jog);
     httpd_register_uri_handler(s_server, &setup_standardize);
+
+    // ========================================================================
+    // Register Routes - API: Baumer & Control Loop
+    // ========================================================================
+
+    register_baumer_handlers(s_server);
+    register_control_handlers(s_server);
 
     // ========================================================================
     // Initialization Complete

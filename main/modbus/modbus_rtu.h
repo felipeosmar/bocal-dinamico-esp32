@@ -107,6 +107,22 @@ esp_err_t modbus_read_holding_registers(modbus_handle_t handle,
                                         uint16_t *values);
 
 /**
+ * @brief Read input registers (FC 0x04)
+ *
+ * @param handle Modbus handle
+ * @param slave_addr Slave address (1-247)
+ * @param start_reg Starting register address
+ * @param num_regs Number of registers to read (1-125)
+ * @param values Buffer to store read values
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t modbus_read_input_registers(modbus_handle_t handle,
+                                      uint8_t slave_addr,
+                                      uint16_t start_reg,
+                                      uint16_t num_regs,
+                                      uint16_t *values);
+
+/**
  * @brief Write single register (FC 0x06)
  *
  * @param handle Modbus handle

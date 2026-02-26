@@ -414,6 +414,56 @@ esp_err_t modbus_read_holding_registers(modbus_handle_t handle,
     return ESP_OK;
 }
 
+esp_err_t modbus_read_input_registers(modbus_handle_t handle,
+                                      uint8_t slave_addr,
+                                      uint16_t start_reg,
+                                      uint16_t num_regs,
+                                      uint16_t *values)
+{
+    if (handle == NULL || values == NULL || num_regs == 0 || num_regs > 125) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    uint8_t request[8];
+    uint8_t response[MODBUS_MAX_PDU_SIZE];
+    size_t resp_len;
+
+    // Build request: [Addr][FC][StartHi][StartLo][NumHi][NumLo][CRCLo][CRCHi]
+    request[0] = slave_addr;
+    request[1] = MODBUS_FC_READ_INPUT_REGISTERS;
+    request[2] = (start_reg >> 8) & 0xFF;
+    request[3] = start_reg & 0xFF;
+    request[4] = (num_regs >> 8) & 0xFF;
+    request[5] = num_regs & 0xFF;
+
+    uint16_t crc = modbus_crc16(request, 6);
+    request[6] = crc & 0xFF;
+    request[7] = (crc >> 8) & 0xFF;
+
+    ESP_LOGD(TAG, "Read input regs: addr=%u, start=0x%04X, count=%u",
+             slave_addr, start_reg, num_regs);
+
+    esp_err_t ret = modbus_send_receive(handle, request, 8, response, &resp_len,
+                                        5 + num_regs * 2);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+
+    // Parse response: [Addr][FC][ByteCount][Data...][CRC]
+    uint8_t byte_count = response[2];
+    if (byte_count != num_regs * 2) {
+        ESP_LOGE(TAG, "Unexpected byte count: %u (expected %u)", byte_count, num_regs * 2);
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+
+    // Extract register values (big-endian in Modbus)
+    for (uint16_t i = 0; i < num_regs; i++) {
+        values[i] = (response[3 + i * 2] << 8) | response[4 + i * 2];
+    }
+
+    return ESP_OK;
+}
+
 esp_err_t modbus_write_single_register(modbus_handle_t handle,
                                        uint8_t slave_addr,
                                        uint16_t reg_addr,

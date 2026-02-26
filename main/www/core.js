@@ -10,6 +10,7 @@ const modules = {
     system: { loaded: false, init: null },
     tasks: { loaded: false, init: null },
     setup: { loaded: false, init: null },
+    profiler: { loaded: false, init: null },
     config: { loaded: false, init: null },
     files: { loaded: false, init: null }
 };

@@ -1,0 +1,102 @@
+<div class="profiler-grid">
+  <!-- Measured Values Panel -->
+  <div class="card">
+    <h3>Measured Values</h3>
+    <div class="profiler-values">
+      <div class="value-row">
+        <span class="label">Value 1:</span>
+        <span id="pf-val1" class="value">--</span>
+        <span class="unit">mm</span>
+      </div>
+      <div class="value-row">
+        <span class="label">Value 2:</span>
+        <span id="pf-val2" class="value">--</span>
+        <span class="unit">mm</span>
+      </div>
+      <div class="value-row">
+        <span class="label">Value 3:</span>
+        <span id="pf-val3" class="value">--</span>
+        <span class="unit">mm</span>
+      </div>
+      <div class="value-row">
+        <span class="label">Value 4:</span>
+        <span id="pf-val4" class="value">--</span>
+        <span class="unit">mm</span>
+      </div>
+    </div>
+    <div class="status-row">
+      <span>Quality: <span id="pf-quality" class="badge">--</span></span>
+      <span>Laser: <span id="pf-laser-status">--</span>
+        <button id="pf-laser-btn" class="btn btn-sm" onclick="profilerToggleLaser()">Toggle</button>
+      </span>
+    </div>
+  </div>
+
+  <!-- Control Loop Panel -->
+  <div class="card">
+    <h3>Control Loop</h3>
+    <div class="control-status">
+      <div class="status-row">
+        <span>Status:</span>
+        <span id="pf-ctrl-status" class="badge">--</span>
+      </div>
+      <div class="status-row">
+        <span>Interval (ms):</span>
+        <input type="number" id="pf-interval" min="100" max="60000" value="1000" class="input-sm">
+        <button class="btn btn-sm" onclick="profilerSetInterval()">Set</button>
+      </div>
+      <div class="status-row">
+        <span>Control value:</span>
+        <select id="pf-meas-index" class="input-sm" onchange="profilerSetMeasIndex()">
+          <option value="0">Value 1</option>
+          <option value="1">Value 2</option>
+          <option value="2">Value 3</option>
+          <option value="3">Value 4</option>
+        </select>
+      </div>
+      <div class="status-row">
+        <span>Loop count: <span id="pf-loop-count">0</span></span>
+        <span>Errors: <span id="pf-error-count">0</span></span>
+      </div>
+      <div class="status-row">
+        <span>Gap value: <span id="pf-gap-value">--</span> mm</span>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="profilerStart()">Start</button>
+        <button class="btn btn-danger" onclick="profilerStop()">Stop</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Equations Table -->
+<div class="card">
+  <h3>Equations per Actuator</h3>
+  <p class="info-text">position = a &times; gap + b</p>
+  <table class="table" id="pf-equations-table">
+    <thead>
+      <tr>
+        <th>Actuator</th>
+        <th>a (slope)</th>
+        <th>b (offset)</th>
+        <th>Enabled</th>
+        <th>Computed Position</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="pf-equations-body">
+    </tbody>
+  </table>
+</div>
+
+<!-- Baumer Config -->
+<div class="card">
+  <h3>Baumer Configuration</h3>
+  <div class="status-row">
+    <span>Slave ID:</span>
+    <input type="number" id="pf-slave-id" min="1" max="247" value="8" class="input-sm">
+    <span>Enabled:</span>
+    <input type="checkbox" id="pf-baumer-enabled" checked>
+    <button class="btn btn-sm" onclick="profilerSaveBaumerConfig()">Save (requires restart)</button>
+  </div>
+</div>

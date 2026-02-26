@@ -4,6 +4,7 @@ idf_component_register(
         "rs485/rs485_driver.c"
         "modbus/modbus_rtu.c"
         "mightyzap/mightyzap.c"
+        "mightyzap/actuator_task.c"
         "wifi/wifi_manager.c"
         "webserver/web_server.c"
         "webserver/web_baumer.c"

@@ -17,6 +17,7 @@
 The Modbus component has FC04 in its enum but no implementation. The Baumer OX100 serves measurements via Input Registers (FC04), so this must be added first.
 
 **Files:**
+
 - Modify: `main/modbus/modbus_rtu.h`
 - Modify: `main/modbus/modbus_rtu.c`
 
@@ -115,6 +116,7 @@ git commit -m "feat(modbus): add read input registers FC04 support"
 ### Task 2: Create Baumer OX100 component
 
 **Files:**
+
 - Create: `main/baumer/baumer_ox100.h`
 - Create: `main/baumer/baumer_ox100.c`
 - Create: `main/baumer/CMakeLists.txt`
@@ -361,14 +363,29 @@ esp_err_t baumer_set_laser(baumer_handle_t handle, bool on)
         return ESP_ERR_INVALID_ARG;
     }
 
+    // Address 0: Request parameterization mode (write random value)
+    esp_err_t ret = modbus_write_single_register(handle->modbus, handle->slave_id, 0, 1);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to enter parameterization mode: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(50));
+
     uint16_t value = on ? 1 : 0;
-    esp_err_t ret = modbus_write_single_register(
+    ret = modbus_write_single_register(
         handle->modbus, handle->slave_id, BAUMER_HREG_LASER, value);
 
     if (ret == ESP_OK) {
         ESP_LOGI(TAG, "Laser %s", on ? "ON" : "OFF");
     } else {
         ESP_LOGE(TAG, "Failed to set laser: %s", esp_err_to_name(ret));
+    }
+
+    // Address 2: Exit parameterization mode (write random value)
+    esp_err_t exit_ret = modbus_write_single_register(handle->modbus, handle->slave_id, 2, 1);
+    if (exit_ret != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to exit parameterization mode: %s", esp_err_to_name(exit_ret));
     }
 
     return ret;
@@ -404,6 +421,7 @@ git commit -m "feat(baumer): add Baumer OX100 profilometer component"
 ### Task 3: Create control loop component
 
 **Files:**
+
 - Create: `main/control_loop/control_loop.h`
 - Create: `main/control_loop/control_loop.c`
 
@@ -811,6 +829,7 @@ git commit -m "feat(control): add closed-loop control task with per-actuator equ
 ### Task 4: Extend config_manager
 
 **Files:**
+
 - Modify: `main/config/config_manager.h`
 - Modify: `main/config/config_manager.c`
 
@@ -1005,6 +1024,7 @@ git commit -m "feat(config): add Baumer and control loop configuration"
 ### Task 5: Add Baumer REST handlers
 
 **Files:**
+
 - Create: `main/webserver/web_baumer.c`
 
 **Step 1: Create `main/webserver/web_baumer.c`**
@@ -1181,6 +1201,7 @@ git commit -m "feat(web): add Baumer OX100 REST API handlers"
 ### Task 6: Add Control Loop REST handlers
 
 **Files:**
+
 - Create: `main/webserver/web_control.c`
 
 **Step 1: Create `main/webserver/web_control.c`**
@@ -1396,6 +1417,7 @@ git commit -m "feat(web): add control loop REST API handlers"
 ### Task 7: Modify main.c and web_server.c
 
 **Files:**
+
 - Modify: `main/main.c` — add g_baumer, Baumer + control loop initialization
 - Modify: `main/webserver/web_server.c` — register new handlers, expose actuator lookup
 
@@ -1476,6 +1498,7 @@ In the server init function, after existing route registrations:
 Check how actuator handles are stored in the web server handlers. Add a function to look up a handle by actuator ID. This depends on the existing implementation — the function `actuator_get_handle_by_id()` referenced in `control_loop.c` needs to be implemented where the actuator array lives (likely in the actuator handler code).
 
 If actuators are stored in an array like:
+
 ```c
 static mightyzap_handle_t s_actuators[MAX_ACTUATORS];
 static uint8_t s_actuator_ids[MAX_ACTUATORS];
@@ -1483,6 +1506,7 @@ static uint8_t s_actuator_count;
 ```
 
 Then add:
+
 ```c
 mightyzap_handle_t *actuator_get_handle_by_id(uint8_t id)
 {
@@ -1517,6 +1541,7 @@ git commit -m "feat: integrate Baumer and control loop into main init and web se
 ### Task 8: Create web interface - Profiler tab
 
 **Files:**
+
 - Create: `main/www/tabs/profiler.html`
 - Create: `main/www/tabs/profiler.js`
 - Modify: `main/www/index.html`
@@ -1830,6 +1855,7 @@ git commit -m "feat(web): add Profiler tab for Baumer monitoring and control loo
 ### Task 9: Update CMakeLists.txt and build
 
 **Files:**
+
 - Modify: `main/CMakeLists.txt`
 
 **Step 1: Add new source files to CMakeLists.txt**
@@ -1876,6 +1902,7 @@ idf.py -p /dev/ttyUSB0 monitor
 **Step 2: Verify boot sequence**
 
 Expected log output:
+
 ```
 I (xxx) BAUMER: Baumer OX100 initialized, slave_id=8
 I (xxx) CONTROL: Control loop initialized, interval=1000 ms, equations=0
@@ -1912,6 +1939,7 @@ curl http://<esp32-ip>/api/control/status
 **Step 4: Test web interface**
 
 Open browser, navigate to the Profiler tab. Verify:
+
 - 4 measured values display and update
 - Quality indicator shows correct color
 - Control loop start/stop works

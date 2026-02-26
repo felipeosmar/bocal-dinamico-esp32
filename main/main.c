@@ -9,25 +9,26 @@
  * - JSON-based configuration storage
  */
 
+#include "esp_err.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/task.h"
 #include <stdio.h>
 #include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "esp_log.h"
-#include "esp_err.h"
 
-#include "rs485_driver.h"
-#include "modbus_rtu.h"
-#include "mightyzap.h"
-#include "wifi_manager.h"
-#include "web_server.h"
-#include "config_manager.h"
-#include "health_monitor.h"
-#include "log_buffer.h"
+#include "actuator_task.h"
 #include "baumer_ox100.h"
+#include "config_manager.h"
 #include "control_loop.h"
 #include "freertos/semphr.h"
+#include "health_monitor.h"
+#include "log_buffer.h"
+#include "mightyzap.h"
+#include "modbus_rtu.h"
+#include "rs485_driver.h"
+#include "web_server.h"
+#include "wifi_manager.h"
 
 static const char *TAG = "MASTER";
 
@@ -41,223 +42,232 @@ baumer_handle_t g_baumer = NULL;
 SemaphoreHandle_t g_bus_mutex = NULL;
 
 // Actuator configuration
-#define ACTUATOR_SLAVE_ID   1   // mightyZAP default ID
+#define ACTUATOR_SLAVE_ID 1 // mightyZAP default ID
 
 /**
  * @brief Initialize RS485 and Modbus using config
  */
-static esp_err_t init_communication(void)
-{
-    esp_err_t ret;
+static esp_err_t init_communication(void) {
+  esp_err_t ret;
 
-    // Get configuration
-    uint32_t baud = config_get_rs485_baud();
-    uint8_t tx_pin = config_get_rs485_tx_pin();
-    uint8_t rx_pin = config_get_rs485_rx_pin();
-    uint8_t de_pin = config_get_rs485_de_pin();
-    uint32_t timeout = config_get_modbus_timeout();
+  // Get configuration
+  uint32_t baud = config_get_rs485_baud();
+  uint8_t tx_pin = config_get_rs485_tx_pin();
+  uint8_t rx_pin = config_get_rs485_rx_pin();
+  uint8_t de_pin = config_get_rs485_de_pin();
+  uint32_t timeout = config_get_modbus_timeout();
 
-    ESP_LOGI(TAG, "RS485 Config: TX=%d, RX=%d, DE=%d, Baud=%lu",
-             tx_pin, rx_pin, de_pin, baud);
+  ESP_LOGI(TAG, "RS485 Config: TX=%d, RX=%d, DE=%d, Baud=%lu", tx_pin, rx_pin,
+           de_pin, baud);
 
-    // Initialize RS485
-    rs485_config_t rs485_cfg = {
-        .uart_num = UART_NUM_1,
-        .tx_pin = tx_pin,
-        .rx_pin = rx_pin,
-        .de_pin = de_pin,
-        .baud_rate = baud,
-        .rx_buffer_size = 256,
-        .tx_buffer_size = 256,
-    };
+  // Initialize RS485
+  rs485_config_t rs485_cfg = {
+      .uart_num = UART_NUM_1,
+      .tx_pin = tx_pin,
+      .rx_pin = rx_pin,
+      .de_pin = de_pin,
+      .baud_rate = baud,
+      .rx_buffer_size = 256,
+      .tx_buffer_size = 256,
+  };
 
-    ret = rs485_init(&rs485_cfg, &g_rs485);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize RS485: %s", esp_err_to_name(ret));
-        return ret;
-    }
+  ret = rs485_init(&rs485_cfg, &g_rs485);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize RS485: %s", esp_err_to_name(ret));
+    return ret;
+  }
 
-    // Initialize Modbus Master
-    modbus_config_t modbus_cfg = {
-        .rs485 = g_rs485,
-        .response_timeout = timeout,
-    };
+  // Initialize Modbus Master
+  modbus_config_t modbus_cfg = {
+      .rs485 = g_rs485,
+      .response_timeout = timeout,
+  };
 
-    ret = modbus_init(&modbus_cfg, &g_modbus);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize Modbus: %s", esp_err_to_name(ret));
-        rs485_deinit(g_rs485);
-        g_rs485 = NULL;
-        return ret;
-    }
+  ret = modbus_init(&modbus_cfg, &g_modbus);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize Modbus: %s", esp_err_to_name(ret));
+    rs485_deinit(g_rs485);
+    g_rs485 = NULL;
+    return ret;
+  }
 
-    ESP_LOGI(TAG, "RS485/Modbus communication initialized");
+  ESP_LOGI(TAG, "RS485/Modbus communication initialized");
 
-    // Initialize mightyZAP actuator
-    esp_err_t act_ret = mightyzap_init(g_modbus, ACTUATOR_SLAVE_ID, &g_actuator);
-    if (act_ret == ESP_OK) {
-        ESP_LOGI(TAG, "mightyZAP actuator initialized (ID=%d)", ACTUATOR_SLAVE_ID);
-    } else {
-        ESP_LOGW(TAG, "mightyZAP init failed (may not be connected)");
-        g_actuator = NULL;
-    }
+  // Initialize mightyZAP actuator
+  esp_err_t act_ret = mightyzap_init(g_modbus, ACTUATOR_SLAVE_ID, &g_actuator);
+  if (act_ret == ESP_OK) {
+    ESP_LOGI(TAG, "mightyZAP actuator initialized (ID=%d)", ACTUATOR_SLAVE_ID);
+  } else {
+    ESP_LOGW(TAG, "mightyZAP init failed (may not be connected)");
+    g_actuator = NULL;
+  }
 
-    return ESP_OK;
+  return ESP_OK;
 }
 
 /**
  * @brief Initialize WiFi based on configuration
  */
-static esp_err_t init_wifi(void)
-{
-    esp_err_t ret;
+static esp_err_t init_wifi(void) {
+  esp_err_t ret;
 
-    // Initialize WiFi manager
-    ret = wifi_manager_init(NULL);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize WiFi manager: %s", esp_err_to_name(ret));
-        return ret;
-    }
-
-    // Check if we have saved WiFi credentials
-    const char *ssid = config_get_wifi_ssid();
-    const char *password = config_get_wifi_password();
-    bool ap_mode = config_get_wifi_ap_mode();
-
-    if (!ap_mode && strlen(ssid) > 0) {
-        // Try to connect to saved network
-        ESP_LOGI(TAG, "Connecting to saved network: %s", ssid);
-        ret = wifi_manager_connect(ssid, password);
-
-        if (ret != ESP_OK) {
-            ESP_LOGW(TAG, "Failed to connect, starting AP mode");
-            ap_mode = true;
-        }
-    } else {
-        ap_mode = true;
-    }
-
-    if (ap_mode) {
-        // Start AP mode for configuration
-        const char *ap_ssid = config_get_ap_ssid();
-        const char *ap_pass = config_get_ap_password();
-        ESP_LOGI(TAG, "Starting AP mode: %s", ap_ssid);
-        ret = wifi_manager_start_ap(ap_ssid, ap_pass);
-    }
-
+  // Initialize WiFi manager
+  ret = wifi_manager_init(NULL);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize WiFi manager: %s",
+             esp_err_to_name(ret));
     return ret;
+  }
+
+  // Check if we have saved WiFi credentials
+  const char *ssid = config_get_wifi_ssid();
+  const char *password = config_get_wifi_password();
+  bool ap_mode = config_get_wifi_ap_mode();
+
+  if (!ap_mode && strlen(ssid) > 0) {
+    // Try to connect to saved network
+    ESP_LOGI(TAG, "Connecting to saved network: %s", ssid);
+    ret = wifi_manager_connect(ssid, password);
+
+    if (ret != ESP_OK) {
+      ESP_LOGW(TAG, "Failed to connect, starting AP mode");
+      ap_mode = true;
+    }
+  } else {
+    ap_mode = true;
+  }
+
+  if (ap_mode) {
+    // Start AP mode for configuration
+    const char *ap_ssid = config_get_ap_ssid();
+    const char *ap_pass = config_get_ap_password();
+    ESP_LOGI(TAG, "Starting AP mode: %s", ap_ssid);
+    ret = wifi_manager_start_ap(ap_ssid, ap_pass);
+  }
+
+  return ret;
 }
 
-void app_main(void)
-{
-    // Initialize log buffer FIRST to capture all logs
-    log_buffer_init();
+void app_main(void) {
+  // Initialize log buffer FIRST to capture all logs
+  log_buffer_init();
 
-    // Set log level to WARN (suppress INFO and DEBUG messages)
-    esp_log_level_set("*", ESP_LOG_WARN);
+  // Set log level to WARN (suppress INFO and DEBUG messages)
+  esp_log_level_set("*", ESP_LOG_WARN);
 
-    // Allow important startup messages
-    esp_log_level_set("MASTER", ESP_LOG_INFO);
+  // Allow important startup messages
+  esp_log_level_set("MASTER", ESP_LOG_INFO);
 
-    ESP_LOGI(TAG, "==========================================");
-    ESP_LOGI(TAG, "  ESP32 Master - RS485 + Web Interface");
-    ESP_LOGI(TAG, "==========================================");
+  ESP_LOGI(TAG, "==========================================");
+  ESP_LOGI(TAG, "  ESP32 Master - RS485 + Web Interface");
+  ESP_LOGI(TAG, "==========================================");
 
-    // Initialize configuration manager (includes SPIFFS)
-    ESP_LOGI(TAG, "Initializing configuration...");
-    if (config_init() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize configuration!");
-        return;
-    }
+  // Initialize configuration manager (includes SPIFFS)
+  ESP_LOGI(TAG, "Initializing configuration...");
+  if (config_init() != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize configuration!");
+    return;
+  }
 
-    // Initialize RS485/Modbus communication
-    ESP_LOGI(TAG, "Initializing RS485/Modbus...");
-    if (init_communication() != ESP_OK) {
-        ESP_LOGW(TAG, "RS485 init failed, web interface will still work");
-    }
+  // Initialize RS485/Modbus communication
+  ESP_LOGI(TAG, "Initializing RS485/Modbus...");
+  if (init_communication() != ESP_OK) {
+    ESP_LOGW(TAG, "RS485 init failed, web interface will still work");
+  }
 
-    // Initialize Baumer OX100 profilometer
-    if (config_get_baumer_enabled() && g_modbus != NULL) {
-        esp_err_t bret = baumer_init(g_modbus, config_get_baumer_slave_id(), &g_baumer);
-        if (bret == ESP_OK) {
-            ESP_LOGI(TAG, "Baumer OX100 initialized (ID=%u)", config_get_baumer_slave_id());
+  // Initialize Baumer OX100 profilometer
+  if (config_get_baumer_enabled() && g_modbus != NULL) {
+    esp_err_t bret =
+        baumer_init(g_modbus, config_get_baumer_slave_id(), &g_baumer);
+    if (bret == ESP_OK) {
+      ESP_LOGI(TAG, "Baumer OX100 initialized (ID=%u)",
+               config_get_baumer_slave_id());
 
-            // Initialize control loop
-            control_config_t ctrl_cfg = {
-                .running = false,
-                .interval_ms = config_get_control_interval(),
-                .measurement_index = config_get_control_measurement_index(),
-                .equation_count = 0,
-            };
+      // Initialize control loop
+      control_config_t ctrl_cfg = {
+          .running = false,
+          .interval_ms = config_get_control_interval(),
+          .measurement_index = config_get_control_measurement_index(),
+          .equation_count = 0,
+      };
 
-            // Load equations from config
-            config_control_equation_t ceqs[CONFIG_MAX_EQUATIONS];
-            int eq_count = config_get_control_equations(ceqs, CONFIG_MAX_EQUATIONS);
-            for (int i = 0; i < eq_count; i++) {
-                ctrl_cfg.equations[i].actuator_id = ceqs[i].actuator_id;
-                ctrl_cfg.equations[i].coeff_a = ceqs[i].coeff_a;
-                ctrl_cfg.equations[i].coeff_b = ceqs[i].coeff_b;
-                ctrl_cfg.equations[i].enabled = ceqs[i].enabled;
-            }
-            ctrl_cfg.equation_count = (uint8_t)eq_count;
+      // Load equations from config
+      config_control_equation_t ceqs[CONFIG_MAX_EQUATIONS];
+      int eq_count = config_get_control_equations(ceqs, CONFIG_MAX_EQUATIONS);
+      for (int i = 0; i < eq_count; i++) {
+        ctrl_cfg.equations[i].actuator_id = ceqs[i].actuator_id;
+        ctrl_cfg.equations[i].coeff_a = ceqs[i].coeff_a;
+        ctrl_cfg.equations[i].coeff_b = ceqs[i].coeff_b;
+        ctrl_cfg.equations[i].enabled = ceqs[i].enabled;
+      }
+      ctrl_cfg.equation_count = (uint8_t)eq_count;
 
-            if (control_loop_init(g_baumer, &ctrl_cfg) == ESP_OK) {
-                if (config_get_control_running()) {
-                    control_loop_start();
-                    ESP_LOGI(TAG, "Control loop auto-started from config");
-                }
-            }
-        } else {
-            ESP_LOGW(TAG, "Baumer OX100 init failed: %s", esp_err_to_name(bret));
+      if (control_loop_init(g_baumer, &ctrl_cfg) == ESP_OK) {
+        if (config_get_control_running()) {
+          control_loop_start();
+          ESP_LOGI(TAG, "Control loop auto-started from config");
         }
+      }
+    } else {
+      ESP_LOGW(TAG, "Baumer OX100 init failed: %s", esp_err_to_name(bret));
     }
+  }
 
-    // Initialize WiFi
-    ESP_LOGI(TAG, "Initializing WiFi...");
-    if (init_wifi() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize WiFi!");
-        return;
-    }
+  // Initialize WiFi
+  ESP_LOGI(TAG, "Initializing WiFi...");
+  if (init_wifi() != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize WiFi!");
+    return;
+  }
 
-    // Wait for WiFi to be ready
-    vTaskDelay(pdMS_TO_TICKS(1000));
+  // Wait for WiFi to be ready
+  vTaskDelay(pdMS_TO_TICKS(1000));
 
-    // Create RS485 bus mutex before starting web server
-    g_bus_mutex = xSemaphoreCreateMutex();
-    if (g_bus_mutex == NULL) {
-        ESP_LOGE(TAG, "Failed to create bus mutex!");
-        return;
-    }
+  // Create RS485 bus mutex before starting web server
+  g_bus_mutex = xSemaphoreCreateMutex();
+  if (g_bus_mutex == NULL) {
+    ESP_LOGE(TAG, "Failed to create bus mutex!");
+    return;
+  }
 
-    // Start web server
-    ESP_LOGI(TAG, "Starting web server...");
-    web_server_config_t web_cfg = {
-        .port = 80,
-        .auth_enabled = config_get_web_auth_enabled(),
-    };
-    strncpy(web_cfg.username, config_get_web_username(), sizeof(web_cfg.username) - 1);
-    web_cfg.username[sizeof(web_cfg.username) - 1] = '\0';
-    strncpy(web_cfg.password, config_get_web_password(), sizeof(web_cfg.password) - 1);
-    web_cfg.password[sizeof(web_cfg.password) - 1] = '\0';
+  // Initialize actuator task queue
+  ESP_LOGI(TAG, "Initializing actuator task...");
+  if (actuator_task_init() != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize actuator task!");
+    return;
+  }
 
-    if (web_server_init(&web_cfg) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start web server!");
-        return;
-    }
+  // Start web server
+  ESP_LOGI(TAG, "Starting web server...");
+  web_server_config_t web_cfg = {
+      .port = 80,
+      .auth_enabled = config_get_web_auth_enabled(),
+  };
+  strncpy(web_cfg.username, config_get_web_username(),
+          sizeof(web_cfg.username) - 1);
+  web_cfg.username[sizeof(web_cfg.username) - 1] = '\0';
+  strncpy(web_cfg.password, config_get_web_password(),
+          sizeof(web_cfg.password) - 1);
+  web_cfg.password[sizeof(web_cfg.password) - 1] = '\0';
 
-    // Print access information
-    char ip[16];
-    if (wifi_manager_get_ip(ip) == ESP_OK) {
-        ESP_LOGI(TAG, "==========================================");
-        ESP_LOGI(TAG, "  Web Interface: http://%s", ip);
-        ESP_LOGI(TAG, "==========================================");
-    }
+  if (web_server_init(&web_cfg) != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to start web server!");
+    return;
+  }
 
-    // Initialize health monitor (starts monitoring task)
-    ESP_LOGI(TAG, "Starting health monitor...");
-    if (health_monitor_init() != ESP_OK) {
-        ESP_LOGW(TAG, "Failed to start health monitor");
-    }
+  // Print access information
+  char ip[16];
+  if (wifi_manager_get_ip(ip) == ESP_OK) {
+    ESP_LOGI(TAG, "==========================================");
+    ESP_LOGI(TAG, "  Web Interface: http://%s", ip);
+    ESP_LOGI(TAG, "==========================================");
+  }
 
-    ESP_LOGI(TAG, "System ready!");
+  // Initialize health monitor (starts monitoring task)
+  ESP_LOGI(TAG, "Starting health monitor...");
+  if (health_monitor_init() != ESP_OK) {
+    ESP_LOGW(TAG, "Failed to start health monitor");
+  }
+
+  ESP_LOGI(TAG, "System ready!");
 }

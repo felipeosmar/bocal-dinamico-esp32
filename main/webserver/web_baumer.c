@@ -134,7 +134,8 @@ static esp_err_t api_baumer_laser_handler(httpd_req_t *req)
     if (ret == ESP_OK) {
         httpd_resp_sendstr(req, "{\"ok\":true}");
     } else {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to control laser");
+        httpd_resp_set_status(req, "500 Internal Server Error");
+        httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"Failed to control laser\"}");
     }
 
     return ESP_OK;

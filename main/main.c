@@ -25,6 +25,8 @@
 #include "config_manager.h"
 #include "health_monitor.h"
 #include "log_buffer.h"
+#include "baumer_ox100.h"
+#include "control_loop.h"
 #include "freertos/semphr.h"
 
 static const char *TAG = "MASTER";
@@ -33,6 +35,7 @@ static const char *TAG = "MASTER";
 rs485_handle_t g_rs485 = NULL;
 modbus_handle_t g_modbus = NULL;
 mightyzap_handle_t g_actuator = NULL;
+baumer_handle_t g_baumer = NULL;
 
 // Global RS485 bus mutex — protects bus access at the API layer
 SemaphoreHandle_t g_bus_mutex = NULL;
@@ -171,6 +174,42 @@ void app_main(void)
     ESP_LOGI(TAG, "Initializing RS485/Modbus...");
     if (init_communication() != ESP_OK) {
         ESP_LOGW(TAG, "RS485 init failed, web interface will still work");
+    }
+
+    // Initialize Baumer OX100 profilometer
+    if (config_get_baumer_enabled() && g_modbus != NULL) {
+        esp_err_t bret = baumer_init(g_modbus, config_get_baumer_slave_id(), &g_baumer);
+        if (bret == ESP_OK) {
+            ESP_LOGI(TAG, "Baumer OX100 initialized (ID=%u)", config_get_baumer_slave_id());
+
+            // Initialize control loop
+            control_config_t ctrl_cfg = {
+                .running = false,
+                .interval_ms = config_get_control_interval(),
+                .measurement_index = config_get_control_measurement_index(),
+                .equation_count = 0,
+            };
+
+            // Load equations from config
+            config_control_equation_t ceqs[CONFIG_MAX_EQUATIONS];
+            int eq_count = config_get_control_equations(ceqs, CONFIG_MAX_EQUATIONS);
+            for (int i = 0; i < eq_count; i++) {
+                ctrl_cfg.equations[i].actuator_id = ceqs[i].actuator_id;
+                ctrl_cfg.equations[i].coeff_a = ceqs[i].coeff_a;
+                ctrl_cfg.equations[i].coeff_b = ceqs[i].coeff_b;
+                ctrl_cfg.equations[i].enabled = ceqs[i].enabled;
+            }
+            ctrl_cfg.equation_count = (uint8_t)eq_count;
+
+            if (control_loop_init(g_baumer, &ctrl_cfg) == ESP_OK) {
+                if (config_get_control_running()) {
+                    control_loop_start();
+                    ESP_LOGI(TAG, "Control loop auto-started from config");
+                }
+            }
+        } else {
+            ESP_LOGW(TAG, "Baumer OX100 init failed: %s", esp_err_to_name(bret));
+        }
     }
 
     // Initialize WiFi

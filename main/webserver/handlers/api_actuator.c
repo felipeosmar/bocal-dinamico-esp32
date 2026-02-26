@@ -90,6 +90,19 @@ static void remove_actuator(uint8_t id) {
 }
 
 // ============================================================================
+// Public: Actuator handle lookup (used by control_loop)
+// ============================================================================
+
+mightyzap_handle_t *actuator_get_handle_by_id(uint8_t id)
+{
+    actuator_slot_t *slot = find_actuator(id);
+    if (slot != NULL && slot->handle != NULL) {
+        return &slot->handle;
+    }
+    return NULL;
+}
+
+// ============================================================================
 // Initialization
 // ============================================================================
 

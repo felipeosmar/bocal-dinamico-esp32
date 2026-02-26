@@ -4,3 +4,4 @@ config.json
 
 # Auto Claude data directory
 .auto-claude/
+.worktrees/

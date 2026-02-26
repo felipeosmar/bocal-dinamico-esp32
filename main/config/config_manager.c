@@ -48,6 +48,17 @@ typedef struct {
     char web_username[32];
     char web_password[64];
     bool web_auth_enabled;
+
+    // Baumer
+    uint8_t baumer_slave_id;
+    bool baumer_enabled;
+
+    // Control loop
+    bool control_running;
+    uint32_t control_interval_ms;
+    uint8_t control_measurement_index;
+    config_control_equation_t control_equations[CONFIG_MAX_EQUATIONS];
+    uint8_t control_equation_count;
 } config_t;
 
 static config_t s_config;
@@ -130,6 +141,16 @@ void config_reset_defaults(void)
     strcpy(s_config.web_password, "admin");
     s_config.web_auth_enabled = true;
 
+    // Baumer defaults
+    s_config.baumer_slave_id = 8;
+    s_config.baumer_enabled = true;
+
+    // Control loop defaults
+    s_config.control_running = false;
+    s_config.control_interval_ms = 1000;
+    s_config.control_measurement_index = 0;
+    s_config.control_equation_count = 0;
+
     ESP_LOGI(TAG, "Configuration reset to defaults");
 }
 
@@ -204,6 +225,30 @@ static esp_err_t _config_save_internal(void)
     cJSON_AddStringToObject(web, "password", s_config.web_password);
     cJSON_AddBoolToObject(web, "auth_enabled", s_config.web_auth_enabled);
     cJSON_AddItemToObject(root, "web", web);
+
+    // Baumer section
+    cJSON *baumer = cJSON_CreateObject();
+    cJSON_AddNumberToObject(baumer, "slave_id", s_config.baumer_slave_id);
+    cJSON_AddBoolToObject(baumer, "enabled", s_config.baumer_enabled);
+    cJSON_AddItemToObject(root, "baumer", baumer);
+
+    // Control section
+    cJSON *control = cJSON_CreateObject();
+    cJSON_AddBoolToObject(control, "running", s_config.control_running);
+    cJSON_AddNumberToObject(control, "interval_ms", s_config.control_interval_ms);
+    cJSON_AddNumberToObject(control, "measurement_index", s_config.control_measurement_index);
+
+    cJSON *equations = cJSON_CreateArray();
+    for (uint8_t i = 0; i < s_config.control_equation_count; i++) {
+        cJSON *eq = cJSON_CreateObject();
+        cJSON_AddNumberToObject(eq, "actuator_id", s_config.control_equations[i].actuator_id);
+        cJSON_AddNumberToObject(eq, "a", s_config.control_equations[i].coeff_a);
+        cJSON_AddNumberToObject(eq, "b", s_config.control_equations[i].coeff_b);
+        cJSON_AddBoolToObject(eq, "enabled", s_config.control_equations[i].enabled);
+        cJSON_AddItemToArray(equations, eq);
+    }
+    cJSON_AddItemToObject(control, "equations", equations);
+    cJSON_AddItemToObject(root, "control", control);
 
     char *json_str = cJSON_Print(root);
     cJSON_Delete(root);
@@ -399,6 +444,51 @@ esp_err_t config_load(void)
         }
         if ((item = cJSON_GetObjectItem(web, "auth_enabled")) && cJSON_IsBool(item)) {
             s_config.web_auth_enabled = cJSON_IsTrue(item);
+        }
+    }
+
+    // Parse baumer section
+    cJSON *baumer = cJSON_GetObjectItem(root, "baumer");
+    if (baumer) {
+        cJSON *item;
+        if ((item = cJSON_GetObjectItem(baumer, "slave_id")) && cJSON_IsNumber(item))
+            s_config.baumer_slave_id = (uint8_t)item->valueint;
+        if ((item = cJSON_GetObjectItem(baumer, "enabled")) && cJSON_IsBool(item))
+            s_config.baumer_enabled = cJSON_IsTrue(item);
+    }
+
+    // Parse control section
+    cJSON *control = cJSON_GetObjectItem(root, "control");
+    if (control) {
+        cJSON *item;
+        if ((item = cJSON_GetObjectItem(control, "running")) && cJSON_IsBool(item))
+            s_config.control_running = cJSON_IsTrue(item);
+        if ((item = cJSON_GetObjectItem(control, "interval_ms")) && cJSON_IsNumber(item))
+            s_config.control_interval_ms = (uint32_t)item->valueint;
+        if ((item = cJSON_GetObjectItem(control, "measurement_index")) && cJSON_IsNumber(item))
+            s_config.control_measurement_index = (uint8_t)item->valueint;
+
+        cJSON *eq_array = cJSON_GetObjectItem(control, "equations");
+        if (eq_array && cJSON_IsArray(eq_array)) {
+            s_config.control_equation_count = 0;
+            cJSON *eq;
+            cJSON_ArrayForEach(eq, eq_array) {
+                if (s_config.control_equation_count >= CONFIG_MAX_EQUATIONS) break;
+                uint8_t idx = s_config.control_equation_count;
+
+                cJSON *aid = cJSON_GetObjectItem(eq, "actuator_id");
+                cJSON *a = cJSON_GetObjectItem(eq, "a");
+                cJSON *b = cJSON_GetObjectItem(eq, "b");
+                cJSON *en = cJSON_GetObjectItem(eq, "enabled");
+
+                if (aid && cJSON_IsNumber(aid)) {
+                    s_config.control_equations[idx].actuator_id = (uint8_t)aid->valueint;
+                    s_config.control_equations[idx].coeff_a = (a && cJSON_IsNumber(a)) ? (float)a->valuedouble : 1.0f;
+                    s_config.control_equations[idx].coeff_b = (b && cJSON_IsNumber(b)) ? (float)b->valuedouble : 0.0f;
+                    s_config.control_equations[idx].enabled = (en && cJSON_IsBool(en)) ? cJSON_IsTrue(en) : false;
+                    s_config.control_equation_count++;
+                }
+            }
         }
     }
 
@@ -756,4 +846,41 @@ void config_set_web_password(const char *password) {
 
 void config_set_web_auth_enabled(bool enabled) {
     s_config.web_auth_enabled = enabled;
+}
+
+// ============================================================================
+// Getters/Setters - Baumer
+// ============================================================================
+
+uint8_t config_get_baumer_slave_id(void) { return s_config.baumer_slave_id; }
+bool    config_get_baumer_enabled(void) { return s_config.baumer_enabled; }
+void    config_set_baumer_slave_id(uint8_t id) { s_config.baumer_slave_id = id; }
+void    config_set_baumer_enabled(bool enabled) { s_config.baumer_enabled = enabled; }
+
+// ============================================================================
+// Getters/Setters - Control Loop
+// ============================================================================
+
+bool     config_get_control_running(void) { return s_config.control_running; }
+uint32_t config_get_control_interval(void) { return s_config.control_interval_ms; }
+uint8_t  config_get_control_measurement_index(void) { return s_config.control_measurement_index; }
+void     config_set_control_running(bool running) { s_config.control_running = running; }
+void     config_set_control_interval(uint32_t ms) { s_config.control_interval_ms = ms; }
+void     config_set_control_measurement_index(uint8_t idx) { s_config.control_measurement_index = idx; }
+
+int config_get_control_equations(config_control_equation_t *out, int max_count)
+{
+    int count = s_config.control_equation_count;
+    if (count > max_count) count = max_count;
+    if (out != NULL) {
+        memcpy(out, s_config.control_equations, count * sizeof(config_control_equation_t));
+    }
+    return count;
+}
+
+void config_set_control_equations(const config_control_equation_t *eqs, int count)
+{
+    if (count > CONFIG_MAX_EQUATIONS) count = CONFIG_MAX_EQUATIONS;
+    memcpy(s_config.control_equations, eqs, count * sizeof(config_control_equation_t));
+    s_config.control_equation_count = (uint8_t)count;
 }

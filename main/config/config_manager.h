@@ -151,6 +151,39 @@ void config_set_web_username(const char *username);
 void config_set_web_password(const char *password);
 void config_set_web_auth_enabled(bool enabled);
 
+// ============================================================================
+// Baumer OX100 Configuration
+// ============================================================================
+
+uint8_t  config_get_baumer_slave_id(void);
+bool     config_get_baumer_enabled(void);
+void     config_set_baumer_slave_id(uint8_t id);
+void     config_set_baumer_enabled(bool enabled);
+
+// ============================================================================
+// Control Loop Configuration
+// ============================================================================
+
+bool     config_get_control_running(void);
+uint32_t config_get_control_interval(void);
+uint8_t  config_get_control_measurement_index(void);
+void     config_set_control_running(bool running);
+void     config_set_control_interval(uint32_t ms);
+void     config_set_control_measurement_index(uint8_t idx);
+
+// Forward declare to avoid circular include
+typedef struct {
+    uint8_t actuator_id;
+    float coeff_a;
+    float coeff_b;
+    bool enabled;
+} config_control_equation_t;
+
+#define CONFIG_MAX_EQUATIONS 10
+
+int  config_get_control_equations(config_control_equation_t *out, int max_count);
+void config_set_control_equations(const config_control_equation_t *eqs, int count);
+
 #ifdef __cplusplus
 }
 #endif

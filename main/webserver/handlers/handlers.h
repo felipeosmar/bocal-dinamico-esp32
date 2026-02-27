@@ -22,15 +22,12 @@
 
 #include "wifi_manager.h"
 #include "config_manager.h"
-#include "rs485_driver.h"
-#include "modbus_rtu.h"
-#include "mightyzap.h"
+#include "app_globals.h"
 #include "log_buffer.h"
 #include "web_server.h"
-#include "freertos/semphr.h"
 
 // ============================================================================
-// JSON response helper
+// JSON response helpers (implemented in handlers_common.c)
 // ============================================================================
 
 /**
@@ -43,37 +40,31 @@
  * @param root cJSON object to send (consumed — caller must NOT cJSON_Delete)
  * @return ESP_OK on success, ESP_FAIL on NULL root
  */
-static inline esp_err_t send_json(httpd_req_t *req, cJSON *root)
-{
-    if (root == NULL) {
-        ESP_LOGE("JSON", "cJSON allocation failed (OOM)");
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-        return ESP_FAIL;
-    }
-    char *json_str = cJSON_PrintUnformatted(root);
-    if (json_str == NULL) {
-        ESP_LOGE("JSON", "cJSON_PrintUnformatted failed (OOM)");
-        cJSON_Delete(root);
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-        return ESP_FAIL;
-    }
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json_str, strlen(json_str));
-    free(json_str);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
+esp_err_t send_json(httpd_req_t *req, cJSON *root);
 
-// ============================================================================
-// External globals (from main.c)
-// ============================================================================
+/**
+ * @brief Send a JSON error response with consistent format.
+ *
+ * Sends: {"success": false, "error": "<message>"}
+ * Sets HTTP status code accordingly.
+ *
+ * @param req  HTTP request handle
+ * @param code HTTP error code (e.g., HTTPD_400_BAD_REQUEST)
+ * @param msg  Error message string
+ * @return ESP_OK
+ */
+esp_err_t send_error_json(httpd_req_t *req, const char *status, const char *msg);
 
-extern rs485_handle_t g_rs485;
-extern modbus_handle_t g_modbus;
-extern mightyzap_handle_t g_actuator;
-
-/** @brief Global RS485 bus mutex — take before any bus operation from API handlers */
-extern SemaphoreHandle_t g_bus_mutex;
+/**
+ * @brief Send a JSON success response with consistent format.
+ *
+ * Sends: {"success": true, "message": "<message>"}
+ *
+ * @param req  HTTP request handle
+ * @param msg  Success message string
+ * @return ESP_OK
+ */
+esp_err_t send_success_json(httpd_req_t *req, const char *msg);
 
 // ============================================================================
 // Shared state (from web_server.c)
@@ -103,6 +94,26 @@ esp_err_t send_unauthorized(httpd_req_t *req);
  * Returns 401 Unauthorized if auth check fails.
  */
 #define REQUIRE_AUTH(req) do { if (!check_auth(req)) return send_unauthorized(req); } while(0)
+
+// ============================================================================
+// Content-Length validation helper
+// ============================================================================
+
+/**
+ * @brief Validate request body size before receiving.
+ *
+ * @param req HTTP request
+ * @param max_size Maximum allowed body size
+ * @return true if content_len <= max_size, false if rejected (413 sent)
+ */
+static inline bool validate_content_length(httpd_req_t *req, size_t max_size)
+{
+    if (req->content_len > max_size) {
+        send_error_json(req, "400 Bad Request", "Request body too large");
+        return false;
+    }
+    return true;
+}
 
 // ============================================================================
 // Static file handlers (static_files.c)
@@ -169,12 +180,14 @@ esp_err_t api_actuator_remove_handler(httpd_req_t *req);
 esp_err_t api_actuator_set_name_handler(httpd_req_t *req);
 esp_err_t api_actuator_sync_move_handler(httpd_req_t *req);
 esp_err_t api_actuator_sync_status_handler(httpd_req_t *req);
+esp_err_t api_actuator_sync_abort_handler(httpd_req_t *req);
 
 // ============================================================================
 // API - Setup Wizard (api_setup.c)
 // ============================================================================
 
 esp_err_t api_actuator_smart_scan_handler(httpd_req_t *req);
+esp_err_t api_setup_scan_buses_handler(httpd_req_t *req);
 esp_err_t api_actuator_roles_get_handler(httpd_req_t *req);
 esp_err_t api_actuator_roles_post_handler(httpd_req_t *req);
 esp_err_t api_actuator_jog_handler(httpd_req_t *req);

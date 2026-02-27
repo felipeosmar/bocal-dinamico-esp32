@@ -1,11 +1,11 @@
 #include "config_manager.h"
-#include <string.h>
-#include <stdio.h>
-#include "esp_log.h"
-#include "esp_littlefs.h"
 #include "cJSON.h"
+#include "esp_littlefs.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include <stdio.h>
+#include <string.h>
 
 static const char *TAG = "CONFIG";
 
@@ -16,49 +16,55 @@ static SemaphoreHandle_t s_config_mutex = NULL;
 
 // Configuration structure
 typedef struct {
-    // WiFi
-    char wifi_ssid[32];
-    char wifi_password[64];
-    bool wifi_ap_mode;
-    char ap_ssid[32];
-    char ap_password[64];
+  // WiFi
+  char wifi_ssid[32];
+  char wifi_password[64];
+  bool wifi_ap_mode;
+  char ap_ssid[32];
+  char ap_password[64];
 
-    // RS485
-    uint32_t rs485_baud;
-    uint8_t rs485_tx_pin;
-    uint8_t rs485_rx_pin;
-    uint8_t rs485_de_pin;
+  // RS485 Primary (Sensors/Aux)
+  uint32_t rs485_baud;
+  uint8_t rs485_tx_pin;
+  uint8_t rs485_rx_pin;
+  uint8_t rs485_de_pin;
 
-    // Modbus
-    uint8_t modbus_slave_id;
-    uint32_t modbus_timeout;
+  // RS485 Secondary (Sync/Actuators)
+  uint32_t rs485_sync_baud;
+  uint8_t rs485_sync_tx_pin;
+  uint8_t rs485_sync_rx_pin;
+  uint8_t rs485_sync_de_pin;
 
-    // Actuator
-    uint8_t scan_max_id;
-    uint8_t saved_actuator_ids[MAX_SAVED_ACTUATORS];
-    char saved_actuator_names[MAX_SAVED_ACTUATORS][32];
-    uint8_t saved_actuator_count;
+  // Modbus
+  uint8_t modbus_slave_id;
+  uint32_t modbus_timeout;
 
-    // Role mapping
-    config_role_t role_lens_a;
-    config_role_t role_lens_b;
-    config_role_t role_nozzle;
+  // Actuator
+  uint8_t scan_max_id;
+  uint8_t saved_actuator_ids[MAX_SAVED_ACTUATORS];
+  char saved_actuator_names[MAX_SAVED_ACTUATORS][32];
+  uint8_t saved_actuator_count;
 
-    // Web
-    char web_username[32];
-    char web_password[64];
-    bool web_auth_enabled;
+  // Role mapping
+  config_role_t role_lens_a;
+  config_role_t role_lens_b;
+  config_role_t role_nozzle;
 
-    // Baumer
-    uint8_t baumer_slave_id;
-    bool baumer_enabled;
+  // Web
+  char web_username[32];
+  char web_password[64];
+  bool web_auth_enabled;
 
-    // Control loop
-    bool control_running;
-    uint32_t control_interval_ms;
-    uint8_t control_measurement_index;
-    config_control_equation_t control_equations[CONFIG_MAX_EQUATIONS];
-    uint8_t control_equation_count;
+  // Baumer
+  uint8_t baumer_slave_id;
+  bool baumer_enabled;
+
+  // Control loop
+  bool control_running;
+  uint32_t control_interval_ms;
+  uint8_t control_measurement_index;
+  config_control_equation_t control_equations[CONFIG_MAX_EQUATIONS];
+  uint8_t control_equation_count;
 } config_t;
 
 static config_t s_config;
@@ -68,90 +74,92 @@ static bool s_initialized = false;
 // LittleFS Setup
 // ============================================================================
 
-static esp_err_t init_littlefs(void)
-{
-    ESP_LOGI(TAG, "Initializing LittleFS (userdata partition)");
+static esp_err_t init_littlefs(void) {
+  ESP_LOGI(TAG, "Initializing LittleFS (userdata partition)");
 
-    esp_vfs_littlefs_conf_t conf = {
-        .base_path = "/userdata",
-        .partition_label = "userdata",
-        .format_if_mount_failed = true,
-        .dont_mount = false
-    };
+  esp_vfs_littlefs_conf_t conf = {.base_path = "/userdata",
+                                  .partition_label = "userdata",
+                                  .format_if_mount_failed = true,
+                                  .dont_mount = false};
 
-    esp_err_t ret = esp_vfs_littlefs_register(&conf);
-    if (ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
-            ESP_LOGE(TAG, "Failed to mount or format filesystem");
-        } else if (ret == ESP_ERR_NOT_FOUND) {
-            ESP_LOGE(TAG, "Failed to find LittleFS partition 'userdata'");
-        } else {
-            ESP_LOGE(TAG, "Failed to initialize LittleFS: %s", esp_err_to_name(ret));
-        }
-        return ret;
+  esp_err_t ret = esp_vfs_littlefs_register(&conf);
+  if (ret != ESP_OK) {
+    if (ret == ESP_FAIL) {
+      ESP_LOGE(TAG, "Failed to mount or format filesystem");
+    } else if (ret == ESP_ERR_NOT_FOUND) {
+      ESP_LOGE(TAG, "Failed to find LittleFS partition 'userdata'");
+    } else {
+      ESP_LOGE(TAG, "Failed to initialize LittleFS: %s", esp_err_to_name(ret));
     }
+    return ret;
+  }
 
-    size_t total = 0, used = 0;
-    ret = esp_littlefs_info("userdata", &total, &used);
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "LittleFS userdata: total=%d, used=%d", total, used);
-    }
+  size_t total = 0, used = 0;
+  ret = esp_littlefs_info("userdata", &total, &used);
+  if (ret == ESP_OK) {
+    ESP_LOGI(TAG, "LittleFS userdata: total=%d, used=%d", total, used);
+  }
 
-    return ESP_OK;
+  return ESP_OK;
 }
 
 // ============================================================================
 // Default Configuration
 // ============================================================================
 
-void config_reset_defaults(void)
-{
-    memset(&s_config, 0, sizeof(s_config));
+void config_reset_defaults(void) {
+  memset(&s_config, 0, sizeof(s_config));
 
-    // WiFi defaults
-    strcpy(s_config.wifi_ssid, "");
-    strcpy(s_config.wifi_password, "");
-    s_config.wifi_ap_mode = true;  // Start in AP mode by default
-    strcpy(s_config.ap_ssid, "Bocal-Dinamico");
-    strcpy(s_config.ap_password, "12345678");
+  // WiFi defaults
+  strcpy(s_config.wifi_ssid, "");
+  strcpy(s_config.wifi_password, "");
+  s_config.wifi_ap_mode = true; // Start in AP mode by default
+  strcpy(s_config.ap_ssid, "Bocal-Dinamico");
+  strcpy(s_config.ap_password, "12345678");
 
-    // RS485 defaults (safe pins, 57600 for mightyZAP)
-    s_config.rs485_baud = 57600;
-    s_config.rs485_tx_pin = 17;
-    s_config.rs485_rx_pin = 5;
-    s_config.rs485_de_pin = 18;
+  // RS485 defaults (safe pins, 57600 for mightyZAP)
+  s_config.rs485_baud = 57600;
+  s_config.rs485_tx_pin = 17;
+  s_config.rs485_rx_pin = 16;
+  s_config.rs485_de_pin = 4;
 
-    // Modbus defaults
-    s_config.modbus_timeout = 100;  // Reduced from 500ms for faster response
+  // RS485 Sync defaults (UART2)
+  s_config.rs485_sync_baud = 57600;
+  s_config.rs485_sync_tx_pin = 18;
+  s_config.rs485_sync_rx_pin = 19;
+  s_config.rs485_sync_de_pin = 21;
 
-    // Actuator defaults
-    s_config.scan_max_id = 3;  // Scan IDs 1-3 by default
-    s_config.saved_actuator_count = 0;  // No saved actuators initially
+  // Modbus defaults
+  s_config.modbus_timeout = 100; // Reduced from 500ms for faster response
 
-    // Role mapping defaults
-    s_config.role_lens_a.id = 1;
-    s_config.role_lens_a.baud = 57600;
-    s_config.role_lens_b.id = 2;
-    s_config.role_lens_b.baud = 57600;
-    s_config.role_nozzle.id = 3;
-    s_config.role_nozzle.baud = 57600;
+  // Actuator defaults
+  s_config.scan_max_id = 3;          // Scan IDs 1-3 by default
+  s_config.saved_actuator_count = 0; // No saved actuators initially
 
-    // Web defaults
-    strcpy(s_config.web_username, "admin");
-    strcpy(s_config.web_password, "admin");
-    s_config.web_auth_enabled = true;
+  // Role mapping defaults
+  s_config.role_lens_a.id = 1;
+  s_config.role_lens_a.baud = 57600;
+  s_config.role_lens_b.id = 2;
+  s_config.role_lens_b.baud = 57600;
+  s_config.role_nozzle.id = 3;
+  s_config.role_nozzle.baud = 57600;
 
-    // Baumer defaults
-    s_config.baumer_slave_id = 8;
-    s_config.baumer_enabled = true;
+  // Web defaults
+  strcpy(s_config.web_username, "admin");
+  strcpy(s_config.web_password, "admin");
+  s_config.web_auth_enabled = true;
 
-    // Control loop defaults
-    s_config.control_running = false;
-    s_config.control_interval_ms = 1000;
-    s_config.control_measurement_index = 0;
-    s_config.control_equation_count = 0;
+  // Baumer defaults
+  s_config.baumer_slave_id = 8;
+  s_config.baumer_enabled = true;
 
-    ESP_LOGI(TAG, "Configuration reset to defaults");
+  // Control loop defaults
+  s_config.control_running = false;
+  s_config.control_interval_ms = 1000;
+  s_config.control_measurement_index = 0;
+  s_config.control_equation_count = 0;
+
+  ESP_LOGI(TAG, "Configuration reset to defaults");
 }
 
 // ============================================================================
@@ -159,391 +167,446 @@ void config_reset_defaults(void)
 // ============================================================================
 
 // Internal save function (assumes mutex is already held)
-static esp_err_t _config_save_internal(void)
-{
-    cJSON *root = cJSON_CreateObject();
+static esp_err_t _config_save_internal(void) {
+  cJSON *root = cJSON_CreateObject();
 
-    // WiFi section
-    cJSON *wifi = cJSON_CreateObject();
-    cJSON_AddStringToObject(wifi, "ssid", s_config.wifi_ssid);
-    cJSON_AddStringToObject(wifi, "password", s_config.wifi_password);
-    cJSON_AddBoolToObject(wifi, "ap_mode", s_config.wifi_ap_mode);
-    cJSON_AddStringToObject(wifi, "ap_ssid", s_config.ap_ssid);
-    cJSON_AddStringToObject(wifi, "ap_password", s_config.ap_password);
-    cJSON_AddItemToObject(root, "wifi", wifi);
+  // WiFi section
+  cJSON *wifi = cJSON_CreateObject();
+  cJSON_AddStringToObject(wifi, "ssid", s_config.wifi_ssid);
+  cJSON_AddStringToObject(wifi, "password", s_config.wifi_password);
+  cJSON_AddBoolToObject(wifi, "ap_mode", s_config.wifi_ap_mode);
+  cJSON_AddStringToObject(wifi, "ap_ssid", s_config.ap_ssid);
+  cJSON_AddStringToObject(wifi, "ap_password", s_config.ap_password);
+  cJSON_AddItemToObject(root, "wifi", wifi);
 
-    // RS485 section
-    cJSON *rs485 = cJSON_CreateObject();
-    cJSON_AddNumberToObject(rs485, "baud", s_config.rs485_baud);
-    cJSON_AddNumberToObject(rs485, "tx_pin", s_config.rs485_tx_pin);
-    cJSON_AddNumberToObject(rs485, "rx_pin", s_config.rs485_rx_pin);
-    cJSON_AddNumberToObject(rs485, "de_pin", s_config.rs485_de_pin);
-    cJSON_AddItemToObject(root, "rs485", rs485);
+  // RS485 section
+  cJSON *rs485 = cJSON_CreateObject();
+  cJSON_AddNumberToObject(rs485, "baud", s_config.rs485_baud);
+  cJSON_AddNumberToObject(rs485, "tx_pin", s_config.rs485_tx_pin);
+  cJSON_AddNumberToObject(rs485, "rx_pin", s_config.rs485_rx_pin);
+  cJSON_AddNumberToObject(rs485, "de_pin", s_config.rs485_de_pin);
 
-    // Modbus section
-    cJSON *modbus = cJSON_CreateObject();
-    cJSON_AddNumberToObject(modbus, "slave_id", s_config.modbus_slave_id);
-    cJSON_AddNumberToObject(modbus, "timeout", s_config.modbus_timeout);
-    cJSON_AddItemToObject(root, "modbus", modbus);
+  // RS485 Sync section
+  cJSON_AddNumberToObject(rs485, "sync_baud", s_config.rs485_sync_baud);
+  cJSON_AddNumberToObject(rs485, "sync_tx_pin", s_config.rs485_sync_tx_pin);
+  cJSON_AddNumberToObject(rs485, "sync_rx_pin", s_config.rs485_sync_rx_pin);
+  cJSON_AddNumberToObject(rs485, "sync_de_pin", s_config.rs485_sync_de_pin);
 
-    // Actuator section
-    cJSON *actuator = cJSON_CreateObject();
-    cJSON_AddNumberToObject(actuator, "scan_max_id", s_config.scan_max_id);
-    // Serialize saved_ids array
-    cJSON *saved_ids = cJSON_CreateArray();
-    for (int i = 0; i < s_config.saved_actuator_count; i++) {
-        cJSON_AddItemToArray(saved_ids, cJSON_CreateNumber(s_config.saved_actuator_ids[i]));
-    }
-    cJSON_AddItemToObject(actuator, "saved_ids", saved_ids);
-    // Serialize names array
-    cJSON *saved_names = cJSON_CreateArray();
-    for (int i = 0; i < s_config.saved_actuator_count; i++) {
-        cJSON_AddItemToArray(saved_names, cJSON_CreateString(s_config.saved_actuator_names[i]));
-    }
-    cJSON_AddItemToObject(actuator, "names", saved_names);
-    cJSON_AddItemToObject(root, "actuator", actuator);
+  cJSON_AddItemToObject(root, "rs485", rs485);
 
-    // Roles section
-    cJSON *roles = cJSON_CreateObject();
-    cJSON *lens_a = cJSON_CreateObject();
-    cJSON_AddNumberToObject(lens_a, "id", s_config.role_lens_a.id);
-    cJSON_AddNumberToObject(lens_a, "baud", s_config.role_lens_a.baud);
-    cJSON_AddItemToObject(roles, "lens_a", lens_a);
-    cJSON *lens_b = cJSON_CreateObject();
-    cJSON_AddNumberToObject(lens_b, "id", s_config.role_lens_b.id);
-    cJSON_AddNumberToObject(lens_b, "baud", s_config.role_lens_b.baud);
-    cJSON_AddItemToObject(roles, "lens_b", lens_b);
-    cJSON *nozzle = cJSON_CreateObject();
-    cJSON_AddNumberToObject(nozzle, "id", s_config.role_nozzle.id);
-    cJSON_AddNumberToObject(nozzle, "baud", s_config.role_nozzle.baud);
-    cJSON_AddItemToObject(roles, "nozzle", nozzle);
-    cJSON_AddItemToObject(root, "roles", roles);
+  // Modbus section
+  cJSON *modbus = cJSON_CreateObject();
+  cJSON_AddNumberToObject(modbus, "slave_id", s_config.modbus_slave_id);
+  cJSON_AddNumberToObject(modbus, "timeout", s_config.modbus_timeout);
+  cJSON_AddItemToObject(root, "modbus", modbus);
 
-    // Web section
-    cJSON *web = cJSON_CreateObject();
-    cJSON_AddStringToObject(web, "username", s_config.web_username);
-    cJSON_AddStringToObject(web, "password", s_config.web_password);
-    cJSON_AddBoolToObject(web, "auth_enabled", s_config.web_auth_enabled);
-    cJSON_AddItemToObject(root, "web", web);
+  // Actuator section
+  cJSON *actuator = cJSON_CreateObject();
+  cJSON_AddNumberToObject(actuator, "scan_max_id", s_config.scan_max_id);
+  // Serialize saved_ids array
+  cJSON *saved_ids = cJSON_CreateArray();
+  for (int i = 0; i < s_config.saved_actuator_count; i++) {
+    cJSON_AddItemToArray(saved_ids,
+                         cJSON_CreateNumber(s_config.saved_actuator_ids[i]));
+  }
+  cJSON_AddItemToObject(actuator, "saved_ids", saved_ids);
+  // Serialize names array
+  cJSON *saved_names = cJSON_CreateArray();
+  for (int i = 0; i < s_config.saved_actuator_count; i++) {
+    cJSON_AddItemToArray(saved_names,
+                         cJSON_CreateString(s_config.saved_actuator_names[i]));
+  }
+  cJSON_AddItemToObject(actuator, "names", saved_names);
+  cJSON_AddItemToObject(root, "actuator", actuator);
 
-    // Baumer section
-    cJSON *baumer = cJSON_CreateObject();
-    cJSON_AddNumberToObject(baumer, "slave_id", s_config.baumer_slave_id);
-    cJSON_AddBoolToObject(baumer, "enabled", s_config.baumer_enabled);
-    cJSON_AddItemToObject(root, "baumer", baumer);
+  // Roles section
+  cJSON *roles = cJSON_CreateObject();
+  cJSON *lens_a = cJSON_CreateObject();
+  cJSON_AddNumberToObject(lens_a, "id", s_config.role_lens_a.id);
+  cJSON_AddNumberToObject(lens_a, "baud", s_config.role_lens_a.baud);
+  cJSON_AddItemToObject(roles, "lens_a", lens_a);
+  cJSON *lens_b = cJSON_CreateObject();
+  cJSON_AddNumberToObject(lens_b, "id", s_config.role_lens_b.id);
+  cJSON_AddNumberToObject(lens_b, "baud", s_config.role_lens_b.baud);
+  cJSON_AddItemToObject(roles, "lens_b", lens_b);
+  cJSON *nozzle = cJSON_CreateObject();
+  cJSON_AddNumberToObject(nozzle, "id", s_config.role_nozzle.id);
+  cJSON_AddNumberToObject(nozzle, "baud", s_config.role_nozzle.baud);
+  cJSON_AddItemToObject(roles, "nozzle", nozzle);
+  cJSON_AddItemToObject(root, "roles", roles);
 
-    // Control section
-    cJSON *control = cJSON_CreateObject();
-    cJSON_AddBoolToObject(control, "running", s_config.control_running);
-    cJSON_AddNumberToObject(control, "interval_ms", s_config.control_interval_ms);
-    cJSON_AddNumberToObject(control, "measurement_index", s_config.control_measurement_index);
+  // Web section
+  cJSON *web = cJSON_CreateObject();
+  cJSON_AddStringToObject(web, "username", s_config.web_username);
+  cJSON_AddStringToObject(web, "password", s_config.web_password);
+  cJSON_AddBoolToObject(web, "auth_enabled", s_config.web_auth_enabled);
+  cJSON_AddItemToObject(root, "web", web);
 
-    cJSON *equations = cJSON_CreateArray();
-    for (uint8_t i = 0; i < s_config.control_equation_count; i++) {
-        cJSON *eq = cJSON_CreateObject();
-        cJSON_AddNumberToObject(eq, "actuator_id", s_config.control_equations[i].actuator_id);
-        cJSON_AddNumberToObject(eq, "a", s_config.control_equations[i].coeff_a);
-        cJSON_AddNumberToObject(eq, "b", s_config.control_equations[i].coeff_b);
-        cJSON_AddBoolToObject(eq, "enabled", s_config.control_equations[i].enabled);
-        cJSON_AddItemToArray(equations, eq);
-    }
-    cJSON_AddItemToObject(control, "equations", equations);
-    cJSON_AddItemToObject(root, "control", control);
+  // Baumer section
+  cJSON *baumer = cJSON_CreateObject();
+  cJSON_AddNumberToObject(baumer, "slave_id", s_config.baumer_slave_id);
+  cJSON_AddBoolToObject(baumer, "enabled", s_config.baumer_enabled);
+  cJSON_AddItemToObject(root, "baumer", baumer);
 
-    char *json_str = cJSON_Print(root);
-    cJSON_Delete(root);
+  // Control section
+  cJSON *control = cJSON_CreateObject();
+  cJSON_AddBoolToObject(control, "running", s_config.control_running);
+  cJSON_AddNumberToObject(control, "interval_ms", s_config.control_interval_ms);
+  cJSON_AddNumberToObject(control, "measurement_index",
+                          s_config.control_measurement_index);
 
-    if (json_str == NULL) {
-        return ESP_ERR_NO_MEM;
-    }
+  cJSON *equations = cJSON_CreateArray();
+  for (uint8_t i = 0; i < s_config.control_equation_count; i++) {
+    cJSON *eq = cJSON_CreateObject();
+    cJSON_AddNumberToObject(eq, "actuator_id",
+                            s_config.control_equations[i].actuator_id);
+    cJSON_AddNumberToObject(eq, "a", s_config.control_equations[i].coeff_a);
+    cJSON_AddNumberToObject(eq, "b", s_config.control_equations[i].coeff_b);
+    cJSON_AddBoolToObject(eq, "enabled", s_config.control_equations[i].enabled);
+    cJSON_AddItemToArray(equations, eq);
+  }
+  cJSON_AddItemToObject(control, "equations", equations);
+  cJSON_AddItemToObject(root, "control", control);
 
-    FILE *f = fopen(CONFIG_FILE, "w");
-    if (f == NULL) {
-        free(json_str);
-        ESP_LOGE(TAG, "Failed to open config file for writing");
-        return ESP_FAIL;
-    }
+  char *json_str = cJSON_Print(root);
+  cJSON_Delete(root);
 
-    fprintf(f, "%s", json_str);
-    fclose(f);
+  if (json_str == NULL) {
+    return ESP_ERR_NO_MEM;
+  }
+
+  FILE *f = fopen(CONFIG_FILE, "w");
+  if (f == NULL) {
     free(json_str);
+    ESP_LOGE(TAG, "Failed to open config file for writing");
+    return ESP_FAIL;
+  }
 
-    ESP_LOGI(TAG, "Configuration saved");
-    return ESP_OK;
+  fprintf(f, "%s", json_str);
+  fclose(f);
+  free(json_str);
+
+  ESP_LOGI(TAG, "Configuration saved");
+  return ESP_OK;
 }
 
-esp_err_t config_load(void)
-{
-    if (s_config_mutex && xSemaphoreTake(s_config_mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
-        ESP_LOGE(TAG, "Failed to acquire config mutex for load");
-        return ESP_ERR_TIMEOUT;
-    }
+esp_err_t config_load(void) {
+  if (s_config_mutex &&
+      xSemaphoreTake(s_config_mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+    ESP_LOGE(TAG, "Failed to acquire config mutex for load");
+    return ESP_ERR_TIMEOUT;
+  }
 
-    FILE *f = fopen(CONFIG_FILE, "r");
-    if (f == NULL) {
-        ESP_LOGW(TAG, "Config file not found, using defaults");
-        config_reset_defaults();
-        esp_err_t ret = _config_save_internal();  // Use internal version (mutex already held)
-        if (s_config_mutex) xSemaphoreGive(s_config_mutex);
-        return ret;
-    }
-
-    // Read file
-    fseek(f, 0, SEEK_END);
-    long fsize = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    char *json_str = malloc(fsize + 1);
-    if (json_str == NULL) {
-        fclose(f);
-        if (s_config_mutex) xSemaphoreGive(s_config_mutex);
-        return ESP_ERR_NO_MEM;
-    }
-
-    fread(json_str, 1, fsize, f);
-    json_str[fsize] = '\0';
-    fclose(f);
-
-    // Parse JSON
-    cJSON *root = cJSON_Parse(json_str);
-    free(json_str);
-
-    if (root == NULL) {
-        ESP_LOGE(TAG, "Failed to parse config file");
-        config_reset_defaults();
-        if (s_config_mutex) xSemaphoreGive(s_config_mutex);
-        return ESP_FAIL;
-    }
-
-    // WiFi section
-    cJSON *wifi = cJSON_GetObjectItem(root, "wifi");
-    if (wifi) {
-        cJSON *item;
-        if ((item = cJSON_GetObjectItem(wifi, "ssid")) && cJSON_IsString(item)) {
-            strncpy(s_config.wifi_ssid, item->valuestring, sizeof(s_config.wifi_ssid) - 1);
-        }
-        if ((item = cJSON_GetObjectItem(wifi, "password")) && cJSON_IsString(item)) {
-            strncpy(s_config.wifi_password, item->valuestring, sizeof(s_config.wifi_password) - 1);
-        }
-        if ((item = cJSON_GetObjectItem(wifi, "ap_mode")) && cJSON_IsBool(item)) {
-            s_config.wifi_ap_mode = cJSON_IsTrue(item);
-        }
-        if ((item = cJSON_GetObjectItem(wifi, "ap_ssid")) && cJSON_IsString(item)) {
-            strncpy(s_config.ap_ssid, item->valuestring, sizeof(s_config.ap_ssid) - 1);
-        }
-        if ((item = cJSON_GetObjectItem(wifi, "ap_password")) && cJSON_IsString(item)) {
-            strncpy(s_config.ap_password, item->valuestring, sizeof(s_config.ap_password) - 1);
-        }
-    }
-
-    // RS485 section
-    cJSON *rs485 = cJSON_GetObjectItem(root, "rs485");
-    if (rs485) {
-        cJSON *item;
-        if ((item = cJSON_GetObjectItem(rs485, "baud")) && cJSON_IsNumber(item)) {
-            s_config.rs485_baud = item->valueint;
-        }
-        if ((item = cJSON_GetObjectItem(rs485, "tx_pin")) && cJSON_IsNumber(item)) {
-            s_config.rs485_tx_pin = item->valueint;
-        }
-        if ((item = cJSON_GetObjectItem(rs485, "rx_pin")) && cJSON_IsNumber(item)) {
-            s_config.rs485_rx_pin = item->valueint;
-        }
-        if ((item = cJSON_GetObjectItem(rs485, "de_pin")) && cJSON_IsNumber(item)) {
-            s_config.rs485_de_pin = item->valueint;
-        }
-    }
-
-    // Modbus section
-    cJSON *modbus = cJSON_GetObjectItem(root, "modbus");
-    if (modbus) {
-        cJSON *item;
-        if ((item = cJSON_GetObjectItem(modbus, "slave_id")) && cJSON_IsNumber(item)) {
-            s_config.modbus_slave_id = item->valueint;
-        }
-        if ((item = cJSON_GetObjectItem(modbus, "timeout")) && cJSON_IsNumber(item)) {
-            s_config.modbus_timeout = item->valueint;
-        }
-    }
-
-    // Actuator section
-    cJSON *actuator = cJSON_GetObjectItem(root, "actuator");
-    if (actuator) {
-        cJSON *item;
-        if ((item = cJSON_GetObjectItem(actuator, "scan_max_id")) && cJSON_IsNumber(item)) {
-            s_config.scan_max_id = item->valueint;
-        }
-        // Parse saved_ids array
-        cJSON *saved_ids = cJSON_GetObjectItem(actuator, "saved_ids");
-        if (saved_ids && cJSON_IsArray(saved_ids)) {
-            s_config.saved_actuator_count = 0;
-            int array_size = cJSON_GetArraySize(saved_ids);
-            for (int i = 0; i < array_size && i < MAX_SAVED_ACTUATORS; i++) {
-                cJSON *id_item = cJSON_GetArrayItem(saved_ids, i);
-                if (id_item && cJSON_IsNumber(id_item)) {
-                    s_config.saved_actuator_ids[s_config.saved_actuator_count] = (uint8_t)id_item->valueint;
-                    s_config.saved_actuator_count++;
-                }
-            }
-            ESP_LOGI(TAG, "Loaded %d saved actuator IDs", s_config.saved_actuator_count);
-        }
-        // Parse names array (optional, for backward compatibility)
-        cJSON *saved_names = cJSON_GetObjectItem(actuator, "names");
-        if (saved_names && cJSON_IsArray(saved_names)) {
-            int array_size = cJSON_GetArraySize(saved_names);
-            for (int i = 0; i < array_size && i < s_config.saved_actuator_count; i++) {
-                cJSON *name_item = cJSON_GetArrayItem(saved_names, i);
-                if (name_item && cJSON_IsString(name_item)) {
-                    strncpy(s_config.saved_actuator_names[i], name_item->valuestring,
-                            sizeof(s_config.saved_actuator_names[i]) - 1);
-                    s_config.saved_actuator_names[i][sizeof(s_config.saved_actuator_names[i]) - 1] = '\0';
-                }
-            }
-            ESP_LOGI(TAG, "Loaded %d saved actuator names", array_size);
-        }
-    }
-
-    // Roles section
-    cJSON *roles = cJSON_GetObjectItem(root, "roles");
-    if (roles) {
-        cJSON *la = cJSON_GetObjectItem(roles, "lens_a");
-        if (la) {
-            cJSON *item;
-            if ((item = cJSON_GetObjectItem(la, "id")) && cJSON_IsNumber(item))
-                s_config.role_lens_a.id = item->valueint;
-            if ((item = cJSON_GetObjectItem(la, "baud")) && cJSON_IsNumber(item))
-                s_config.role_lens_a.baud = item->valueint;
-        }
-        cJSON *lb = cJSON_GetObjectItem(roles, "lens_b");
-        if (lb) {
-            cJSON *item;
-            if ((item = cJSON_GetObjectItem(lb, "id")) && cJSON_IsNumber(item))
-                s_config.role_lens_b.id = item->valueint;
-            if ((item = cJSON_GetObjectItem(lb, "baud")) && cJSON_IsNumber(item))
-                s_config.role_lens_b.baud = item->valueint;
-        }
-        cJSON *nz = cJSON_GetObjectItem(roles, "nozzle");
-        if (nz) {
-            cJSON *item;
-            if ((item = cJSON_GetObjectItem(nz, "id")) && cJSON_IsNumber(item))
-                s_config.role_nozzle.id = item->valueint;
-            if ((item = cJSON_GetObjectItem(nz, "baud")) && cJSON_IsNumber(item))
-                s_config.role_nozzle.baud = item->valueint;
-        }
-    }
-
-    // Web section
-    cJSON *web = cJSON_GetObjectItem(root, "web");
-    if (web) {
-        cJSON *item;
-        if ((item = cJSON_GetObjectItem(web, "username")) && cJSON_IsString(item)) {
-            strncpy(s_config.web_username, item->valuestring, sizeof(s_config.web_username) - 1);
-        }
-        if ((item = cJSON_GetObjectItem(web, "password")) && cJSON_IsString(item)) {
-            strncpy(s_config.web_password, item->valuestring, sizeof(s_config.web_password) - 1);
-        }
-        if ((item = cJSON_GetObjectItem(web, "auth_enabled")) && cJSON_IsBool(item)) {
-            s_config.web_auth_enabled = cJSON_IsTrue(item);
-        }
-    }
-
-    // Parse baumer section
-    cJSON *baumer = cJSON_GetObjectItem(root, "baumer");
-    if (baumer) {
-        cJSON *item;
-        if ((item = cJSON_GetObjectItem(baumer, "slave_id")) && cJSON_IsNumber(item))
-            s_config.baumer_slave_id = (uint8_t)item->valueint;
-        if ((item = cJSON_GetObjectItem(baumer, "enabled")) && cJSON_IsBool(item))
-            s_config.baumer_enabled = cJSON_IsTrue(item);
-    }
-
-    // Parse control section
-    cJSON *control = cJSON_GetObjectItem(root, "control");
-    if (control) {
-        cJSON *item;
-        if ((item = cJSON_GetObjectItem(control, "running")) && cJSON_IsBool(item))
-            s_config.control_running = cJSON_IsTrue(item);
-        if ((item = cJSON_GetObjectItem(control, "interval_ms")) && cJSON_IsNumber(item))
-            s_config.control_interval_ms = (uint32_t)item->valueint;
-        if ((item = cJSON_GetObjectItem(control, "measurement_index")) && cJSON_IsNumber(item))
-            s_config.control_measurement_index = (uint8_t)item->valueint;
-
-        cJSON *eq_array = cJSON_GetObjectItem(control, "equations");
-        if (eq_array && cJSON_IsArray(eq_array)) {
-            s_config.control_equation_count = 0;
-            cJSON *eq;
-            cJSON_ArrayForEach(eq, eq_array) {
-                if (s_config.control_equation_count >= CONFIG_MAX_EQUATIONS) break;
-                uint8_t idx = s_config.control_equation_count;
-
-                cJSON *aid = cJSON_GetObjectItem(eq, "actuator_id");
-                cJSON *a = cJSON_GetObjectItem(eq, "a");
-                cJSON *b = cJSON_GetObjectItem(eq, "b");
-                cJSON *en = cJSON_GetObjectItem(eq, "enabled");
-
-                if (aid && cJSON_IsNumber(aid)) {
-                    s_config.control_equations[idx].actuator_id = (uint8_t)aid->valueint;
-                    s_config.control_equations[idx].coeff_a = (a && cJSON_IsNumber(a)) ? (float)a->valuedouble : 1.0f;
-                    s_config.control_equations[idx].coeff_b = (b && cJSON_IsNumber(b)) ? (float)b->valuedouble : 0.0f;
-                    s_config.control_equations[idx].enabled = (en && cJSON_IsBool(en)) ? cJSON_IsTrue(en) : false;
-                    s_config.control_equation_count++;
-                }
-            }
-        }
-    }
-
-    cJSON_Delete(root);
-    ESP_LOGI(TAG, "Configuration loaded");
-    if (s_config_mutex) xSemaphoreGive(s_config_mutex);
-    return ESP_OK;
-}
-
-esp_err_t config_save(void)
-{
-    if (s_config_mutex && xSemaphoreTake(s_config_mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
-        ESP_LOGE(TAG, "Failed to acquire config mutex for save");
-        return ESP_ERR_TIMEOUT;
-    }
-
-    esp_err_t ret = _config_save_internal();
-
-    if (s_config_mutex) xSemaphoreGive(s_config_mutex);
+  FILE *f = fopen(CONFIG_FILE, "r");
+  if (f == NULL) {
+    ESP_LOGW(TAG, "Config file not found, using defaults");
+    config_reset_defaults();
+    esp_err_t ret =
+        _config_save_internal(); // Use internal version (mutex already held)
+    if (s_config_mutex)
+      xSemaphoreGive(s_config_mutex);
     return ret;
+  }
+
+  // Read file
+  fseek(f, 0, SEEK_END);
+  long fsize = ftell(f);
+  fseek(f, 0, SEEK_SET);
+
+  char *json_str = malloc(fsize + 1);
+  if (json_str == NULL) {
+    fclose(f);
+    if (s_config_mutex)
+      xSemaphoreGive(s_config_mutex);
+    return ESP_ERR_NO_MEM;
+  }
+
+  fread(json_str, 1, fsize, f);
+  json_str[fsize] = '\0';
+  fclose(f);
+
+  // Parse JSON
+  cJSON *root = cJSON_Parse(json_str);
+  free(json_str);
+
+  if (root == NULL) {
+    ESP_LOGE(TAG, "Failed to parse config file");
+    config_reset_defaults();
+    if (s_config_mutex)
+      xSemaphoreGive(s_config_mutex);
+    return ESP_FAIL;
+  }
+
+  // WiFi section
+  cJSON *wifi = cJSON_GetObjectItem(root, "wifi");
+  if (wifi) {
+    cJSON *item;
+    if ((item = cJSON_GetObjectItem(wifi, "ssid")) && cJSON_IsString(item)) {
+      strncpy(s_config.wifi_ssid, item->valuestring,
+              sizeof(s_config.wifi_ssid) - 1);
+    }
+    if ((item = cJSON_GetObjectItem(wifi, "password")) &&
+        cJSON_IsString(item)) {
+      strncpy(s_config.wifi_password, item->valuestring,
+              sizeof(s_config.wifi_password) - 1);
+    }
+    if ((item = cJSON_GetObjectItem(wifi, "ap_mode")) && cJSON_IsBool(item)) {
+      s_config.wifi_ap_mode = cJSON_IsTrue(item);
+    }
+    if ((item = cJSON_GetObjectItem(wifi, "ap_ssid")) && cJSON_IsString(item)) {
+      strncpy(s_config.ap_ssid, item->valuestring,
+              sizeof(s_config.ap_ssid) - 1);
+    }
+    if ((item = cJSON_GetObjectItem(wifi, "ap_password")) &&
+        cJSON_IsString(item)) {
+      strncpy(s_config.ap_password, item->valuestring,
+              sizeof(s_config.ap_password) - 1);
+    }
+  }
+
+  // RS485 section
+  cJSON *rs485 = cJSON_GetObjectItem(root, "rs485");
+  if (rs485) {
+    cJSON *item;
+    if ((item = cJSON_GetObjectItem(rs485, "baud")) && cJSON_IsNumber(item)) {
+      s_config.rs485_baud = item->valueint;
+    }
+    if ((item = cJSON_GetObjectItem(rs485, "tx_pin")) && cJSON_IsNumber(item)) {
+      s_config.rs485_tx_pin = item->valueint;
+    }
+    if ((item = cJSON_GetObjectItem(rs485, "rx_pin")) && cJSON_IsNumber(item)) {
+      s_config.rs485_rx_pin = item->valueint;
+    }
+    if ((item = cJSON_GetObjectItem(rs485, "de_pin")) && cJSON_IsNumber(item)) {
+      s_config.rs485_de_pin = item->valueint;
+    }
+
+    if ((item = cJSON_GetObjectItem(rs485, "sync_baud")) &&
+        cJSON_IsNumber(item)) {
+      s_config.rs485_sync_baud = item->valueint;
+    }
+    if ((item = cJSON_GetObjectItem(rs485, "sync_tx_pin")) &&
+        cJSON_IsNumber(item)) {
+      s_config.rs485_sync_tx_pin = item->valueint;
+    }
+    if ((item = cJSON_GetObjectItem(rs485, "sync_rx_pin")) &&
+        cJSON_IsNumber(item)) {
+      s_config.rs485_sync_rx_pin = item->valueint;
+    }
+    if ((item = cJSON_GetObjectItem(rs485, "sync_de_pin")) &&
+        cJSON_IsNumber(item)) {
+      s_config.rs485_sync_de_pin = item->valueint;
+    }
+  }
+
+  // Modbus section
+  cJSON *modbus = cJSON_GetObjectItem(root, "modbus");
+  if (modbus) {
+    cJSON *item;
+    if ((item = cJSON_GetObjectItem(modbus, "slave_id")) &&
+        cJSON_IsNumber(item)) {
+      s_config.modbus_slave_id = item->valueint;
+    }
+    if ((item = cJSON_GetObjectItem(modbus, "timeout")) &&
+        cJSON_IsNumber(item)) {
+      s_config.modbus_timeout = item->valueint;
+    }
+  }
+
+  // Actuator section
+  cJSON *actuator = cJSON_GetObjectItem(root, "actuator");
+  if (actuator) {
+    cJSON *item;
+    if ((item = cJSON_GetObjectItem(actuator, "scan_max_id")) &&
+        cJSON_IsNumber(item)) {
+      s_config.scan_max_id = item->valueint;
+    }
+    // Parse saved_ids array
+    cJSON *saved_ids = cJSON_GetObjectItem(actuator, "saved_ids");
+    if (saved_ids && cJSON_IsArray(saved_ids)) {
+      s_config.saved_actuator_count = 0;
+      int array_size = cJSON_GetArraySize(saved_ids);
+      for (int i = 0; i < array_size && i < MAX_SAVED_ACTUATORS; i++) {
+        cJSON *id_item = cJSON_GetArrayItem(saved_ids, i);
+        if (id_item && cJSON_IsNumber(id_item)) {
+          s_config.saved_actuator_ids[s_config.saved_actuator_count] =
+              (uint8_t)id_item->valueint;
+          s_config.saved_actuator_count++;
+        }
+      }
+      ESP_LOGI(TAG, "Loaded %d saved actuator IDs",
+               s_config.saved_actuator_count);
+    }
+    // Parse names array (optional, for backward compatibility)
+    cJSON *saved_names = cJSON_GetObjectItem(actuator, "names");
+    if (saved_names && cJSON_IsArray(saved_names)) {
+      int array_size = cJSON_GetArraySize(saved_names);
+      for (int i = 0; i < array_size && i < s_config.saved_actuator_count;
+           i++) {
+        cJSON *name_item = cJSON_GetArrayItem(saved_names, i);
+        if (name_item && cJSON_IsString(name_item)) {
+          strncpy(s_config.saved_actuator_names[i], name_item->valuestring,
+                  sizeof(s_config.saved_actuator_names[i]) - 1);
+          s_config.saved_actuator_names
+              [i][sizeof(s_config.saved_actuator_names[i]) - 1] = '\0';
+        }
+      }
+      ESP_LOGI(TAG, "Loaded %d saved actuator names", array_size);
+    }
+  }
+
+  // Roles section
+  cJSON *roles = cJSON_GetObjectItem(root, "roles");
+  if (roles) {
+    cJSON *la = cJSON_GetObjectItem(roles, "lens_a");
+    if (la) {
+      cJSON *item;
+      if ((item = cJSON_GetObjectItem(la, "id")) && cJSON_IsNumber(item))
+        s_config.role_lens_a.id = item->valueint;
+      if ((item = cJSON_GetObjectItem(la, "baud")) && cJSON_IsNumber(item))
+        s_config.role_lens_a.baud = item->valueint;
+    }
+    cJSON *lb = cJSON_GetObjectItem(roles, "lens_b");
+    if (lb) {
+      cJSON *item;
+      if ((item = cJSON_GetObjectItem(lb, "id")) && cJSON_IsNumber(item))
+        s_config.role_lens_b.id = item->valueint;
+      if ((item = cJSON_GetObjectItem(lb, "baud")) && cJSON_IsNumber(item))
+        s_config.role_lens_b.baud = item->valueint;
+    }
+    cJSON *nz = cJSON_GetObjectItem(roles, "nozzle");
+    if (nz) {
+      cJSON *item;
+      if ((item = cJSON_GetObjectItem(nz, "id")) && cJSON_IsNumber(item))
+        s_config.role_nozzle.id = item->valueint;
+      if ((item = cJSON_GetObjectItem(nz, "baud")) && cJSON_IsNumber(item))
+        s_config.role_nozzle.baud = item->valueint;
+    }
+  }
+
+  // Web section
+  cJSON *web = cJSON_GetObjectItem(root, "web");
+  if (web) {
+    cJSON *item;
+    if ((item = cJSON_GetObjectItem(web, "username")) && cJSON_IsString(item)) {
+      strncpy(s_config.web_username, item->valuestring,
+              sizeof(s_config.web_username) - 1);
+    }
+    if ((item = cJSON_GetObjectItem(web, "password")) && cJSON_IsString(item)) {
+      strncpy(s_config.web_password, item->valuestring,
+              sizeof(s_config.web_password) - 1);
+    }
+    if ((item = cJSON_GetObjectItem(web, "auth_enabled")) &&
+        cJSON_IsBool(item)) {
+      s_config.web_auth_enabled = cJSON_IsTrue(item);
+    }
+  }
+
+  // Parse baumer section
+  cJSON *baumer = cJSON_GetObjectItem(root, "baumer");
+  if (baumer) {
+    cJSON *item;
+    if ((item = cJSON_GetObjectItem(baumer, "slave_id")) &&
+        cJSON_IsNumber(item))
+      s_config.baumer_slave_id = (uint8_t)item->valueint;
+    if ((item = cJSON_GetObjectItem(baumer, "enabled")) && cJSON_IsBool(item))
+      s_config.baumer_enabled = cJSON_IsTrue(item);
+  }
+
+  // Parse control section
+  cJSON *control = cJSON_GetObjectItem(root, "control");
+  if (control) {
+    cJSON *item;
+    if ((item = cJSON_GetObjectItem(control, "running")) && cJSON_IsBool(item))
+      s_config.control_running = cJSON_IsTrue(item);
+    if ((item = cJSON_GetObjectItem(control, "interval_ms")) &&
+        cJSON_IsNumber(item))
+      s_config.control_interval_ms = (uint32_t)item->valueint;
+    if ((item = cJSON_GetObjectItem(control, "measurement_index")) &&
+        cJSON_IsNumber(item))
+      s_config.control_measurement_index = (uint8_t)item->valueint;
+
+    cJSON *eq_array = cJSON_GetObjectItem(control, "equations");
+    if (eq_array && cJSON_IsArray(eq_array)) {
+      s_config.control_equation_count = 0;
+      cJSON *eq;
+      cJSON_ArrayForEach(eq, eq_array) {
+        if (s_config.control_equation_count >= CONFIG_MAX_EQUATIONS)
+          break;
+        uint8_t idx = s_config.control_equation_count;
+
+        cJSON *aid = cJSON_GetObjectItem(eq, "actuator_id");
+        cJSON *a = cJSON_GetObjectItem(eq, "a");
+        cJSON *b = cJSON_GetObjectItem(eq, "b");
+        cJSON *en = cJSON_GetObjectItem(eq, "enabled");
+
+        if (aid && cJSON_IsNumber(aid)) {
+          s_config.control_equations[idx].actuator_id = (uint8_t)aid->valueint;
+          s_config.control_equations[idx].coeff_a =
+              (a && cJSON_IsNumber(a)) ? (float)a->valuedouble : 1.0f;
+          s_config.control_equations[idx].coeff_b =
+              (b && cJSON_IsNumber(b)) ? (float)b->valuedouble : 0.0f;
+          s_config.control_equations[idx].enabled =
+              (en && cJSON_IsBool(en)) ? cJSON_IsTrue(en) : false;
+          s_config.control_equation_count++;
+        }
+      }
+    }
+  }
+
+  cJSON_Delete(root);
+  ESP_LOGI(TAG, "Configuration loaded");
+  if (s_config_mutex)
+    xSemaphoreGive(s_config_mutex);
+  return ESP_OK;
+}
+
+esp_err_t config_save(void) {
+  if (s_config_mutex &&
+      xSemaphoreTake(s_config_mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+    ESP_LOGE(TAG, "Failed to acquire config mutex for save");
+    return ESP_ERR_TIMEOUT;
+  }
+
+  esp_err_t ret = _config_save_internal();
+
+  if (s_config_mutex)
+    xSemaphoreGive(s_config_mutex);
+  return ret;
 }
 
 // ============================================================================
 // Init/Deinit
 // ============================================================================
 
-esp_err_t config_init(void)
-{
-    if (s_initialized) return ESP_OK;
+esp_err_t config_init(void) {
+  if (s_initialized)
+    return ESP_OK;
 
-    // Create mutex for thread safety
+  // Create mutex for thread safety
+  if (s_config_mutex == NULL) {
+    s_config_mutex = xSemaphoreCreateMutex();
     if (s_config_mutex == NULL) {
-        s_config_mutex = xSemaphoreCreateMutex();
-        if (s_config_mutex == NULL) {
-            ESP_LOGE(TAG, "Failed to create config mutex");
-            return ESP_ERR_NO_MEM;
-        }
+      ESP_LOGE(TAG, "Failed to create config mutex");
+      return ESP_ERR_NO_MEM;
     }
+  }
 
-    config_reset_defaults();
+  config_reset_defaults();
 
-    esp_err_t ret = init_littlefs();
-    if (ret != ESP_OK) {
-        return ret;
-    }
-
-    ret = config_load();
-    s_initialized = true;
+  esp_err_t ret = init_littlefs();
+  if (ret != ESP_OK) {
     return ret;
+  }
+
+  ret = config_load();
+  s_initialized = true;
+  return ret;
 }
 
-void config_deinit(void)
-{
-    esp_vfs_littlefs_unregister("userdata");
-    s_initialized = false;
+void config_deinit(void) {
+  esp_vfs_littlefs_unregister("userdata");
+  s_initialized = false;
 }
 
 // ============================================================================
@@ -552,11 +615,11 @@ void config_deinit(void)
 // NOTE: Getters return pointers to static s_config data. These are safe to use
 // as long as the single-writer model is respected (see config_manager.h).
 
-const char* config_get_wifi_ssid(void) { return s_config.wifi_ssid; }
-const char* config_get_wifi_password(void) { return s_config.wifi_password; }
+const char *config_get_wifi_ssid(void) { return s_config.wifi_ssid; }
+const char *config_get_wifi_password(void) { return s_config.wifi_password; }
 bool config_get_wifi_ap_mode(void) { return s_config.wifi_ap_mode; }
-const char* config_get_ap_ssid(void) { return s_config.ap_ssid; }
-const char* config_get_ap_password(void) { return s_config.ap_password; }
+const char *config_get_ap_ssid(void) { return s_config.ap_ssid; }
+const char *config_get_ap_password(void) { return s_config.ap_password; }
 
 // ============================================================================
 // Setters - WiFi
@@ -564,23 +627,26 @@ const char* config_get_ap_password(void) { return s_config.ap_password; }
 // NOTE: All setters must only be called from the HTTP server task.
 
 void config_set_wifi_ssid(const char *ssid) {
-    if (ssid) strncpy(s_config.wifi_ssid, ssid, sizeof(s_config.wifi_ssid) - 1);
+  if (ssid)
+    strncpy(s_config.wifi_ssid, ssid, sizeof(s_config.wifi_ssid) - 1);
 }
 
 void config_set_wifi_password(const char *password) {
-    if (password) strncpy(s_config.wifi_password, password, sizeof(s_config.wifi_password) - 1);
+  if (password)
+    strncpy(s_config.wifi_password, password,
+            sizeof(s_config.wifi_password) - 1);
 }
 
-void config_set_wifi_ap_mode(bool ap_mode) {
-    s_config.wifi_ap_mode = ap_mode;
-}
+void config_set_wifi_ap_mode(bool ap_mode) { s_config.wifi_ap_mode = ap_mode; }
 
 void config_set_ap_ssid(const char *ssid) {
-    if (ssid) strncpy(s_config.ap_ssid, ssid, sizeof(s_config.ap_ssid) - 1);
+  if (ssid)
+    strncpy(s_config.ap_ssid, ssid, sizeof(s_config.ap_ssid) - 1);
 }
 
 void config_set_ap_password(const char *password) {
-    if (password) strncpy(s_config.ap_password, password, sizeof(s_config.ap_password) - 1);
+  if (password)
+    strncpy(s_config.ap_password, password, sizeof(s_config.ap_password) - 1);
 }
 
 // ============================================================================
@@ -592,6 +658,17 @@ uint8_t config_get_rs485_tx_pin(void) { return s_config.rs485_tx_pin; }
 uint8_t config_get_rs485_rx_pin(void) { return s_config.rs485_rx_pin; }
 uint8_t config_get_rs485_de_pin(void) { return s_config.rs485_de_pin; }
 
+uint32_t config_get_rs485_sync_baud(void) { return s_config.rs485_sync_baud; }
+uint8_t config_get_rs485_sync_tx_pin(void) {
+  return s_config.rs485_sync_tx_pin;
+}
+uint8_t config_get_rs485_sync_rx_pin(void) {
+  return s_config.rs485_sync_rx_pin;
+}
+uint8_t config_get_rs485_sync_de_pin(void) {
+  return s_config.rs485_sync_de_pin;
+}
+
 // ============================================================================
 // Setters - RS485
 // ============================================================================
@@ -600,39 +677,70 @@ uint8_t config_get_rs485_de_pin(void) { return s_config.rs485_de_pin; }
  * @brief Validate GPIO pin number for RS485 use.
  * Rejects: >39, 6-11 (flash), 20, 24, 28-31 (reserved/unavailable).
  */
-static bool is_valid_gpio_pin(uint8_t pin)
-{
-    if (pin > 39) return false;
-    if (pin >= 6 && pin <= 11) return false;  // SPI flash
-    if (pin == 20 || pin == 24) return false;  // Reserved
-    if (pin >= 28 && pin <= 31) return false;  // Reserved
-    return true;
+static bool is_valid_gpio_pin(uint8_t pin) {
+  if (pin > 39)
+    return false;
+  if (pin >= 6 && pin <= 11)
+    return false; // SPI flash
+  if (pin == 20 || pin == 24)
+    return false; // Reserved
+  if (pin >= 28 && pin <= 31)
+    return false; // Reserved
+  return true;
 }
 
 void config_set_rs485_baud(uint32_t baud) { s_config.rs485_baud = baud; }
 
 void config_set_rs485_tx_pin(uint8_t pin) {
-    if (!is_valid_gpio_pin(pin)) {
-        ESP_LOGE(TAG, "Invalid GPIO pin for RS485 TX: %d", pin);
-        return;
-    }
-    s_config.rs485_tx_pin = pin;
+  if (!is_valid_gpio_pin(pin)) {
+    ESP_LOGE(TAG, "Invalid GPIO pin for RS485 TX: %d", pin);
+    return;
+  }
+  s_config.rs485_tx_pin = pin;
 }
 
 void config_set_rs485_rx_pin(uint8_t pin) {
-    if (!is_valid_gpio_pin(pin)) {
-        ESP_LOGE(TAG, "Invalid GPIO pin for RS485 RX: %d", pin);
-        return;
-    }
-    s_config.rs485_rx_pin = pin;
+  if (!is_valid_gpio_pin(pin)) {
+    ESP_LOGE(TAG, "Invalid GPIO pin for RS485 RX: %d", pin);
+    return;
+  }
+  s_config.rs485_rx_pin = pin;
 }
 
 void config_set_rs485_de_pin(uint8_t pin) {
-    if (!is_valid_gpio_pin(pin)) {
-        ESP_LOGE(TAG, "Invalid GPIO pin for RS485 DE: %d", pin);
-        return;
-    }
-    s_config.rs485_de_pin = pin;
+  if (!is_valid_gpio_pin(pin)) {
+    ESP_LOGE(TAG, "Invalid GPIO pin for RS485 DE: %d", pin);
+    return;
+  }
+  s_config.rs485_de_pin = pin;
+}
+
+void config_set_rs485_sync_baud(uint32_t baud) {
+  s_config.rs485_sync_baud = baud;
+}
+
+void config_set_rs485_sync_tx_pin(uint8_t pin) {
+  if (!is_valid_gpio_pin(pin)) {
+    ESP_LOGE(TAG, "Invalid GPIO pin for RS485 Sync TX: %d", pin);
+    return;
+  }
+  s_config.rs485_sync_tx_pin = pin;
+}
+
+void config_set_rs485_sync_rx_pin(uint8_t pin) {
+  if (!is_valid_gpio_pin(pin)) {
+    ESP_LOGE(TAG, "Invalid GPIO pin for RS485 Sync RX: %d", pin);
+    return;
+  }
+  s_config.rs485_sync_rx_pin = pin;
+}
+
+void config_set_rs485_sync_de_pin(uint8_t pin) {
+  if (!is_valid_gpio_pin(pin)) {
+    ESP_LOGE(TAG, "Invalid GPIO pin for RS485 Sync DE: %d", pin);
+    return;
+  }
+  s_config.rs485_sync_de_pin = pin;
 }
 
 // ============================================================================
@@ -647,7 +755,9 @@ uint32_t config_get_modbus_timeout(void) { return s_config.modbus_timeout; }
 // ============================================================================
 
 void config_set_modbus_slave_id(uint8_t id) { s_config.modbus_slave_id = id; }
-void config_set_modbus_timeout(uint32_t timeout_ms) { s_config.modbus_timeout = timeout_ms; }
+void config_set_modbus_timeout(uint32_t timeout_ms) {
+  s_config.modbus_timeout = timeout_ms;
+}
 
 // ============================================================================
 // Getters - Actuator
@@ -655,22 +765,19 @@ void config_set_modbus_timeout(uint32_t timeout_ms) { s_config.modbus_timeout = 
 
 uint8_t config_get_scan_max_id(void) { return s_config.scan_max_id; }
 
-uint8_t config_get_saved_actuator_count(void)
-{
-    return s_config.saved_actuator_count;
+uint8_t config_get_saved_actuator_count(void) {
+  return s_config.saved_actuator_count;
 }
 
-const uint8_t* config_get_saved_actuator_ids(void)
-{
-    return s_config.saved_actuator_ids;
+const uint8_t *config_get_saved_actuator_ids(void) {
+  return s_config.saved_actuator_ids;
 }
 
-const char* config_get_saved_actuator_name(uint8_t index)
-{
-    if (index >= MAX_SAVED_ACTUATORS) {
-        return "";
-    }
-    return s_config.saved_actuator_names[index];
+const char *config_get_saved_actuator_name(uint8_t index) {
+  if (index >= MAX_SAVED_ACTUATORS) {
+    return "";
+  }
+  return s_config.saved_actuator_names[index];
 }
 
 // ============================================================================
@@ -679,124 +786,128 @@ const char* config_get_saved_actuator_name(uint8_t index)
 
 void config_set_scan_max_id(uint8_t max_id) { s_config.scan_max_id = max_id; }
 
-bool config_add_saved_actuator_id(uint8_t id)
-{
-    // Check if already exists
-    for (int i = 0; i < s_config.saved_actuator_count; i++) {
-        if (s_config.saved_actuator_ids[i] == id) {
-            ESP_LOGD(TAG, "Actuator ID %d already saved", id);
-            return true;  // Already exists - success (idempotent)
-        }
+bool config_add_saved_actuator_id(uint8_t id) {
+  // Check if already exists
+  for (int i = 0; i < s_config.saved_actuator_count; i++) {
+    if (s_config.saved_actuator_ids[i] == id) {
+      ESP_LOGD(TAG, "Actuator ID %d already saved", id);
+      return true; // Already exists - success (idempotent)
     }
+  }
 
-    // Check if array is full
-    if (s_config.saved_actuator_count >= MAX_SAVED_ACTUATORS) {
-        ESP_LOGW(TAG, "Cannot save actuator ID %d: max actuators (%d) reached",
-                 id, MAX_SAVED_ACTUATORS);
-        return false;
-    }
-
-    // Add to array
-    s_config.saved_actuator_ids[s_config.saved_actuator_count] = id;
-    // Initialize name to empty string
-    s_config.saved_actuator_names[s_config.saved_actuator_count][0] = '\0';
-    s_config.saved_actuator_count++;
-    ESP_LOGI(TAG, "Added actuator ID %d to saved list (count=%d)",
-             id, s_config.saved_actuator_count);
-    return true;
-}
-
-bool config_remove_saved_actuator_id(uint8_t id)
-{
-    // Find the actuator ID in the array
-    int found_index = -1;
-    for (int i = 0; i < s_config.saved_actuator_count; i++) {
-        if (s_config.saved_actuator_ids[i] == id) {
-            found_index = i;
-            break;
-        }
-    }
-
-    if (found_index < 0) {
-        ESP_LOGD(TAG, "Actuator ID %d not found in saved list", id);
-        return true;  // Not found - success (idempotent)
-    }
-
-    // Shift remaining elements down
-    for (int i = found_index; i < s_config.saved_actuator_count - 1; i++) {
-        s_config.saved_actuator_ids[i] = s_config.saved_actuator_ids[i + 1];
-        strncpy(s_config.saved_actuator_names[i], s_config.saved_actuator_names[i + 1],
-                sizeof(s_config.saved_actuator_names[i]));
-    }
-    // Clear the last entry
-    s_config.saved_actuator_names[s_config.saved_actuator_count - 1][0] = '\0';
-    s_config.saved_actuator_count--;
-
-    ESP_LOGI(TAG, "Removed actuator ID %d from saved list (count=%d)",
-             id, s_config.saved_actuator_count);
-    return true;
-}
-
-void config_clear_saved_actuators(void)
-{
-    memset(s_config.saved_actuator_ids, 0, sizeof(s_config.saved_actuator_ids));
-    memset(s_config.saved_actuator_names, 0, sizeof(s_config.saved_actuator_names));
-    s_config.saved_actuator_count = 0;
-    ESP_LOGI(TAG, "Cleared all saved actuators");
-}
-
-bool config_set_saved_actuator_name(uint8_t index, const char* name)
-{
-    if (index >= MAX_SAVED_ACTUATORS) {
-        ESP_LOGW(TAG, "Cannot set actuator name: index %d out of range (max %d)",
-                 index, MAX_SAVED_ACTUATORS);
-        return false;
-    }
-
-    if (name == NULL) {
-        ESP_LOGW(TAG, "Cannot set actuator name: name is NULL");
-        return false;
-    }
-
-    strncpy(s_config.saved_actuator_names[index], name, sizeof(s_config.saved_actuator_names[index]) - 1);
-    s_config.saved_actuator_names[index][sizeof(s_config.saved_actuator_names[index]) - 1] = '\0';
-    ESP_LOGD(TAG, "Set actuator name at index %d to '%s'", index, name);
-    return true;
-}
-
-const char* config_get_actuator_name(uint8_t id)
-{
-    // Find the actuator ID in the saved array
-    for (int i = 0; i < s_config.saved_actuator_count; i++) {
-        if (s_config.saved_actuator_ids[i] == id) {
-            return s_config.saved_actuator_names[i];
-        }
-    }
-
-    // ID not found, return empty string
-    return "";
-}
-
-bool config_set_actuator_name(uint8_t id, const char *name)
-{
-    if (name == NULL) {
-        ESP_LOGW(TAG, "Cannot set actuator name: name is NULL");
-        return false;
-    }
-
-    // Find the actuator ID in the saved array
-    for (int i = 0; i < s_config.saved_actuator_count; i++) {
-        if (s_config.saved_actuator_ids[i] == id) {
-            strncpy(s_config.saved_actuator_names[i], name, sizeof(s_config.saved_actuator_names[i]) - 1);
-            s_config.saved_actuator_names[i][sizeof(s_config.saved_actuator_names[i]) - 1] = '\0';
-            ESP_LOGI(TAG, "Set actuator name for ID %d to '%s'", id, name);
-            return true;
-        }
-    }
-
-    // ID not found in saved actuators
-    ESP_LOGW(TAG, "Cannot set actuator name: ID %d not found in saved actuators", id);
+  // Check if array is full
+  if (s_config.saved_actuator_count >= MAX_SAVED_ACTUATORS) {
+    ESP_LOGW(TAG, "Cannot save actuator ID %d: max actuators (%d) reached", id,
+             MAX_SAVED_ACTUATORS);
     return false;
+  }
+
+  // Add to array
+  s_config.saved_actuator_ids[s_config.saved_actuator_count] = id;
+  // Initialize name to empty string
+  s_config.saved_actuator_names[s_config.saved_actuator_count][0] = '\0';
+  s_config.saved_actuator_count++;
+  ESP_LOGI(TAG, "Added actuator ID %d to saved list (count=%d)", id,
+           s_config.saved_actuator_count);
+  return true;
+}
+
+bool config_remove_saved_actuator_id(uint8_t id) {
+  // Find the actuator ID in the array
+  int found_index = -1;
+  for (int i = 0; i < s_config.saved_actuator_count; i++) {
+    if (s_config.saved_actuator_ids[i] == id) {
+      found_index = i;
+      break;
+    }
+  }
+
+  if (found_index < 0) {
+    ESP_LOGD(TAG, "Actuator ID %d not found in saved list", id);
+    return true; // Not found - success (idempotent)
+  }
+
+  // Shift remaining elements down
+  for (int i = found_index; i < s_config.saved_actuator_count - 1; i++) {
+    s_config.saved_actuator_ids[i] = s_config.saved_actuator_ids[i + 1];
+    strncpy(s_config.saved_actuator_names[i],
+            s_config.saved_actuator_names[i + 1],
+            sizeof(s_config.saved_actuator_names[i]));
+  }
+  // Clear the last entry
+  s_config.saved_actuator_names[s_config.saved_actuator_count - 1][0] = '\0';
+  s_config.saved_actuator_count--;
+
+  ESP_LOGI(TAG, "Removed actuator ID %d from saved list (count=%d)", id,
+           s_config.saved_actuator_count);
+  return true;
+}
+
+void config_clear_saved_actuators(void) {
+  memset(s_config.saved_actuator_ids, 0, sizeof(s_config.saved_actuator_ids));
+  memset(s_config.saved_actuator_names, 0,
+         sizeof(s_config.saved_actuator_names));
+  s_config.saved_actuator_count = 0;
+  ESP_LOGI(TAG, "Cleared all saved actuators");
+}
+
+bool config_set_saved_actuator_name(uint8_t index, const char *name) {
+  if (index >= MAX_SAVED_ACTUATORS) {
+    ESP_LOGW(TAG, "Cannot set actuator name: index %d out of range (max %d)",
+             index, MAX_SAVED_ACTUATORS);
+    return false;
+  }
+
+  if (name == NULL) {
+    ESP_LOGW(TAG, "Cannot set actuator name: name is NULL");
+    return false;
+  }
+
+  strncpy(s_config.saved_actuator_names[index], name,
+          sizeof(s_config.saved_actuator_names[index]) - 1);
+  s_config
+      .saved_actuator_names[index]
+                           [sizeof(s_config.saved_actuator_names[index]) - 1] =
+      '\0';
+  ESP_LOGD(TAG, "Set actuator name at index %d to '%s'", index, name);
+  return true;
+}
+
+const char *config_get_actuator_name(uint8_t id) {
+  // Find the actuator ID in the saved array
+  for (int i = 0; i < s_config.saved_actuator_count; i++) {
+    if (s_config.saved_actuator_ids[i] == id) {
+      return s_config.saved_actuator_names[i];
+    }
+  }
+
+  // ID not found, return empty string
+  return "";
+}
+
+bool config_set_actuator_name(uint8_t id, const char *name) {
+  if (name == NULL) {
+    ESP_LOGW(TAG, "Cannot set actuator name: name is NULL");
+    return false;
+  }
+
+  // Find the actuator ID in the saved array
+  for (int i = 0; i < s_config.saved_actuator_count; i++) {
+    if (s_config.saved_actuator_ids[i] == id) {
+      strncpy(s_config.saved_actuator_names[i], name,
+              sizeof(s_config.saved_actuator_names[i]) - 1);
+      s_config
+          .saved_actuator_names[i][sizeof(s_config.saved_actuator_names[i]) -
+                                   1] = '\0';
+      ESP_LOGI(TAG, "Set actuator name for ID %d to '%s'", id, name);
+      return true;
+    }
+  }
+
+  // ID not found in saved actuators
+  ESP_LOGW(TAG, "Cannot set actuator name: ID %d not found in saved actuators",
+           id);
+  return false;
 }
 
 // ============================================================================
@@ -808,16 +919,16 @@ config_role_t config_get_role_lens_b(void) { return s_config.role_lens_b; }
 config_role_t config_get_role_nozzle(void) { return s_config.role_nozzle; }
 
 void config_set_role_lens_a(uint8_t id, uint32_t baud) {
-    s_config.role_lens_a.id = id;
-    s_config.role_lens_a.baud = baud;
+  s_config.role_lens_a.id = id;
+  s_config.role_lens_a.baud = baud;
 }
 void config_set_role_lens_b(uint8_t id, uint32_t baud) {
-    s_config.role_lens_b.id = id;
-    s_config.role_lens_b.baud = baud;
+  s_config.role_lens_b.id = id;
+  s_config.role_lens_b.baud = baud;
 }
 void config_set_role_nozzle(uint8_t id, uint32_t baud) {
-    s_config.role_nozzle.id = id;
-    s_config.role_nozzle.baud = baud;
+  s_config.role_nozzle.id = id;
+  s_config.role_nozzle.baud = baud;
 }
 
 uint8_t config_get_role_lens_a_id(void) { return s_config.role_lens_a.id; }
@@ -828,8 +939,8 @@ uint8_t config_get_role_nozzle_id(void) { return s_config.role_nozzle.id; }
 // Getters - Web
 // ============================================================================
 
-const char* config_get_web_username(void) { return s_config.web_username; }
-const char* config_get_web_password(void) { return s_config.web_password; }
+const char *config_get_web_username(void) { return s_config.web_username; }
+const char *config_get_web_password(void) { return s_config.web_password; }
 bool config_get_web_auth_enabled(void) { return s_config.web_auth_enabled; }
 
 // ============================================================================
@@ -837,15 +948,17 @@ bool config_get_web_auth_enabled(void) { return s_config.web_auth_enabled; }
 // ============================================================================
 
 void config_set_web_username(const char *username) {
-    if (username) strncpy(s_config.web_username, username, sizeof(s_config.web_username) - 1);
+  if (username)
+    strncpy(s_config.web_username, username, sizeof(s_config.web_username) - 1);
 }
 
 void config_set_web_password(const char *password) {
-    if (password) strncpy(s_config.web_password, password, sizeof(s_config.web_password) - 1);
+  if (password)
+    strncpy(s_config.web_password, password, sizeof(s_config.web_password) - 1);
 }
 
 void config_set_web_auth_enabled(bool enabled) {
-    s_config.web_auth_enabled = enabled;
+  s_config.web_auth_enabled = enabled;
 }
 
 // ============================================================================
@@ -853,34 +966,50 @@ void config_set_web_auth_enabled(bool enabled) {
 // ============================================================================
 
 uint8_t config_get_baumer_slave_id(void) { return s_config.baumer_slave_id; }
-bool    config_get_baumer_enabled(void) { return s_config.baumer_enabled; }
-void    config_set_baumer_slave_id(uint8_t id) { s_config.baumer_slave_id = id; }
-void    config_set_baumer_enabled(bool enabled) { s_config.baumer_enabled = enabled; }
+bool config_get_baumer_enabled(void) { return s_config.baumer_enabled; }
+void config_set_baumer_slave_id(uint8_t id) { s_config.baumer_slave_id = id; }
+void config_set_baumer_enabled(bool enabled) {
+  s_config.baumer_enabled = enabled;
+}
 
 // ============================================================================
 // Getters/Setters - Control Loop
 // ============================================================================
 
-bool     config_get_control_running(void) { return s_config.control_running; }
-uint32_t config_get_control_interval(void) { return s_config.control_interval_ms; }
-uint8_t  config_get_control_measurement_index(void) { return s_config.control_measurement_index; }
-void     config_set_control_running(bool running) { s_config.control_running = running; }
-void     config_set_control_interval(uint32_t ms) { s_config.control_interval_ms = ms; }
-void     config_set_control_measurement_index(uint8_t idx) { s_config.control_measurement_index = idx; }
-
-int config_get_control_equations(config_control_equation_t *out, int max_count)
-{
-    int count = s_config.control_equation_count;
-    if (count > max_count) count = max_count;
-    if (out != NULL) {
-        memcpy(out, s_config.control_equations, count * sizeof(config_control_equation_t));
-    }
-    return count;
+bool config_get_control_running(void) { return s_config.control_running; }
+uint32_t config_get_control_interval(void) {
+  return s_config.control_interval_ms;
+}
+uint8_t config_get_control_measurement_index(void) {
+  return s_config.control_measurement_index;
+}
+void config_set_control_running(bool running) {
+  s_config.control_running = running;
+}
+void config_set_control_interval(uint32_t ms) {
+  s_config.control_interval_ms = ms;
+}
+void config_set_control_measurement_index(uint8_t idx) {
+  s_config.control_measurement_index = idx;
 }
 
-void config_set_control_equations(const config_control_equation_t *eqs, int count)
-{
-    if (count > CONFIG_MAX_EQUATIONS) count = CONFIG_MAX_EQUATIONS;
-    memcpy(s_config.control_equations, eqs, count * sizeof(config_control_equation_t));
-    s_config.control_equation_count = (uint8_t)count;
+int config_get_control_equations(config_control_equation_t *out,
+                                 int max_count) {
+  int count = s_config.control_equation_count;
+  if (count > max_count)
+    count = max_count;
+  if (out != NULL) {
+    memcpy(out, s_config.control_equations,
+           count * sizeof(config_control_equation_t));
+  }
+  return count;
+}
+
+void config_set_control_equations(const config_control_equation_t *eqs,
+                                  int count) {
+  if (count > CONFIG_MAX_EQUATIONS)
+    count = CONFIG_MAX_EQUATIONS;
+  memcpy(s_config.control_equations, eqs,
+         count * sizeof(config_control_equation_t));
+  s_config.control_equation_count = (uint8_t)count;
 }

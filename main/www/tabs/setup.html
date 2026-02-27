@@ -1,6 +1,6 @@
 <div class="setup-wizard">
-    <h2>🔧 Setup Wizard</h2>
-    <p class="subtitle">Discover actuators, assign roles, and standardize communication</p>
+    <h2>Setup Wizard</h2>
+    <p class="subtitle">Discover actuators on both buses, assign roles, and standardize communication</p>
 
     <!-- Step indicator -->
     <div class="steps-indicator">
@@ -14,12 +14,12 @@
     <div id="setup-step-1" class="setup-step active">
         <div class="control-card">
             <div class="card-header">
-                <h3>🔍 Step 1: Discover Actuators</h3>
-                <span class="card-subtitle">Scans all baud rates (9600–115200) and IDs 1–20</span>
+                <h3>Step 1: Discover Devices</h3>
+                <span class="card-subtitle">Scans Bus 1 (sensors) and Bus 2 (sync) across all baud rates</span>
             </div>
             <div class="card-body">
-                <button id="btn-smart-scan" onclick="startSmartScan()" class="btn btn-primary full">
-                    Start Smart Scan
+                <button id="btn-smart-scan" onclick="startBusScan()" class="btn btn-primary full">
+                    Scan Both Buses
                 </button>
                 <div id="scan-progress" class="hidden">
                     <div class="progress-bar">
@@ -28,28 +28,35 @@
                     <p id="scan-progress-text" class="progress-text">Scanning...</p>
                 </div>
 
-                <div id="scan-results" class="hidden">
-                    <h4>Found Actuators</h4>
+                <!-- Bus 1 Results -->
+                <div id="scan-bus1-results" class="hidden">
+                    <h4>Bus 1 - Primary (Sensors + Nozzle)</h4>
                     <table class="data-table">
                         <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Baud Rate</th>
-                                <th>Model</th>
-                                <th>Protocol</th>
-                            </tr>
+                            <tr><th>ID</th><th>Baud Rate</th><th>Model</th></tr>
                         </thead>
-                        <tbody id="scan-results-body"></tbody>
+                        <tbody id="scan-bus1-body"></tbody>
                     </table>
-                    <div id="scan-no-results" class="hidden info-box">
-                        No Modbus actuators found. Actuators may be configured with Own Protocol (support coming soon).
-                    </div>
+                    <div id="scan-bus1-empty" class="hidden info-box">No actuators found on Bus 1</div>
+                    <div id="scan-baumer-status" class="info-box"></div>
+                </div>
+
+                <!-- Bus 2 Results -->
+                <div id="scan-bus2-results" class="hidden">
+                    <h4>Bus 2 - Sync (Lens Actuators)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>ID</th><th>Baud Rate</th><th>Model</th></tr>
+                        </thead>
+                        <tbody id="scan-bus2-body"></tbody>
+                    </table>
+                    <div id="scan-bus2-empty" class="hidden info-box">No actuators found on Bus 2</div>
                 </div>
 
                 <div class="step-nav">
                     <span></span>
                     <button id="btn-step1-next" onclick="goToStep(2)" class="btn" disabled>
-                        Next: Assign Roles →
+                        Next: Assign Roles
                     </button>
                 </div>
             </div>
@@ -60,20 +67,27 @@
     <div id="setup-step-2" class="setup-step">
         <div class="control-card">
             <div class="card-header">
-                <h3>🏷️ Step 2: Assign Roles</h3>
+                <h3>Step 2: Assign Roles</h3>
                 <span class="card-subtitle">Assign each actuator to a role. Use "Jog" to identify physically.</span>
             </div>
             <div class="card-body">
-                <div id="role-assignments"></div>
+                <div id="role-bus2-section">
+                    <h4>Bus 2 - Sync Actuators</h4>
+                    <div id="role-bus2-assignments"></div>
+                </div>
+                <div id="role-bus1-section">
+                    <h4>Bus 1 - Independent Actuators</h4>
+                    <div id="role-bus1-assignments"></div>
+                </div>
 
                 <div id="role-validation" class="hidden info-box warn">
                     <span id="role-validation-text"></span>
                 </div>
 
                 <div class="step-nav">
-                    <button onclick="goToStep(1)" class="btn">← Back</button>
+                    <button onclick="goToStep(1)" class="btn">Back</button>
                     <button id="btn-step2-next" onclick="goToStep(3)" class="btn" disabled>
-                        Next: Standardize →
+                        Next: Standardize
                     </button>
                 </div>
             </div>
@@ -84,7 +98,7 @@
     <div id="setup-step-3" class="setup-step">
         <div class="control-card">
             <div class="card-header">
-                <h3>⚡ Step 3: Standardize Communication</h3>
+                <h3>Step 3: Standardize Communication</h3>
                 <span class="card-subtitle">Reconfigure all actuators to the same baud rate with sequential IDs</span>
             </div>
             <div class="card-body">
@@ -105,6 +119,7 @@
                         <thead>
                             <tr>
                                 <th>Role</th>
+                                <th>Bus</th>
                                 <th>Current ID</th>
                                 <th>New ID</th>
                                 <th>Current Baud</th>
@@ -116,8 +131,8 @@
                 </div>
 
                 <div class="info-box warn">
-                    ⚠️ <strong>Warning:</strong> This will change actuator EEPROM settings and restart them.
-                    Make sure the bus is not in use.
+                    Warning: This will change actuator EEPROM settings and restart them.
+                    Make sure the buses are not in use.
                 </div>
 
                 <button id="btn-standardize" onclick="doStandardize()" class="btn btn-primary full">
@@ -127,9 +142,9 @@
                 <div id="std-result" class="hidden"></div>
 
                 <div class="step-nav">
-                    <button onclick="goToStep(2)" class="btn">← Back</button>
+                    <button onclick="goToStep(2)" class="btn">Back</button>
                     <button id="btn-step3-next" onclick="goToStep(4)" class="btn" disabled>
-                        Next: Save →
+                        Next: Save
                     </button>
                 </div>
             </div>
@@ -140,7 +155,7 @@
     <div id="setup-step-4" class="setup-step">
         <div class="control-card">
             <div class="card-header">
-                <h3>✅ Step 4: Save & Apply</h3>
+                <h3>Step 4: Save & Apply</h3>
                 <span class="card-subtitle">Save the role configuration</span>
             </div>
             <div class="card-body">
@@ -156,7 +171,7 @@
                 <div id="save-result" class="hidden"></div>
 
                 <div class="step-nav">
-                    <button onclick="goToStep(3)" class="btn">← Back</button>
+                    <button onclick="goToStep(3)" class="btn">Back</button>
                     <span></span>
                 </div>
             </div>

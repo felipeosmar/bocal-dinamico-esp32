@@ -38,8 +38,13 @@ modbus_handle_t g_modbus = NULL;
 mightyzap_handle_t g_actuator = NULL;
 baumer_handle_t g_baumer = NULL;
 
-// Global RS485 bus mutex — protects bus access at the API layer
+// Secondary handles for Synchronous actuators
+rs485_handle_t g_rs485_sync = NULL;
+modbus_handle_t g_modbus_sync = NULL;
+
+// Global RS485 bus mutexes — protects bus access at the API layer
 SemaphoreHandle_t g_bus_mutex = NULL;
+SemaphoreHandle_t g_bus_sync_mutex = NULL;
 
 // Actuator configuration
 #define ACTUATOR_SLAVE_ID 1 // mightyZAP default ID
@@ -91,7 +96,48 @@ static esp_err_t init_communication(void) {
     return ret;
   }
 
-  ESP_LOGI(TAG, "RS485/Modbus communication initialized");
+  ESP_LOGI(TAG, "Primary RS485/Modbus initialized");
+
+  // Initialize Secondary RS485 (Sync bus on UART2)
+  uint32_t sync_baud = config_get_rs485_sync_baud();
+  uint8_t sync_tx_pin = config_get_rs485_sync_tx_pin();
+  uint8_t sync_rx_pin = config_get_rs485_sync_rx_pin();
+  uint8_t sync_de_pin = config_get_rs485_sync_de_pin();
+
+  ESP_LOGI(TAG, "RS485 Sync Config: TX=%d, RX=%d, DE=%d, Baud=%lu", sync_tx_pin,
+           sync_rx_pin, sync_de_pin, sync_baud);
+
+  rs485_config_t rs485_sync_cfg = {
+      .uart_num = UART_NUM_2,
+      .tx_pin = sync_tx_pin,
+      .rx_pin = sync_rx_pin,
+      .de_pin = sync_de_pin,
+      .baud_rate = sync_baud,
+      .rx_buffer_size = 256,
+      .tx_buffer_size = 256,
+  };
+
+  ret = rs485_init(&rs485_sync_cfg, &g_rs485_sync);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize RS485 Sync: %s", esp_err_to_name(ret));
+    return ret;
+  }
+
+  // Initialize Secondary Modbus Master
+  modbus_config_t modbus_sync_cfg = {
+      .rs485 = g_rs485_sync,
+      .response_timeout = timeout,
+  };
+
+  ret = modbus_init(&modbus_sync_cfg, &g_modbus_sync);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize Modbus Sync: %s", esp_err_to_name(ret));
+    rs485_deinit(g_rs485_sync);
+    g_rs485_sync = NULL;
+    return ret;
+  }
+
+  ESP_LOGI(TAG, "Secondary RS485/Modbus initialized");
 
   // Initialize mightyZAP actuator
   esp_err_t act_ret = mightyzap_init(g_modbus, ACTUATOR_SLAVE_ID, &g_actuator);
@@ -223,10 +269,16 @@ void app_main(void) {
   // Wait for WiFi to be ready
   vTaskDelay(pdMS_TO_TICKS(1000));
 
-  // Create RS485 bus mutex before starting web server
+  // Create RS485 bus mutexes before starting web server
   g_bus_mutex = xSemaphoreCreateMutex();
   if (g_bus_mutex == NULL) {
     ESP_LOGE(TAG, "Failed to create bus mutex!");
+    return;
+  }
+
+  g_bus_sync_mutex = xSemaphoreCreateMutex();
+  if (g_bus_sync_mutex == NULL) {
+    ESP_LOGE(TAG, "Failed to create bus sync mutex!");
     return;
   }
 
@@ -235,6 +287,12 @@ void app_main(void) {
   if (actuator_task_init() != ESP_OK) {
     ESP_LOGE(TAG, "Failed to initialize actuator task!");
     return;
+  }
+
+  // Initialize closed-loop sync controller task
+  ESP_LOGI(TAG, "Initializing sync controller...");
+  if (mightyzap_sync_ctrl_init() != ESP_OK) {
+    ESP_LOGW(TAG, "Failed to initialize sync controller (non-fatal)");
   }
 
   // Start web server

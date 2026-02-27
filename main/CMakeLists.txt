@@ -9,6 +9,7 @@ idf_component_register(
         "webserver/web_server.c"
         "webserver/web_baumer.c"
         "webserver/web_control.c"
+        "webserver/handlers/handlers_common.c"
         "webserver/handlers/auth.c"
         "webserver/handlers/static_files.c"
         "webserver/handlers/api_files.c"

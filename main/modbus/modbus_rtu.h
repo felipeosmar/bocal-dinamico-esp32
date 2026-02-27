@@ -153,6 +153,22 @@ esp_err_t modbus_write_multiple_registers(modbus_handle_t handle,
                                           const uint16_t *values);
 
 /**
+ * @brief Write single register via broadcast (slave_addr=0, no response expected)
+ *
+ * Sends FC 0x06 frame to address 0 (broadcast). Per Modbus spec, broadcast
+ * writes do not generate a response, so this function returns immediately
+ * after transmitting the frame.
+ *
+ * @param handle Modbus handle
+ * @param reg_addr Register address
+ * @param value Value to write
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t modbus_write_broadcast(modbus_handle_t handle,
+                                 uint16_t reg_addr,
+                                 uint16_t value);
+
+/**
  * @brief Calculate Modbus CRC16
  *
  * @param data Data buffer

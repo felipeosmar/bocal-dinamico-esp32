@@ -119,15 +119,10 @@ esp_err_t web_server_init(const web_server_config_t *config) {
   httpd_uri_t tabs_files_html = {.uri = "/tabs/files.html",
                                  .method = HTTP_GET,
                                  .handler = tabs_html_handler};
-  httpd_uri_t tabs_tasks_html = {.uri = "/tabs/tasks.html",
-                                 .method = HTTP_GET,
-                                 .handler = tabs_html_handler};
-
   httpd_register_uri_handler(s_server, &tabs_actuators_html);
   httpd_register_uri_handler(s_server, &tabs_system_html);
   httpd_register_uri_handler(s_server, &tabs_config_html);
   httpd_register_uri_handler(s_server, &tabs_files_html);
-  httpd_register_uri_handler(s_server, &tabs_tasks_html);
 
   httpd_uri_t tabs_setup_html = {.uri = "/tabs/setup.html",
                                  .method = HTTP_GET,
@@ -148,14 +143,10 @@ esp_err_t web_server_init(const web_server_config_t *config) {
       .uri = "/tabs/config.js", .method = HTTP_GET, .handler = tabs_js_handler};
   httpd_uri_t tabs_files_js = {
       .uri = "/tabs/files.js", .method = HTTP_GET, .handler = tabs_js_handler};
-  httpd_uri_t tabs_tasks_js = {
-      .uri = "/tabs/tasks.js", .method = HTTP_GET, .handler = tabs_js_handler};
-
   httpd_register_uri_handler(s_server, &tabs_actuators_js);
   httpd_register_uri_handler(s_server, &tabs_system_js);
   httpd_register_uri_handler(s_server, &tabs_config_js);
   httpd_register_uri_handler(s_server, &tabs_files_js);
-  httpd_register_uri_handler(s_server, &tabs_tasks_js);
 
   httpd_uri_t tabs_setup_js = {
       .uri = "/tabs/setup.js", .method = HTTP_GET, .handler = tabs_js_handler};
@@ -325,8 +316,12 @@ esp_err_t web_server_init(const web_server_config_t *config) {
   httpd_register_uri_handler(s_server, &act_config_post);
   httpd_register_uri_handler(s_server, &act_restart);
   httpd_register_uri_handler(s_server, &act_factory);
+  httpd_uri_t act_sync_abort = {.uri = "/api/actuator/sync-abort",
+                               .method = HTTP_POST,
+                               .handler = api_actuator_sync_abort_handler};
   httpd_register_uri_handler(s_server, &act_sync_move);
   httpd_register_uri_handler(s_server, &act_sync_status);
+  httpd_register_uri_handler(s_server, &act_sync_abort);
 
   // ========================================================================
   // Register Routes - API: Setup Wizard
@@ -335,6 +330,9 @@ esp_err_t web_server_init(const web_server_config_t *config) {
   httpd_uri_t setup_smart_scan = {.uri = "/api/actuator/smart-scan",
                                   .method = HTTP_POST,
                                   .handler = api_actuator_smart_scan_handler};
+  httpd_uri_t setup_scan_buses = {.uri = "/api/setup/scan-buses",
+                                  .method = HTTP_POST,
+                                  .handler = api_setup_scan_buses_handler};
   httpd_uri_t setup_roles_get = {.uri = "/api/actuator/roles",
                                  .method = HTTP_GET,
                                  .handler = api_actuator_roles_get_handler};
@@ -349,6 +347,7 @@ esp_err_t web_server_init(const web_server_config_t *config) {
                                    .handler = api_actuator_standardize_handler};
 
   httpd_register_uri_handler(s_server, &setup_smart_scan);
+  httpd_register_uri_handler(s_server, &setup_scan_buses);
   httpd_register_uri_handler(s_server, &setup_roles_get);
   httpd_register_uri_handler(s_server, &setup_roles_post);
   httpd_register_uri_handler(s_server, &setup_jog);

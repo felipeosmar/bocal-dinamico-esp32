@@ -32,7 +32,7 @@ static void actuator_task_loop(void *arg) {
                 xSemaphoreTake(g_bus_sync_mutex, portMAX_DELAY);
                 // Broadcast to ID 0 targets all connected actuators on the sync bus
                 // It does NOT wait for response since broadcast lacks response.
-                ret = mightyzap_set_position_raw(cmd.handle.modbus, 0, cmd.value);
+                ret = modbus_write_broadcast(cmd.handle.modbus, MZAP_REG_GOAL_POSITION, cmd.value);
                 if (ret != ESP_OK) {
                     ESP_LOGE(TAG, "Failed sync move broadcast to %u: %s",
                              cmd.value, esp_err_to_name(ret));

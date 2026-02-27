@@ -30,8 +30,10 @@ static void actuator_task_loop(void *arg) {
                     continue;
                 }
                 xSemaphoreTake(g_bus_sync_mutex, portMAX_DELAY);
-                // Broadcast to ID 0 targets all connected actuators on the sync bus
-                // It does NOT wait for response since broadcast lacks response.
+                // Ensure Force ON before sending position (broadcast, no response)
+                modbus_write_broadcast(cmd.handle.modbus, MZAP_REG_FORCE_ON_OFF, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                // Broadcast position to all actuators on the sync bus
                 ret = modbus_write_broadcast(cmd.handle.modbus, MZAP_REG_GOAL_POSITION, cmd.value);
                 if (ret != ESP_OK) {
                     ESP_LOGE(TAG, "Failed sync move broadcast to %u: %s",

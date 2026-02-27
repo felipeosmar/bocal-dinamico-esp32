@@ -221,6 +221,19 @@ void app_main(void) {
     ESP_LOGW(TAG, "RS485 init failed, web interface will still work");
   }
 
+  // Create RS485 bus mutexes early (needed by control loop and actuator task)
+  g_bus_mutex = xSemaphoreCreateMutex();
+  if (g_bus_mutex == NULL) {
+    ESP_LOGE(TAG, "Failed to create bus mutex!");
+    return;
+  }
+
+  g_bus_sync_mutex = xSemaphoreCreateMutex();
+  if (g_bus_sync_mutex == NULL) {
+    ESP_LOGE(TAG, "Failed to create bus sync mutex!");
+    return;
+  }
+
   // Initialize Baumer OX100 profilometer
   if (config_get_baumer_enabled() && g_modbus != NULL) {
     esp_err_t bret =
@@ -269,19 +282,6 @@ void app_main(void) {
 
   // Wait for WiFi to be ready
   vTaskDelay(pdMS_TO_TICKS(1000));
-
-  // Create RS485 bus mutexes before starting web server
-  g_bus_mutex = xSemaphoreCreateMutex();
-  if (g_bus_mutex == NULL) {
-    ESP_LOGE(TAG, "Failed to create bus mutex!");
-    return;
-  }
-
-  g_bus_sync_mutex = xSemaphoreCreateMutex();
-  if (g_bus_sync_mutex == NULL) {
-    ESP_LOGE(TAG, "Failed to create bus sync mutex!");
-    return;
-  }
 
   // Initialize actuator task queue
   ESP_LOGI(TAG, "Initializing actuator task...");

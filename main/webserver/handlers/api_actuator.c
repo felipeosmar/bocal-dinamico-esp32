@@ -216,12 +216,9 @@ esp_err_t api_actuator_status_handler(httpd_req_t *req) {
 }
 
 // POST /api/actuator/control - Control specific actuator by ID
+// Non-blocking: async commands are enqueued, sync commands take mutex briefly.
 esp_err_t api_actuator_control_handler(httpd_req_t *req) {
     REQUIRE_AUTH(req);
-
-    if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(BUS_MUTEX_TIMEOUT_CONTROL_MS)) != pdTRUE) {
-        return send_error_json(req, "503 Service Unavailable", "Bus busy");
-    }
 
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
@@ -257,17 +254,22 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req) {
 
     mightyzap_handle_t handle = slot->handle;
 
-    // Check for force enable/disable
+    // Check for force enable/disable (requires bus mutex briefly)
     cJSON *force_enable = cJSON_GetObjectItem(root, "force");
     if (cJSON_IsBool(force_enable)) {
         if (!cJSON_IsTrue(force_enable)) {
             err = actuator_stop_async(handle);
         } else {
-            err = mightyzap_set_force_enable(handle, true);
+            if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(500)) == pdTRUE) {
+                err = mightyzap_set_force_enable(handle, true);
+                xSemaphoreGive(g_bus_mutex);
+            } else {
+                err = ESP_ERR_TIMEOUT;
+            }
         }
     }
 
-    // Check for position
+    // Check for position (async — no mutex needed, goes through queue)
     cJSON *position = cJSON_GetObjectItem(root, "position");
     if (cJSON_IsNumber(position)) {
         int val = position->valueint;
@@ -276,25 +278,35 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req) {
         }
     }
 
-    // Check for speed
+    // Check for speed (requires bus mutex briefly)
     cJSON *speed = cJSON_GetObjectItem(root, "speed");
     if (cJSON_IsNumber(speed)) {
         int val = speed->valueint;
         if (val >= 0 && val <= MZAP_MAX_SPEED) {
-            err = mightyzap_set_speed(handle, val);
+            if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(500)) == pdTRUE) {
+                err = mightyzap_set_speed(handle, val);
+                xSemaphoreGive(g_bus_mutex);
+            } else {
+                err = ESP_ERR_TIMEOUT;
+            }
         }
     }
 
-    // Check for current (force limit)
+    // Check for current (requires bus mutex briefly)
     cJSON *current = cJSON_GetObjectItem(root, "current");
     if (cJSON_IsNumber(current)) {
         int val = current->valueint;
         if (val >= 0 && val <= MZAP_MAX_CURRENT) {
-            err = mightyzap_set_current(handle, val);
+            if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(500)) == pdTRUE) {
+                err = mightyzap_set_current(handle, val);
+                xSemaphoreGive(g_bus_mutex);
+            } else {
+                err = ESP_ERR_TIMEOUT;
+            }
         }
     }
 
-    // Check for combined goal (position + speed + current)
+    // Check for combined goal (requires bus mutex briefly)
     cJSON *goal = cJSON_GetObjectItem(root, "goal");
     if (cJSON_IsObject(goal)) {
         cJSON *g_pos = cJSON_GetObjectItem(goal, "position");
@@ -303,8 +315,13 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req) {
 
         if (cJSON_IsNumber(g_pos) && cJSON_IsNumber(g_spd) &&
                 cJSON_IsNumber(g_cur)) {
-            err = mightyzap_set_goal(handle, g_pos->valueint, g_spd->valueint,
-                               g_cur->valueint);
+            if (xSemaphoreTake(g_bus_mutex, pdMS_TO_TICKS(500)) == pdTRUE) {
+                err = mightyzap_set_goal(handle, g_pos->valueint, g_spd->valueint,
+                                   g_cur->valueint);
+                xSemaphoreGive(g_bus_mutex);
+            } else {
+                err = ESP_ERR_TIMEOUT;
+            }
         }
     }
 
@@ -315,7 +332,6 @@ esp_err_t api_actuator_control_handler(httpd_req_t *req) {
         mark_status_dirty();
 
 send_response:
-    xSemaphoreGive(g_bus_mutex);
     cJSON_Delete(root);
     return send_json(req, response);
 }
@@ -887,7 +903,7 @@ esp_err_t api_actuator_sync_move_handler(httpd_req_t *req) {
             cJSON_IsNumber(max_desync_json) ? max_desync_json->valueint : 150;
     uint32_t timeout_ms =
             cJSON_IsNumber(timeout_json) ? timeout_json->valueint : 10000;
-    bool wait = cJSON_IsBool(wait_json) ? cJSON_IsTrue(wait_json) : true;
+    bool wait = cJSON_IsBool(wait_json) ? cJSON_IsTrue(wait_json) : false;
     bool closed_loop = cJSON_IsBool(closed_loop_json) ? cJSON_IsTrue(closed_loop_json) : false;
 
     // Check if sync Modbus bus is available (Bus 2)

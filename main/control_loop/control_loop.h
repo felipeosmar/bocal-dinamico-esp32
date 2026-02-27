@@ -24,6 +24,7 @@ typedef struct {
     float coeff_a;
     float coeff_b;
     bool enabled;
+    uint8_t bus;        // 1 = bus principal (solo), 2 = bus sync (broadcast)
 } control_equation_t;
 
 /**
@@ -85,7 +86,7 @@ esp_err_t control_loop_set_interval(uint32_t interval_ms);
 /**
  * @brief Set equation for a specific actuator
  */
-esp_err_t control_loop_set_equation(uint8_t actuator_id, float a, float b, bool enabled);
+esp_err_t control_loop_set_equation(uint8_t actuator_id, float a, float b, bool enabled, uint8_t bus);
 
 /**
  * @brief Get current configuration

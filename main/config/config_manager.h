@@ -188,6 +188,7 @@ typedef struct {
   float coeff_a;
   float coeff_b;
   bool enabled;
+  uint8_t bus;        // 1 = bus principal (solo), 2 = bus sync (broadcast)
 } config_control_equation_t;
 
 #define CONFIG_MAX_EQUATIONS 10

@@ -245,6 +245,7 @@ void app_main(void) {
         ctrl_cfg.equations[i].coeff_a = ceqs[i].coeff_a;
         ctrl_cfg.equations[i].coeff_b = ceqs[i].coeff_b;
         ctrl_cfg.equations[i].enabled = ceqs[i].enabled;
+        ctrl_cfg.equations[i].bus = ceqs[i].bus ? ceqs[i].bus : 1;
       }
       ctrl_cfg.equation_count = (uint8_t)eq_count;
 

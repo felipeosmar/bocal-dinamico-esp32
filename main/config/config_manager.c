@@ -263,6 +263,7 @@ static esp_err_t _config_save_internal(void) {
     cJSON_AddNumberToObject(eq, "a", s_config.control_equations[i].coeff_a);
     cJSON_AddNumberToObject(eq, "b", s_config.control_equations[i].coeff_b);
     cJSON_AddBoolToObject(eq, "enabled", s_config.control_equations[i].enabled);
+    cJSON_AddNumberToObject(eq, "bus", s_config.control_equations[i].bus ? s_config.control_equations[i].bus : 1);
     cJSON_AddItemToArray(equations, eq);
   }
   cJSON_AddItemToObject(control, "equations", equations);
@@ -548,6 +549,9 @@ esp_err_t config_load(void) {
               (b && cJSON_IsNumber(b)) ? (float)b->valuedouble : 0.0f;
           s_config.control_equations[idx].enabled =
               (en && cJSON_IsBool(en)) ? cJSON_IsTrue(en) : false;
+          cJSON *bus_j = cJSON_GetObjectItem(eq, "bus");
+          s_config.control_equations[idx].bus =
+              (bus_j && cJSON_IsNumber(bus_j)) ? (uint8_t)bus_j->valueint : 1;
           s_config.control_equation_count++;
         }
       }

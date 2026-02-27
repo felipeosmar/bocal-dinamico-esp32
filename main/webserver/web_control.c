@@ -32,6 +32,7 @@ static esp_err_t api_control_status_handler(httpd_req_t *req)
         cJSON_AddNumberToObject(eq, "a", config.equations[i].coeff_a);
         cJSON_AddNumberToObject(eq, "b", config.equations[i].coeff_b);
         cJSON_AddBoolToObject(eq, "enabled", config.equations[i].enabled);
+        cJSON_AddNumberToObject(eq, "bus", config.equations[i].bus ? config.equations[i].bus : 1);
 
         // Find computed position for this actuator
         int pos = -1;
@@ -152,9 +153,11 @@ static esp_err_t api_control_equation_handler(httpd_req_t *req)
     float a = (float)a_j->valuedouble;
     float b = (float)b_j->valuedouble;
     bool enabled = cJSON_IsTrue(en_j);
+    cJSON *bus_j = cJSON_GetObjectItem(root, "bus");
+    uint8_t bus = (bus_j && cJSON_IsNumber(bus_j)) ? (uint8_t)bus_j->valueint : 1;
     cJSON_Delete(root);
 
-    esp_err_t ret = control_loop_set_equation(actuator_id, a, b, enabled);
+    esp_err_t ret = control_loop_set_equation(actuator_id, a, b, enabled, bus);
     if (ret != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to set equation");
         return ESP_FAIL;
@@ -169,6 +172,7 @@ static esp_err_t api_control_equation_handler(httpd_req_t *req)
         eqs[i].coeff_a = cfg.equations[i].coeff_a;
         eqs[i].coeff_b = cfg.equations[i].coeff_b;
         eqs[i].enabled = cfg.equations[i].enabled;
+        eqs[i].bus = cfg.equations[i].bus;
     }
     config_set_control_equations(eqs, cfg.equation_count);
     config_save();

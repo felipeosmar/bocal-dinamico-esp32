@@ -1,5 +1,6 @@
 #include "control_loop.h"
 #include "actuator_task.h"
+#include "app_globals.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -33,8 +34,11 @@ static uint16_t clamp_position(float value) {
   return (uint16_t)(value + 0.5f); // Round to nearest
 }
 
+static uint16_t s_last_sent_position[CONTROL_MAX_EQUATIONS];
+
 static void control_task(void *arg) {
   ESP_LOGI(TAG, "Control loop task started");
+  memset(s_last_sent_position, 0xFF, sizeof(s_last_sent_position));
 
   while (1) {
     // Wait for configured interval
@@ -45,9 +49,11 @@ static void control_task(void *arg) {
 
     vTaskDelay(pdMS_TO_TICKS(interval));
 
-    // Always read sensor for monitoring
+    // Always read sensor for monitoring (take bus 1 mutex to avoid conflict)
     baumer_measurement_t m;
+    xSemaphoreTake(g_bus_mutex, portMAX_DELAY);
     esp_err_t ret = baumer_read_measurements(s_ctrl.baumer, &m);
+    xSemaphoreGive(g_bus_mutex);
 
     xSemaphoreTake(s_ctrl.mutex, portMAX_DELAY);
 
@@ -79,6 +85,13 @@ static void control_task(void *arg) {
     float gap = m.values[meas_idx];
     s_ctrl.status.last_gap_value = gap;
 
+    // Validate float value
+    if (isnan(gap) || isinf(gap)) {
+      ESP_LOGW(TAG, "Invalid float from Baumer (NaN/Inf), skipping");
+      xSemaphoreGive(s_ctrl.mutex);
+      continue;
+    }
+
     bool should_control = s_ctrl.config.running;
     bool values_valid = (m.status & BAUMER_STATUS_BIT_VALID) != 0;
     bool signal_ok = (m.quality != BAUMER_QUALITY_NO_SIGNAL);
@@ -99,14 +112,29 @@ static void control_task(void *arg) {
         float pos_f = cfg.equations[i].coeff_a * gap + cfg.equations[i].coeff_b;
         uint16_t position = clamp_position(pos_f);
 
-        mightyzap_handle_t *h =
-            actuator_get_handle_by_id(cfg.equations[i].actuator_id);
-        if (h != NULL) {
-          esp_err_t move_ret = actuator_move_async(*h, position);
-          if (move_ret != ESP_OK) {
-            ESP_LOGW(TAG, "Failed to enqueue actuator %u: %s",
-                     cfg.equations[i].actuator_id, esp_err_to_name(move_ret));
+        // Dedup: skip if position unchanged
+        if (position != s_last_sent_position[i]) {
+          uint8_t bus = cfg.equations[i].bus;
+          if (bus == 2) {
+            // Bus 2: broadcast to all sync actuators
+            esp_err_t move_ret = actuator_move_sync_async(g_modbus_sync, position);
+            if (move_ret != ESP_OK) {
+              ESP_LOGW(TAG, "Failed to enqueue sync broadcast: %s",
+                       esp_err_to_name(move_ret));
+            }
+          } else {
+            // Bus 1 (default): individual actuator move
+            mightyzap_handle_t *h =
+                actuator_get_handle_by_id(cfg.equations[i].actuator_id);
+            if (h != NULL) {
+              esp_err_t move_ret = actuator_move_async(*h, position);
+              if (move_ret != ESP_OK) {
+                ESP_LOGW(TAG, "Failed to enqueue actuator %u: %s",
+                         cfg.equations[i].actuator_id, esp_err_to_name(move_ret));
+              }
+            }
           }
+          s_last_sent_position[i] = position;
         }
 
         // Update computed positions in status
@@ -211,9 +239,11 @@ esp_err_t control_loop_set_interval(uint32_t interval_ms) {
 }
 
 esp_err_t control_loop_set_equation(uint8_t actuator_id, float a, float b,
-                                    bool enabled) {
+                                    bool enabled, uint8_t bus) {
   if (s_ctrl.mutex == NULL)
     return ESP_ERR_INVALID_STATE;
+  if (bus == 0)
+    bus = 1; // Default to bus 1
 
   xSemaphoreTake(s_ctrl.mutex, portMAX_DELAY);
 
@@ -230,12 +260,14 @@ esp_err_t control_loop_set_equation(uint8_t actuator_id, float a, float b,
     s_ctrl.config.equations[found].coeff_a = a;
     s_ctrl.config.equations[found].coeff_b = b;
     s_ctrl.config.equations[found].enabled = enabled;
+    s_ctrl.config.equations[found].bus = bus;
   } else if (s_ctrl.config.equation_count < CONTROL_MAX_EQUATIONS) {
     uint8_t idx = s_ctrl.config.equation_count;
     s_ctrl.config.equations[idx].actuator_id = actuator_id;
     s_ctrl.config.equations[idx].coeff_a = a;
     s_ctrl.config.equations[idx].coeff_b = b;
     s_ctrl.config.equations[idx].enabled = enabled;
+    s_ctrl.config.equations[idx].bus = bus;
     s_ctrl.config.equation_count++;
   } else {
     xSemaphoreGive(s_ctrl.mutex);
@@ -244,8 +276,8 @@ esp_err_t control_loop_set_equation(uint8_t actuator_id, float a, float b,
 
   xSemaphoreGive(s_ctrl.mutex);
 
-  ESP_LOGI(TAG, "Equation for actuator %u: pos = %.3f * gap + %.3f (%s)",
-           actuator_id, a, b, enabled ? "enabled" : "disabled");
+  ESP_LOGI(TAG, "Equation for actuator %u (bus %u): pos = %.3f * gap + %.3f (%s)",
+           actuator_id, bus, a, b, enabled ? "enabled" : "disabled");
   return ESP_OK;
 }
 

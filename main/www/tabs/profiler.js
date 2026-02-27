@@ -160,4 +160,4 @@ async function profilerSaveBaumerConfig() {
     }
 }
 
-registerModule('profiler', profilerInit);
+registerModule('profiler', profilerInit, profilerCleanup);

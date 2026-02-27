@@ -96,15 +96,13 @@ esp_err_t api_rs485_config_handler(httpd_req_t *req)
         char buf[256];
         int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
         if (ret <= 0) {
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
-            return ESP_OK;
+            return send_error_json(req, "500 Internal Server Error", "Failed to receive data");
         }
         buf[ret] = '\0';
 
         cJSON *root = cJSON_Parse(buf);
         if (root == NULL) {
-            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-            return ESP_OK;
+            return send_error_json(req, "400 Bad Request", "Invalid JSON");
         }
 
         cJSON *baud = cJSON_GetObjectItem(root, "baud_rate");
@@ -187,15 +185,13 @@ esp_err_t api_rs485_test_handler(httpd_req_t *req)
     char buf[256];
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret <= 0) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive data");
-        return ESP_OK;
+        return send_error_json(req, "500 Internal Server Error", "Failed to receive data");
     }
     buf[ret] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     if (root == NULL) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-        return ESP_OK;
+        return send_error_json(req, "400 Bad Request", "Invalid JSON");
     }
 
     cJSON *response = cJSON_CreateObject();

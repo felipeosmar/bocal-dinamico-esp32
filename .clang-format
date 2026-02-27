@@ -1,0 +1,7 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+BreakBeforeBraces: Linux
+ColumnLimit: 100
+SortIncludes: false
+AlignConsecutiveMacros: true
+AllowShortFunctionsOnASingleLine: Empty

@@ -55,7 +55,7 @@ flash_www() {
         echo "Error: www.bin not found. Run 'idf.py build' first."
         exit 1
     fi
-    esptool.py -p "$PORT" -b "$BAUD" write_flash 0x1C0000 build/www.bin
+    esptool.py -p "$PORT" -b "$BAUD" write_flash 0x1B0000 build/www.bin
 }
 
 flash_update() {

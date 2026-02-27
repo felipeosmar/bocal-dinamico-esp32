@@ -550,3 +550,43 @@ esp_err_t modbus_write_multiple_registers(modbus_handle_t handle,
 
     return ESP_OK;
 }
+
+esp_err_t modbus_write_broadcast(modbus_handle_t handle,
+                                 uint16_t reg_addr,
+                                 uint16_t value)
+{
+    if (handle == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    uint8_t request[8];
+
+    // Build FC 0x06 frame with broadcast address 0
+    request[0] = 0x00;  // Broadcast address
+    request[1] = MODBUS_FC_WRITE_SINGLE_REGISTER;
+    request[2] = (reg_addr >> 8) & 0xFF;
+    request[3] = reg_addr & 0xFF;
+    request[4] = (value >> 8) & 0xFF;
+    request[5] = value & 0xFF;
+
+    uint16_t crc = modbus_crc16(request, 6);
+    request[6] = crc & 0xFF;
+    request[7] = (crc >> 8) & 0xFF;
+
+    ESP_LOGD(TAG, "Broadcast write: reg=0x%04X, value=0x%04X", reg_addr, value);
+
+    s_modbus_stats.tx_count++;
+
+    // Use rs485_transaction with NULL rx params: takes mutex, flushes RX,
+    // sends frame, skips receive (no response for broadcast), releases mutex.
+    esp_err_t ret = rs485_transaction(handle->rs485, request, 8,
+                                      NULL, 0, NULL,
+                                      handle->response_timeout);
+    if (ret != ESP_OK) {
+        s_modbus_stats.error_count++;
+        ESP_LOGE(TAG, "Broadcast send failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    return ESP_OK;
+}

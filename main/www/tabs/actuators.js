@@ -65,34 +65,48 @@ function startPolling() {
 
 async function refreshStatus() {
     if (commandInProgress) return;
-    
+
     try {
-        const d = await api('actuator/status');
+        // Poll Bus 1 status (independent actuators) and Bus 2 sync-status in parallel
+        const [d, syncData] = await Promise.all([
+            api('actuator/status'),
+            api('actuator/sync-status').catch(() => null)
+        ]);
         actuatorsData = d.actuators || [];
-        updateStatusDisplay();
+        updateStatusDisplay(syncData);
     } catch (e) {
         console.error('[Actuators] Status refresh failed:', e);
     }
 }
 
-function updateStatusDisplay() {
-    // Update Sync Group status
-    const act1 = actuatorsData.find(a => a.id === SYNC_IDS[0]);
-    const act2 = actuatorsData.find(a => a.id === SYNC_IDS[1]);
-    
-    if (act1) {
-        document.getElementById('sync-pos-1').textContent = act1.connected ? act1.position : '--';
-        document.getElementById('sync-status-1').className = 'status-dot ' + (act1.connected ? 'on' : '');
+function updateStatusDisplay(syncData) {
+    // Update Sync Group status from Bus 2 sync-status endpoint
+    var syncAct1 = null, syncAct2 = null;
+
+    if (syncData && syncData.initialized && syncData.actuators) {
+        syncAct1 = syncData.actuators.find(a => a.id === SYNC_IDS[0]);
+        syncAct2 = syncData.actuators.find(a => a.id === SYNC_IDS[1]);
     }
-    if (act2) {
-        document.getElementById('sync-pos-2').textContent = act2.connected ? act2.position : '--';
-        document.getElementById('sync-status-2').className = 'status-dot ' + (act2.connected ? 'on' : '');
+
+    if (syncAct1) {
+        document.getElementById('sync-pos-1').textContent = syncAct1.position;
+        document.getElementById('sync-status-1').className = 'status-dot on';
+    } else {
+        document.getElementById('sync-pos-1').textContent = '--';
+        document.getElementById('sync-status-1').className = 'status-dot';
     }
-    
+    if (syncAct2) {
+        document.getElementById('sync-pos-2').textContent = syncAct2.position;
+        document.getElementById('sync-status-2').className = 'status-dot on';
+    } else {
+        document.getElementById('sync-pos-2').textContent = '--';
+        document.getElementById('sync-status-2').className = 'status-dot';
+    }
+
     // Calculate desync
-    if (act1?.connected && act2?.connected) {
-        const desync = Math.abs(act1.position - act2.position);
-        const desyncEl = document.getElementById('sync-desync');
+    if (syncAct1 && syncAct2) {
+        var desync = syncData.desync != null ? syncData.desync : Math.abs(syncAct1.position - syncAct2.position);
+        var desyncEl = document.getElementById('sync-desync');
         desyncEl.textContent = desync;
         desyncEl.className = 'value ' + (desync > 100 ? 'warn' : '');
     } else {
@@ -382,4 +396,4 @@ function cleanupActuators() {
 }
 
 // Register module
-registerModule('actuators', initActuators);
+registerModule('actuators', initActuators, stopPolling);

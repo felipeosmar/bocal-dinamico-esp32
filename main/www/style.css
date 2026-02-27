@@ -73,7 +73,7 @@ nav {
     border-bottom-color: var(--accent);
 }
 
-main { padding: 16px; max-width: 600px; margin: 0 auto; }
+main { padding: 16px; max-width: 900px; margin: 0 auto; }
 
 .tab { display: none; }
 .tab.active { display: block; }
@@ -1052,6 +1052,41 @@ body.log-expanded {
 }
 
 /* ============================================================================
+   Data Table (Setup Wizard scan results, standardize preview)
+   ============================================================================ */
+
+.data-table {
+    width: auto;
+    margin: 12px auto;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+    padding: 8px 16px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+
+.data-table th {
+    background: var(--bg);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-table td {
+    font-family: 'SF Mono', Consolas, monospace;
+}
+
+.data-table tr:hover {
+    background: rgba(88, 166, 255, 0.05);
+}
+
+/* ============================================================================
    Spinner & Button States
    ============================================================================ */
 
@@ -1262,7 +1297,14 @@ body.log-expanded {
 .control-panels {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
+}
+
+@media (min-width: 800px) {
+    .control-panels {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 .control-card {
@@ -1273,37 +1315,37 @@ body.log-expanded {
 }
 
 .control-card .card-header {
-    padding: 16px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--border);
     background: rgba(88, 166, 255, 0.05);
 }
 
 .control-card .card-header h3 {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     margin: 0;
     color: var(--text);
 }
 
 .control-card .card-subtitle {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
-    margin-top: 4px;
+    margin-top: 2px;
     display: block;
 }
 
 .control-card .card-body {
-    padding: 16px;
+    padding: 12px;
 }
 
 /* Status Row */
 .status-row {
     display: flex;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding: 12px;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 8px;
     background: var(--bg);
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
 .status-row.single {
@@ -1325,7 +1367,7 @@ body.log-expanded {
 }
 
 .status-item .value {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
     font-family: 'SF Mono', Consolas, monospace;
@@ -1342,14 +1384,14 @@ body.log-expanded {
 /* Control Row */
 .control-card .control-row {
     display: grid;
-    grid-template-columns: 80px 1fr 80px auto;
+    grid-template-columns: 65px 1fr 65px auto;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
 .control-card .control-row label {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-muted);
 }
 
@@ -1377,13 +1419,13 @@ body.log-expanded {
 }
 
 .control-card .control-row input[type="number"] {
-    width: 80px;
-    padding: 8px 10px;
+    width: 65px;
+    padding: 6px 8px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 13px;
     text-align: center;
     font-family: 'SF Mono', Consolas, monospace;
 }
@@ -1431,19 +1473,19 @@ body.log-expanded {
 /* Quick Position Buttons */
 .control-card .quick-pos {
     display: flex;
-    gap: 8px;
-    margin: 16px 0;
+    gap: 4px;
+    margin: 10px 0;
 }
 
 .control-card .quick-pos button {
     flex: 1;
-    padding: 8px;
+    padding: 5px;
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--text-muted);
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     transition: all 0.2s;
 }
 
@@ -1455,9 +1497,10 @@ body.log-expanded {
 /* Send Button */
 .control-card .btn.full {
     width: 100%;
-    padding: 14px;
-    font-size: 14px;
+    padding: 10px;
+    font-size: 13px;
     font-weight: 600;
+    margin-top: 8px;
 }
 
 .control-card .btn.loading {
@@ -1482,18 +1525,113 @@ body.log-expanded {
 /* Responsive for Control Panels */
 @media (max-width: 500px) {
     .control-card .control-row {
-        grid-template-columns: 70px 1fr 60px;
+        grid-template-columns: 55px 1fr 55px;
     }
-    
+
     .control-card .control-row .hint {
         display: none;
     }
-    
+
     .status-row {
         flex-wrap: wrap;
     }
-    
+
     .status-item {
-        min-width: 80px;
+        min-width: 70px;
+    }
+}
+
+/* ============================================================================
+   Login Modal Form
+   ============================================================================ */
+
+#login-form label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+#login-form input {
+    margin-bottom: 12px;
+}
+
+/* ============================================================================
+   Mobile Responsive
+   ============================================================================ */
+
+@media (max-width: 600px) {
+    header {
+        padding: 8px 12px;
+    }
+
+    header h1 {
+        font-size: 15px;
+    }
+
+    nav {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-btn {
+        flex: 0 0 auto;
+        padding: 10px 14px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    main {
+        padding: 10px;
+    }
+
+    .card {
+        padding: 12px;
+    }
+
+    .log-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .log-toolbar select {
+        width: 80px;
+    }
+
+    .log-toolbar input[type="text"] {
+        width: 100px;
+    }
+
+    .log-entry .log-tag {
+        width: 60px;
+    }
+
+    .log-entry .log-ts {
+        width: 55px;
+        font-size: 10px;
+    }
+
+    .tasks-table {
+        font-size: 11px;
+    }
+
+    .tasks-table th,
+    .tasks-table td {
+        padding: 6px 4px;
+    }
+
+    .modal-content {
+        margin: 8px;
+    }
+
+    #toast {
+        left: 10px;
+        right: 10px;
+        transform: none;
+        text-align: center;
     }
 }

@@ -21,7 +21,6 @@
     <nav>
         <button class="nav-btn active" data-tab="actuators">Actuators</button>
         <button class="nav-btn" data-tab="system">System</button>
-        <button class="nav-btn" data-tab="tasks">Tasks</button>
         <button class="nav-btn" data-tab="setup">Setup</button>
         <button class="nav-btn" data-tab="profiler">Profiler</button>
         <button class="nav-btn" data-tab="config">Config</button>
@@ -33,9 +32,6 @@
             <div class="tab-loading">Loading...</div>
         </section>
         <section id="tab-system" class="tab">
-            <div class="tab-loading">Loading...</div>
-        </section>
-        <section id="tab-tasks" class="tab">
             <div class="tab-loading">Loading...</div>
         </section>
         <section id="tab-setup" class="tab">
@@ -53,6 +49,25 @@
     </main>
 
     <div id="toast"></div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Authentication Required</h3>
+                <button class="btn-close" id="login-cancel">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="login-form">
+                    <label for="login-user">Username</label>
+                    <input type="text" id="login-user" autocomplete="username" required>
+                    <label for="login-pass">Password</label>
+                    <input type="password" id="login-pass" autocomplete="current-password">
+                    <button type="submit" class="btn btn-primary full">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <footer id="log-viewer" class="log-viewer collapsed">
         <div class="log-header" onclick="toggleLogViewer()">

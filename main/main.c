@@ -234,6 +234,19 @@ void app_main(void) {
     return;
   }
 
+  // Initialize actuator task queue (must be before control loop)
+  ESP_LOGI(TAG, "Initializing actuator task...");
+  if (actuator_task_init() != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize actuator task!");
+    return;
+  }
+
+  // Initialize closed-loop sync controller task
+  ESP_LOGI(TAG, "Initializing sync controller...");
+  if (mightyzap_sync_ctrl_init() != ESP_OK) {
+    ESP_LOGW(TAG, "Failed to initialize sync controller (non-fatal)");
+  }
+
   // Initialize Baumer OX100 profilometer
   if (config_get_baumer_enabled() && g_modbus != NULL) {
     esp_err_t bret =
@@ -282,19 +295,6 @@ void app_main(void) {
 
   // Wait for WiFi to be ready
   vTaskDelay(pdMS_TO_TICKS(1000));
-
-  // Initialize actuator task queue
-  ESP_LOGI(TAG, "Initializing actuator task...");
-  if (actuator_task_init() != ESP_OK) {
-    ESP_LOGE(TAG, "Failed to initialize actuator task!");
-    return;
-  }
-
-  // Initialize closed-loop sync controller task
-  ESP_LOGI(TAG, "Initializing sync controller...");
-  if (mightyzap_sync_ctrl_init() != ESP_OK) {
-    ESP_LOGW(TAG, "Failed to initialize sync controller (non-fatal)");
-  }
 
   // Start web server
   ESP_LOGI(TAG, "Starting web server...");

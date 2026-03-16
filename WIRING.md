@@ -26,7 +26,7 @@ Dedicado para comandos de movimento sincronizado dos atuadores.
 
 ### Configuracao Padrao
 
-| Parametro | Valor  |
+| Parametro | Valor  |sudo 
 |-----------|--------|
 | Baud rate | 57600  |
 | Data bits | 8      |

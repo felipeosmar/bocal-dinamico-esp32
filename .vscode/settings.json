@@ -1,7 +1,7 @@
 {
   "idf.flashType": "UART",
-  "idf.port": "/dev/ttyUSB0",
-  "idf.monitorPort": "/dev/ttyUSB0",
+  "idf.port": "/dev/ttyUSB2",
+  "idf.monitorPort": "/dev/ttyUSB2",
   "idf.espIdfPath": "/home/felipe/.espressif/v5.5.3/esp-idf",
   "idf.toolsPath": "/home/felipe/.espressif",
   "idf.pythonInstallPath": "/home/felipe/.pyenv/shims/python",

@@ -1,0 +1,134 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e60]: Captura logs antes do WiFi subir
+      - generic [ref=e64]: Buffer circular em memória RAM
+      - generic [ref=e68]:
+        - text: Acessível via
+        - code [ref=e69]: GET /api/logs
+      - generic [ref=e74]: 1. Log Buffer
+      - generic [ref=e78]:
+        - text: Monta partição
+        - strong [ref=e79]: userdata
+        - text: (LittleFS)
+      - generic [ref=e83]:
+        - text: Lê
+        - code [ref=e84]: /userdata/config.json
+      - generic [ref=e88]: Formata partição automaticamente no primeiro boot
+      - generic [ref=e92]: Fornece valores padrão se chave ausente
+      - generic [ref=e97]:
+        - text: 2. Configuração (
+        - code [ref=e98]: config_init
+        - text: )
+      - generic [ref=e102]:
+        - text: Inicializa
+        - strong [ref=e103]: UART1
+      - generic [ref=e107]: "Pinos: TX=17, RX=5, DE/RE=18 (padrão)"
+      - generic [ref=e111]: Modo half-duplex
+      - generic [ref=e115]:
+        - text: Cria
+        - code [ref=e116]: g_rs485
+        - text: (handle global)
+      - generic [ref=e121]: 3. RS485 — Barramento 1
+      - generic [ref=e125]:
+        - text: Wraps
+        - code [ref=e126]: g_rs485
+      - generic [ref=e130]: "Timeout: 100 ms (configurável)"
+      - generic [ref=e134]:
+        - text: Cria
+        - code [ref=e135]: g_modbus
+        - text: (handle global)
+      - generic [ref=e140]: 4. Modbus — Barramento 1
+      - generic [ref=e144]:
+        - text: Inicializa
+        - strong [ref=e145]: UART2
+        - text: com pinos do config
+        - code [ref=e146]: rs485_sync
+      - generic [ref=e150]:
+        - text: Cria
+        - code [ref=e151]: g_rs485_sync
+        - text: e
+        - code [ref=e152]: g_modbus_sync
+      - generic [ref=e157]: 5. RS485 + Modbus — Barramento 2 (Sync)
+      - generic [ref=e161]:
+        - code [ref=e162]: g_bus_mutex
+        - text: → protege Barramento 1
+      - generic [ref=e166]:
+        - code [ref=e167]: g_bus_sync_mutex
+        - text: → protege Barramento 2
+      - generic [ref=e171]: "Timeout de aquisição: 5000 ms (controle), 30000 ms (scan)"
+      - generic [ref=e176]: 6. Mutexes de Barramento
+      - generic [ref=e180]:
+        - text: Cria fila
+        - code [ref=e181]: s_actuator_queue
+        - text: (10 comandos)
+      - generic [ref=e185]:
+        - text: Inicia tarefa FreeRTOS
+        - code [ref=e186]: actuator_worker
+        - text: (prio 4, core 1)
+      - generic [ref=e190]:
+        - text: Cria
+        - code [ref=e191]: g_actuator
+        - text: (handle de cada atuador registrado)
+      - generic [ref=e196]: 7. Actuator Task
+      - generic [ref=e200]: Lê grupo de sincronização do config
+      - generic [ref=e204]:
+        - text: Inicia
+        - code [ref=e205]: sync_ctrl_task
+        - text: (prio 3) se sincronização habilitada
+      - generic [ref=e210]: 8. Sync Controller
+      - generic [ref=e214]:
+        - text: Verifica
+        - code [ref=e215]: baumer.enabled
+        - text: no config
+      - generic [ref=e219]: Inicializa Baumer OX100 via Modbus (barramento 1)
+      - generic [ref=e223]:
+        - code [ref=e224]: slave_id
+        - text: configurável (padrão 10)
+      - generic [ref=e229]: 9. Sensor Baumer (condicional)
+      - generic [ref=e233]: Inicia se Baumer habilitado
+      - generic [ref=e237]: Carrega equações do config
+      - generic [ref=e241]:
+        - text: Inicia
+        - code [ref=e242]: control_loop_task
+        - text: (prio 3)
+      - generic [ref=e246]:
+        - text: Auto-inicia se
+        - code [ref=e247]: control.running = true
+      - generic [ref=e252]: 10. Control Loop (condicional)
+      - generic [ref=e256]: "Modo STA: conecta ao SSID configurado"
+      - generic [ref=e260]:
+        - text: "Modo AP: cria rede"
+        - code [ref=e261]: Bocal-Dinamico
+      - generic [ref=e265]: Fallback para AP se STA falhar
+      - generic [ref=e270]: 11. WiFi Manager
+      - generic [ref=e274]:
+        - text: Monta partição
+        - strong [ref=e275]: www
+        - text: (LittleFS)
+      - generic [ref=e279]: Registra todas as rotas REST
+      - generic [ref=e283]: Inicia httpd (ESP-IDF HTTP server)
+      - generic [ref=e287]: Autenticação Basic Auth (se habilitada)
+      - generic [ref=e292]: 12. Web Server
+      - generic [ref=e296]:
+        - text: Inicia
+        - code [ref=e297]: health_monitor
+        - text: (prio 2)
+      - generic [ref=e301]: "Loga a cada 10 s: estado das tarefas, HWM de stack, heap"
+      - generic [ref=e306]: 13. Health Monitor
+      - generic [ref=e311]: Sequência de Inicialização (app_main)
+  - generic [ref=e312]:
+    - link "markmapmarkmap" [ref=e313] [cursor=pointer]:
+      - /url: https://markmap.js.org/
+      - img "markmap" [ref=e314]
+      - text: markmap
+    - generic "Zoom in" [ref=e315]:
+      - img [ref=e316] [cursor=pointer]
+    - generic "Zoom out" [ref=e318]:
+      - img [ref=e319] [cursor=pointer]
+    - generic "Fit window size" [ref=e321]:
+      - img [ref=e322] [cursor=pointer]
+    - generic "Toggle recursively" [ref=e324]:
+      - img [ref=e325] [cursor=pointer]
+    - generic "Toggle dark theme" [ref=e327]:
+      - img [ref=e328] [cursor=pointer]

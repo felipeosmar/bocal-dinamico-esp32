@@ -1,0 +1,138 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e66]: "Protocolo: Modbus RTU (Barramento 1)"
+      - generic [ref=e70]: "Slave ID: configurável (padrão 10)"
+      - generic [ref=e75]: Conexão
+      - generic [ref=e79]:
+        - code [ref=e80]: values[0]
+        - text: — medição primária (gap)
+      - generic [ref=e84]:
+        - code [ref=e85]: values[1..3]
+        - text: — medições secundárias
+      - generic [ref=e89]:
+        - code [ref=e90]: quality
+        - text: — 0=OK, 1=sinal fraco, 2=sem sinal
+      - generic [ref=e94]:
+        - code [ref=e95]: status
+        - text: — bits de status do sensor
+      - generic [ref=e99]:
+        - code [ref=e100]: output
+        - text: — saídas binárias do sensor
+      - generic [ref=e105]: Saídas
+      - code [ref=e110]: baumer_read_measurements(handle, &meas)
+      - code [ref=e115]: baumer_set_laser(handle, enable)
+      - generic [ref=e120]: API
+      - generic [ref=e125]: Sensor Baumer OX100
+      - generic [ref=e129]: Uma equação por atuador
+      - generic [ref=e133]:
+        - text: "Função linear:"
+        - code [ref=e134]: pos = coeff_a × gap + coeff_b
+      - generic [ref=e138]:
+        - code [ref=e139]: coeff_a
+        - text: — ganho (unidades de posição por unidade de gap)
+      - generic [ref=e143]:
+        - code [ref=e144]: coeff_b
+        - text: — offset de posição
+      - generic [ref=e149]: Modelo
+      - generic [ref=e153]:
+        - text: Persistida em
+        - code [ref=e154]: config.json → control.equations[]
+      - generic [ref=e158]:
+        - code [ref=e159]: actuator_id
+        - text: — ID do atuador alvo
+      - generic [ref=e163]:
+        - code [ref=e164]: bus
+        - text: — 1 = primário (individual), 2 = sync (broadcast)
+      - generic [ref=e168]:
+        - code [ref=e169]: enabled
+        - text: — ativa/desativa equação individualmente
+      - generic [ref=e174]: Configuração
+      - generic [ref=e178]:
+        - text: "Atuador 1:"
+        - code [ref=e179]: pos = 100 × gap + 500
+      - generic [ref=e183]:
+        - text: Gap medido = 12,3 → Position = 100 × 12,3 + 500 =
+        - strong [ref=e184]: "1730"
+      - generic [ref=e189]: Exemplo
+      - generic [ref=e194]: Equações de Controle
+      - generic [ref=e198]:
+        - text: Verifica
+        - code [ref=e199]: control.running
+      - generic [ref=e203]:
+        - text: "Lê Baumer:"
+        - code [ref=e204]: baumer_read_measurements
+      - generic [ref=e208]:
+        - text: Extrai
+        - code [ref=e209]: values[measurement_index]
+      - generic [ref=e213]: Calcula posição alvo
+      - generic [ref=e217]: Obtém handle do atuador por ID
+      - generic [ref=e221]:
+        - text: Chama
+        - code [ref=e222]: mightyzap_set_position
+      - generic [ref=e227]: Para cada equação habilitada
+      - generic [ref=e232]: Ciclo de execução (500 ms)
+      - generic [ref=e236]: Falha de leitura Baumer → loga e continua
+      - generic [ref=e240]: Falha Modbus → retry automático (3×)
+      - generic [ref=e244]:
+        - text: Sinal fraco (
+        - code [ref=e245]: quality != 0
+        - text: ) → loga aviso
+      - generic [ref=e250]: Tratamento de erros
+      - generic [ref=e255]:
+        - text: Tarefa
+        - code [ref=e256]: control_loop_task
+      - generic [ref=e260]:
+        - strong [ref=e261]: Stopped
+        - text: — tarefa não executa ações de controle
+      - generic [ref=e265]:
+        - strong [ref=e266]: Running
+        - text: — ciclo ativo a cada
+        - code [ref=e267]: interval_ms
+      - generic [ref=e271]:
+        - strong [ref=e272]: Monitoring
+        - text: — medição contínua sem atuação (após
+        - code [ref=e273]: POST /stop
+        - text: )
+      - generic [ref=e278]: Estados do Loop
+      - code [ref=e284]: "control: running: false ← auto-start no boot interval_ms: 500 ← frequência do loop measurement_index: 0 ← qual values[] usar equations: - actuator_id: 1 coeff_a: 100.0 coeff_b: 0.0 enabled: true bus: 1"
+      - generic [ref=e289]: Configuração Persistida
+      - generic [ref=e293]:
+        - code [ref=e294]: POST /api/control/start
+        - text: — inicia malha
+      - generic [ref=e298]:
+        - code [ref=e299]: POST /api/control/stop
+        - text: — para atuação
+      - generic [ref=e303]:
+        - code [ref=e304]: GET /api/control/status
+        - text: — gap atual, posições calculadas, estado
+      - generic [ref=e308]:
+        - code [ref=e309]: GET /api/control/equations
+        - text: — equações ativas
+      - generic [ref=e313]:
+        - code [ref=e314]: POST /api/control/equations
+        - text: — atualiza equações
+      - generic [ref=e319]: API REST de Controle
+      - generic [ref=e323]: Sensor Baumer → gap (mm)
+      - generic [ref=e327]: gap → equação linear → posição alvo (0–4095)
+      - generic [ref=e331]: posição alvo → Modbus FC06 (reg 0x0034)
+      - generic [ref=e335]: Atuador move para posição
+      - generic [ref=e339]: Sensor mede novo gap
+      - generic [ref=e343]: Loop fecha
+      - generic [ref=e348]: Diagrama de Fluxo
+      - generic [ref=e353]: Malha Fechada de Controle
+  - generic [ref=e354]:
+    - link "markmapmarkmap" [ref=e355] [cursor=pointer]:
+      - /url: https://markmap.js.org/
+      - img "markmap" [ref=e356]
+      - text: markmap
+    - generic "Zoom in" [ref=e357]:
+      - img [ref=e358] [cursor=pointer]
+    - generic "Zoom out" [ref=e360]:
+      - img [ref=e361] [cursor=pointer]
+    - generic "Fit window size" [ref=e363]:
+      - img [ref=e364] [cursor=pointer]
+    - generic "Toggle recursively" [ref=e366]:
+      - img [ref=e367] [cursor=pointer]
+    - generic "Toggle dark theme" [ref=e369]:
+      - img [ref=e370] [cursor=pointer]

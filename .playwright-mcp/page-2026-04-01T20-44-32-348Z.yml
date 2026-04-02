@@ -1,0 +1,222 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e82]: "Tipo: data/nvs"
+      - generic [ref=e86]: Credenciais WiFi e BT (NVS do ESP-IDF)
+      - generic [ref=e90]: Gerenciado pelo WiFi manager
+      - generic [ref=e95]:
+        - code [ref=e96]: nvs
+        - text: — 24 KB @ 0x9000
+      - generic [ref=e100]: Calibração do rádio WiFi/BT
+      - generic [ref=e104]: Escrito na fábrica / primeiro boot
+      - generic [ref=e109]:
+        - code [ref=e110]: phy_init
+        - text: — 4 KB @ 0xF000
+      - generic [ref=e114]: Firmware da aplicação (binário ELF)
+      - generic [ref=e118]:
+        - text: Atualizado com
+        - code [ref=e119]: ./flash.sh update
+        - text: ou
+        - code [ref=e120]: ./flash.sh app
+      - generic [ref=e125]:
+        - code [ref=e126]: factory
+        - text: — 1,6 MB @ 0x10000
+      - generic [ref=e130]: Dump de pânico em formato ELF
+      - generic [ref=e134]:
+        - text: Analisar com
+        - code [ref=e135]: idf.py coredump-info
+      - generic [ref=e140]:
+        - code [ref=e141]: coredump
+        - text: — 64 KB @ 0x1A0000
+      - generic [ref=e145]: Interface web (LittleFS)
+      - generic [ref=e149]:
+        - text: Atualizado com
+        - code [ref=e150]: ./flash.sh www
+      - generic [ref=e154]: "Contém: index.html, core.js, style.css, tabs/"
+      - generic [ref=e159]:
+        - code [ref=e160]: www
+        - text: — 256 KB @ 0x1B0000
+      - generic [ref=e164]:
+        - strong [ref=e165]: config.json
+        - text: (LittleFS)
+      - generic [ref=e169]:
+        - text: Preservado em atualizações de firmware (
+        - code [ref=e170]: ./flash.sh update
+        - text: )
+      - generic [ref=e174]:
+        - text: Apagado apenas com
+        - code [ref=e175]: ./flash.sh all
+      - generic [ref=e180]:
+        - code [ref=e181]: userdata
+        - text: — 64 KB @ 0x1F0000
+      - generic [ref=e186]:
+        - text: Partições Flash (
+        - code [ref=e187]: partitions.csv
+        - text: )
+      - generic [ref=e191]:
+        - code [ref=e192]: ssid
+        - text: /
+        - code [ref=e193]: password
+        - text: — rede do cliente
+      - generic [ref=e197]:
+        - code [ref=e198]: ap_mode
+        - text: — true = modo AP exclusivo
+      - generic [ref=e202]:
+        - code [ref=e203]: ap_ssid
+        - text: /
+        - code [ref=e204]: ap_password
+        - text: — rede criada no modo AP
+      - code [ref=e210]: wifi
+      - generic [ref=e214]:
+        - code [ref=e215]: baud
+        - text: — taxa (padrão 57600)
+      - generic [ref=e219]:
+        - code [ref=e220]: tx_pin
+        - text: — GPIO TX (padrão 17)
+      - generic [ref=e224]:
+        - code [ref=e225]: rx_pin
+        - text: — GPIO RX (padrão 5)
+      - generic [ref=e229]:
+        - code [ref=e230]: de_pin
+        - text: — GPIO DE/RE (padrão 18)
+      - generic [ref=e235]:
+        - code [ref=e236]: rs485
+        - text: — Barramento 1
+      - generic [ref=e240]:
+        - text: Mesma estrutura do
+        - code [ref=e241]: rs485
+      - generic [ref=e245]: Pinos independentes para UART2
+      - generic [ref=e250]:
+        - code [ref=e251]: rs485_sync
+        - text: — Barramento 2
+      - generic [ref=e255]:
+        - code [ref=e256]: timeout
+        - text: — timeout de resposta em ms (padrão 100)
+      - code [ref=e262]: modbus
+      - generic [ref=e266]:
+        - code [ref=e267]: username
+        - text: /
+        - code [ref=e268]: password
+        - text: — credenciais Basic Auth
+      - generic [ref=e272]:
+        - code [ref=e273]: auth_enabled
+        - text: — habilita/desabilita auth (padrão false)
+      - code [ref=e279]: web
+      - generic [ref=e283]:
+        - code [ref=e284]: scan_max_id
+        - text: — ID máximo na varredura (padrão 20)
+      - code [ref=e290]: actuator
+      - generic [ref=e294]:
+        - code [ref=e295]: enabled
+        - text: — habilita sensor
+      - generic [ref=e299]:
+        - code [ref=e300]: slave_id
+        - text: — Modbus ID do Baumer (padrão 10)
+      - code [ref=e306]: baumer
+      - generic [ref=e310]:
+        - code [ref=e311]: running
+        - text: — auto-inicia loop no boot
+      - generic [ref=e315]:
+        - code [ref=e316]: interval_ms
+        - text: — período do loop (padrão 500)
+      - generic [ref=e320]:
+        - code [ref=e321]: measurement_index
+        - text: — índice do
+        - code [ref=e322]: values[]
+        - text: para gap
+      - generic [ref=e326]:
+        - code [ref=e327]: equations[]
+        - text: — lista de equações lineares
+      - code [ref=e333]: control
+      - generic [ref=e337]:
+        - code [ref=e338]: lens_a
+        - text: —
+        - code [ref=e339]: "{id, baud}"
+        - text: para lente A
+      - generic [ref=e343]:
+        - code [ref=e344]: lens_b
+        - text: —
+        - code [ref=e345]: "{id, baud}"
+        - text: para lente B
+      - generic [ref=e349]:
+        - code [ref=e350]: nozzle
+        - text: —
+        - code [ref=e351]: "{id, baud}"
+        - text: para bico
+      - code [ref=e357]: roles
+      - generic [ref=e362]: config.json — Seções
+      - generic [ref=e366]:
+        - code [ref=e367]: config_get_wifi_ssid()
+        - text: →
+        - code [ref=e368]: const char*
+      - generic [ref=e372]:
+        - code [ref=e373]: config_get_rs485_baud()
+        - text: →
+        - code [ref=e374]: uint32_t
+      - generic [ref=e378]:
+        - code [ref=e379]: config_get_rs485_tx_pin()
+        - text: →
+        - code [ref=e380]: uint8_t
+      - generic [ref=e384]:
+        - code [ref=e385]: config_get_modbus_timeout()
+        - text: →
+        - code [ref=e386]: uint32_t
+      - generic [ref=e390]:
+        - code [ref=e391]: config_get_baumer_enabled()
+        - text: →
+        - code [ref=e392]: bool
+      - generic [ref=e397]: Leitura (thread-safe)
+      - code [ref=e402]: config_set_wifi_ssid(ssid)
+      - code [ref=e407]: config_set_rs485_baud(baud)
+      - generic [ref=e411]:
+        - code [ref=e412]: config_save()
+        - text: → grava em
+        - code [ref=e413]: /userdata/config.json
+      - generic [ref=e418]: Escrita (HTTP task only)
+      - generic [ref=e422]:
+        - code [ref=e423]: config_init()
+        - text: → monta LittleFS, carrega JSON
+      - generic [ref=e427]: Auto-format na primeira execução
+      - generic [ref=e431]:
+        - text: Defaults definidos em
+        - code [ref=e432]: config_manager.c
+      - generic [ref=e437]: Inicialização
+      - generic [ref=e442]:
+        - text: Config Manager API (
+        - code [ref=e443]: config_manager.h
+        - text: )
+      - generic [ref=e447]:
+        - code [ref=e448]: ./flash.sh update
+        - text: — firmware + www (preserva userdata)
+      - generic [ref=e452]:
+        - code [ref=e453]: ./flash.sh app
+        - text: — só firmware (mais rápido)
+      - generic [ref=e457]:
+        - code [ref=e458]: ./flash.sh www
+        - text: — só interface web
+      - generic [ref=e462]:
+        - code [ref=e463]: ./flash.sh all
+        - text: — apaga tudo (factory reset)
+      - generic [ref=e467]:
+        - code [ref=e468]: PORT=/dev/ttyACM0 ./flash.sh update
+        - text: — porta customizada
+      - generic [ref=e473]:
+        - text: Script de Flash (
+        - code [ref=e474]: flash.sh
+        - text: )
+      - generic [ref=e479]: Configuração e Partições Flash
+  - generic [ref=e480]:
+    - link "markmapmarkmap" [ref=e481] [cursor=pointer]:
+      - /url: https://markmap.js.org/
+      - img "markmap" [ref=e482]
+      - text: markmap
+    - generic "Zoom in" [ref=e483]:
+      - img [ref=e484] [cursor=pointer]
+    - generic "Zoom out" [ref=e486]:
+      - img [ref=e487] [cursor=pointer]
+    - generic "Fit window size" [ref=e489]:
+      - img [ref=e490] [cursor=pointer]
+    - generic "Toggle recursively" [ref=e492]:
+      - img [ref=e493] [cursor=pointer]
+    - generic "Toggle dark theme" [ref=e495]:
+      - img [ref=e496] [cursor=pointer]

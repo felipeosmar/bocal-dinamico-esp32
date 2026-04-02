@@ -1,0 +1,141 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e95]: SPA (Single Page Application)
+      - generic [ref=e99]: Carregamento dinâmico de módulos por aba
+      - generic [ref=e103]:
+        - text: Framework próprio em
+        - code [ref=e104]: core.js
+        - text: (sem dependências externas)
+      - generic [ref=e108]:
+        - text: Armazenada na partição
+        - strong [ref=e109]: www
+        - text: (LittleFS, 256 KB)
+      - generic [ref=e114]: Arquitetura Frontend
+      - generic [ref=e118]: "Lazy loading: aba só carrega ao ser ativada"
+      - generic [ref=e122]: Cache de módulos já carregados
+      - generic [ref=e127]: Registro de módulos
+      - generic [ref=e131]: Basic Auth com modal de login
+      - generic [ref=e135]: Retry automático em 401
+      - generic [ref=e139]: Credenciais em memória de sessão
+      - generic [ref=e144]: Autenticação
+      - generic [ref=e148]:
+        - code [ref=e149]: apiFetch(url, options)
+        - text: — wrapper sobre fetch
+      - generic [ref=e153]: Retry em 401 com re-auth
+      - generic [ref=e157]: Toast de erro automático em falha
+      - generic [ref=e162]: API Client
+      - generic [ref=e166]: Polling periódico ao ESP32
+      - generic [ref=e170]: Banner de aviso se offline
+      - generic [ref=e175]: Estado de conexão
+      - generic [ref=e179]: Sistema de toast (info, erro, sucesso)
+      - generic [ref=e184]: Notificações
+      - generic [ref=e189]:
+        - code [ref=e190]: core.js
+        - text: — Framework Central
+      - generic [ref=e194]: Container de abas (tab bar)
+      - generic [ref=e198]: Viewport para conteúdo dinâmico
+      - generic [ref=e202]: Carrega core.js e style.css
+      - generic [ref=e207]:
+        - code [ref=e208]: index.html
+        - text: — Shell da SPA
+      - generic [ref=e212]: Posição atual, corrente, tensão
+      - generic [ref=e216]: Indicador de movimento (Moving)
+      - generic [ref=e220]: Alerta de dessincronização
+      - generic [ref=e225]: Status em tempo real (polling 3 s)
+      - generic [ref=e229]: Slider de posição (0–4095)
+      - generic [ref=e233]: Campo de velocidade (0–1023)
+      - generic [ref=e237]: Campo de corrente (0–1600 mA)
+      - generic [ref=e241]: Botão de acionamento assíncrono
+      - generic [ref=e246]: Controle individual
+      - generic [ref=e250]: Slider de posição para broadcast
+      - generic [ref=e254]: Monitoramento de desync do grupo
+      - generic [ref=e258]: Botão de parada de emergência
+      - generic [ref=e263]: Controle sincronizado
+      - generic [ref=e267]: Botão de varredura do barramento
+      - generic [ref=e271]: Adicionar / remover atuador
+      - generic [ref=e275]: Renomear atuador
+      - generic [ref=e280]: Gerenciamento
+      - generic [ref=e285]:
+        - text: "Aba: Atuadores ("
+        - code [ref=e286]: tabs/actuators
+        - text: )
+      - generic [ref=e290]: Heap livre e mínimo histórico
+      - generic [ref=e294]: Uptime em hh:mm:ss
+      - generic [ref=e298]: Info WiFi (SSID, IP, RSSI)
+      - generic [ref=e303]: Recursos do ESP32
+      - generic [ref=e307]: Nome, estado, prioridade
+      - generic [ref=e311]: Uso de CPU (%)
+      - generic [ref=e315]: HWM de stack (bytes livres)
+      - generic [ref=e320]: Tarefas FreeRTOS
+      - generic [ref=e324]: Auto-refresh (toggle)
+      - generic [ref=e328]: Botão de restart
+      - generic [ref=e333]: Controles
+      - generic [ref=e338]:
+        - text: "Aba: Sistema ("
+        - code [ref=e339]: tabs/system
+        - text: )
+      - generic [ref=e343]: "Smart scan: identifica dispositivos no barramento"
+      - generic [ref=e347]: Atribuição de papéis (lens_a, lens_b, nozzle)
+      - generic [ref=e351]: Controles de jog para teste de movimento
+      - generic [ref=e355]: "Padronização: define posições home"
+      - generic [ref=e359]: Configuração de baud rate
+      - generic [ref=e364]: Wizard de configuração inicial
+      - generic [ref=e369]:
+        - text: "Aba: Setup ("
+        - code [ref=e370]: tabs/setup
+        - text: )
+      - generic [ref=e374]: Edita config.json diretamente
+      - generic [ref=e378]: Salvar / recarregar do dispositivo
+      - generic [ref=e382]: "Seções: WiFi, RS485, Modbus, Baumer, Controle, Papéis"
+      - generic [ref=e387]: Editor de configuração
+      - generic [ref=e392]:
+        - text: "Aba: Config ("
+        - code [ref=e393]: tabs/config
+        - text: )
+      - generic [ref=e397]: Navegação por diretórios
+      - generic [ref=e401]: Upload de arquivos (multipart)
+      - generic [ref=e405]: Download de arquivos
+      - generic [ref=e409]: Criar diretórios
+      - generic [ref=e413]: Deletar arquivos
+      - generic [ref=e417]: Editor de texto inline (para config.json)
+      - generic [ref=e422]: Gerenciador de arquivos LittleFS
+      - generic [ref=e427]:
+        - text: "Aba: Arquivos ("
+        - code [ref=e428]: tabs/files
+        - text: )
+      - generic [ref=e432]: Uso de memória ao longo do tempo
+      - generic [ref=e436]: Traces de tarefas em tempo real
+      - generic [ref=e440]: Histórico de heap
+      - generic [ref=e445]: Métricas de desempenho
+      - generic [ref=e450]:
+        - text: "Aba: Profiler ("
+        - code [ref=e451]: tabs/profiler
+        - text: )
+      - generic [ref=e455]: Usuário interaje com UI
+      - generic [ref=e459]:
+        - code [ref=e460]: core.js apiFetch
+        - text: monta requisição HTTP
+      - generic [ref=e464]: Basic Auth header adicionado (se habilitado)
+      - generic [ref=e468]:
+        - text: ESP32 recebe na tarefa
+        - code [ref=e469]: httpd
+      - generic [ref=e473]: Handler valida auth → processa → responde JSON
+      - generic [ref=e477]: Frontend atualiza UI com resposta
+      - generic [ref=e482]: Fluxo de Comunicação Frontend → Backend
+      - generic [ref=e487]: Interface Web
+  - generic [ref=e488]:
+    - link "markmapmarkmap" [ref=e489] [cursor=pointer]:
+      - /url: https://markmap.js.org/
+      - img "markmap" [ref=e490]
+      - text: markmap
+    - generic "Zoom in" [ref=e491]:
+      - img [ref=e492] [cursor=pointer]
+    - generic "Zoom out" [ref=e494]:
+      - img [ref=e495] [cursor=pointer]
+    - generic "Fit window size" [ref=e497]:
+      - img [ref=e498] [cursor=pointer]
+    - generic "Toggle recursively" [ref=e500]:
+      - img [ref=e501] [cursor=pointer]
+    - generic "Toggle dark theme" [ref=e503]:
+      - img [ref=e504] [cursor=pointer]

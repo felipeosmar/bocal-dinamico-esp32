@@ -1,0 +1,129 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e61]:
+        - text: Aguarda comandos na fila (
+        - code [ref=e62]: xQueueReceive
+        - text: )
+      - generic [ref=e66]:
+        - text: Adquire
+        - code [ref=e67]: g_bus_mutex
+        - text: antes de cada transação
+      - generic [ref=e71]: "Executa: set position, speed, current, force enable"
+      - generic [ref=e75]: Libera mutex após cada transação
+      - generic [ref=e80]: O que faz
+      - generic [ref=e84]:
+        - code [ref=e85]: ACTUATOR_CMD_MOVE
+        - text: — posicionar com speed/current
+      - generic [ref=e89]:
+        - code [ref=e90]: ACTUATOR_CMD_SYNC_MOVE
+        - text: — delega para
+        - code [ref=e91]: sync_ctrl_task
+      - generic [ref=e96]: Comandos aceitos
+      - code [ref=e102]: actuator_worker
+      - generic [ref=e106]: Recebe comandos de movimento sincronizado
+      - generic [ref=e110]:
+        - text: Adquire
+        - code [ref=e111]: g_bus_sync_mutex
+        - text: (Barramento 2)
+      - generic [ref=e115]: "Broadcast para ID 0: Force ON → Speed → Current → Position"
+      - generic [ref=e119]: Polling de posições individuais até convergência
+      - generic [ref=e123]:
+        - text: Reporta desincronização e resultado (
+        - code [ref=e124]: SYNC_OK / TIMEOUT / DESYNC
+        - text: )
+      - generic [ref=e129]: O que faz
+      - code [ref=e135]: sync_ctrl_task
+      - generic [ref=e139]:
+        - text: Lê medição do Baumer OX100 (
+        - code [ref=e140]: baumer_read_measurements
+        - text: )
+      - generic [ref=e144]:
+        - text: Extrai valor de gap (
+        - code [ref=e145]: values[measurement_index]
+        - text: )
+      - generic [ref=e149]:
+        - text: "Para cada equação habilitada: calcula"
+        - code [ref=e150]: pos = a × gap + b
+      - generic [ref=e154]:
+        - text: Chama
+        - code [ref=e155]: mightyzap_set_position
+        - text: via barramento configurado
+      - generic [ref=e159]:
+        - text: Para se
+        - code [ref=e160]: control.running = false
+      - generic [ref=e165]: O que faz
+      - code [ref=e171]: control_loop_task
+      - generic [ref=e175]: Loga estado de todas as tarefas (Run/Ready/Blocked/Suspended)
+      - generic [ref=e179]: Registra HWM de stack (mínimo de stack livre)
+      - generic [ref=e183]: Registra heap atual e heap mínimo histórico
+      - generic [ref=e187]: Monitora watchdog das tarefas idle (ambos os cores)
+      - generic [ref=e192]: O que faz
+      - code [ref=e198]: health_monitor
+      - generic [ref=e202]: Handlers HTTP executam na mesma tarefa → sem concorrência entre handlers
+      - generic [ref=e206]:
+        - text: Acesso a
+        - code [ref=e207]: s_actuators[]
+        - text: (lista de atuadores) é seguro sem mutex
+      - generic [ref=e211]: Setters de config chamados apenas desta tarefa → thread-safe
+      - generic [ref=e216]: Thread Safety implícita
+      - generic [ref=e221]:
+        - code [ref=e222]: httpd
+        - text: (ESP-IDF)
+      - generic [ref=e226]:
+        - code [ref=e227]: wifi_manager
+        - text: — gerencia conexão WiFi STA/AP
+      - generic [ref=e231]:
+        - code [ref=e232]: IDLE0 / IDLE1
+        - text: — ociosidade dos cores (monitoradas pelo watchdog)
+      - generic [ref=e236]:
+        - code [ref=e237]: Tmr Svc
+        - text: — FreeRTOS Software Timer Service
+      - generic [ref=e241]:
+        - code [ref=e242]: esp_timer
+        - text: — timers de alta resolução
+      - generic [ref=e247]: Tarefas do Sistema (ESP-IDF)
+      - generic [ref=e251]:
+        - code [ref=e252]: g_bus_mutex
+        - text: — Barramento 1 (UART1)
+      - generic [ref=e256]:
+        - code [ref=e257]: g_bus_sync_mutex
+        - text: — Barramento 2 (UART2)
+      - generic [ref=e261]: Mutex por UART no rs485_driver
+      - generic [ref=e266]: Mutexes
+      - generic [ref=e270]:
+        - code [ref=e271]: s_actuator_queue
+        - text: — 10 comandos de atuador
+      - generic [ref=e275]:
+        - code [ref=e276]: g_sync_queue
+        - text: — comandos de sync
+      - generic [ref=e281]: Filas
+      - generic [ref=e285]:
+        - code [ref=e286]: portMUX_TYPE
+        - text: em modbus_rtu.c para atualizar estatísticas
+      - generic [ref=e291]: Seção Crítica
+      - generic [ref=e296]: Mecanismos de Sincronização
+      - generic [ref=e300]:
+        - text: "Timeout: 10 s ("
+        - code [ref=e301]: CONFIG_ESP_TASK_WDT_TIMEOUT_S
+        - text: )
+      - generic [ref=e305]: Monitora tarefas idle de ambos os cores
+      - generic [ref=e309]: "Stack overflow: proteção forte habilitada"
+      - generic [ref=e313]: "Pânico: delay de 3 s antes do reboot (captura de logs)"
+      - generic [ref=e318]: Watchdog
+      - generic [ref=e323]: Tarefas FreeRTOS
+  - generic [ref=e324]:
+    - link "markmapmarkmap" [ref=e325] [cursor=pointer]:
+      - /url: https://markmap.js.org/
+      - img "markmap" [ref=e326]
+      - text: markmap
+    - generic "Zoom in" [ref=e327]:
+      - img [ref=e328] [cursor=pointer]
+    - generic "Zoom out" [ref=e330]:
+      - img [ref=e331] [cursor=pointer]
+    - generic "Fit window size" [ref=e333]:
+      - img [ref=e334] [cursor=pointer]
+    - generic "Toggle recursively" [ref=e336]:
+      - img [ref=e337] [cursor=pointer]
+    - generic "Toggle dark theme" [ref=e339]:
+      - img [ref=e340] [cursor=pointer]

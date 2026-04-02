@@ -1,0 +1,217 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e76]:
+        - code [ref=e77]: GET /status
+        - text: — posição, corrente, tensão de todos
+      - generic [ref=e81]:
+        - code [ref=e82]: GET /config?id=N
+        - text: — config EEPROM (modelo, limites, baud)
+      - generic [ref=e86]:
+        - code [ref=e87]: GET /scan
+        - text: — varre barramento (IDs 1–20)
+      - generic [ref=e91]:
+        - code [ref=e92]: GET /roles
+        - text: "— papéis: lens_a, lens_b, nozzle"
+      - generic [ref=e96]:
+        - code [ref=e97]: GET /sync-status
+        - text: — dessincronização e posições do grupo
+      - generic [ref=e102]: Leitura
+      - generic [ref=e106]:
+        - code [ref=e107]: POST /control
+        - text: —
+        - code [ref=e108]: "{id, position, speed, current}"
+        - text: (async queue)
+      - generic [ref=e112]:
+        - code [ref=e113]: POST /sync-move
+        - text: — mover grupo sincronizado
+      - generic [ref=e117]:
+        - code [ref=e118]: POST /sync-abort
+        - text: — parar grupo (emergência)
+      - generic [ref=e122]:
+        - code [ref=e123]: POST /jog
+        - text: — movimento de teste
+      - generic [ref=e127]:
+        - code [ref=e128]: POST /standardize
+        - text: — definir posição home
+      - generic [ref=e133]: Controle
+      - generic [ref=e137]:
+        - code [ref=e138]: POST /config
+        - text: — escreve EEPROM (slave_id, baud, limites)
+      - generic [ref=e142]:
+        - code [ref=e143]: POST /roles
+        - text: — atribui papéis a IDs
+      - generic [ref=e147]:
+        - code [ref=e148]: POST /add
+        - text: — adiciona atuador ao tracking
+      - generic [ref=e152]:
+        - code [ref=e153]: POST /remove
+        - text: — remove atuador do tracking
+      - generic [ref=e157]:
+        - code [ref=e158]: POST /set-name
+        - text: — renomeia atuador
+      - generic [ref=e162]:
+        - code [ref=e163]: POST /restart
+        - text: — reinicia atuador
+      - generic [ref=e167]:
+        - code [ref=e168]: POST /factory-reset
+        - text: — reset de fábrica
+      - generic [ref=e172]:
+        - code [ref=e173]: POST /smart-scan
+        - text: — identifica topologia do barramento
+      - generic [ref=e178]: Configuração
+      - generic [ref=e183]:
+        - text: Atuadores
+        - code [ref=e184]: /api/actuator
+      - generic [ref=e188]:
+        - code [ref=e189]: GET /status
+        - text: — estado, último gap, posições calculadas
+      - generic [ref=e193]:
+        - code [ref=e194]: POST /start
+        - text: — inicia loop de controle
+      - generic [ref=e198]:
+        - code [ref=e199]: POST /stop
+        - text: — para loop (monitoramento continua)
+      - generic [ref=e203]:
+        - code [ref=e204]: GET /equations
+        - text: — equações lineares configuradas
+      - generic [ref=e208]:
+        - code [ref=e209]: POST /equations
+        - text: — define
+        - code [ref=e210]: pos = a × gap + b
+        - text: por atuador
+      - generic [ref=e215]:
+        - text: Controle de Malha Fechada
+        - code [ref=e216]: /api/control
+      - generic [ref=e220]:
+        - code [ref=e221]: GET /status
+        - text: — medições atuais (4 valores, qualidade, status)
+      - generic [ref=e225]:
+        - code [ref=e226]: POST /laser
+        - text: — habilita/desabilita laser
+      - generic [ref=e231]:
+        - text: Sensor Baumer
+        - code [ref=e232]: /api/baumer
+      - generic [ref=e236]:
+        - code [ref=e237]: GET /config
+        - text: — pinos e baud de ambos os barramentos
+      - generic [ref=e241]:
+        - code [ref=e242]: PUT /config
+        - text: — atualiza pinos/baud (requer restart)
+      - generic [ref=e246]:
+        - code [ref=e247]: GET /diag
+        - text: — estatísticas Modbus (TX/RX, erros, timeouts)
+      - generic [ref=e251]:
+        - code [ref=e252]: POST /test
+        - text: — envia comando de teste
+      - generic [ref=e256]:
+        - code [ref=e257]: POST /reset_stats
+        - text: — zera contadores
+      - generic [ref=e262]:
+        - text: RS485
+        - code [ref=e263]: /api/rs485
+      - generic [ref=e267]:
+        - code [ref=e268]: GET /scan
+        - text: — redes disponíveis
+      - generic [ref=e272]:
+        - code [ref=e273]: POST /connect
+        - text: —
+        - code [ref=e274]: "{ssid, password}"
+        - text: → salva config
+      - generic [ref=e278]:
+        - code [ref=e279]: GET /status
+        - text: — estado, IP, SSID, RSSI
+      - generic [ref=e284]:
+        - text: WiFi
+        - code [ref=e285]: /api/wifi
+      - generic [ref=e289]:
+        - code [ref=e290]: GET /status
+        - text: — heap livre, WiFi, uptime
+      - generic [ref=e294]:
+        - code [ref=e295]: GET /tasks
+        - text: — lista tarefas FreeRTOS com CPU%, HWM de stack
+      - generic [ref=e299]:
+        - code [ref=e300]: GET /logs?since=N
+        - text: — entradas do buffer de log (base em sequência)
+      - generic [ref=e304]:
+        - code [ref=e305]: POST /logs/clear
+        - text: — limpa buffer de log
+      - generic [ref=e309]:
+        - code [ref=e310]: POST /restart
+        - text: — reinicia o ESP32
+      - generic [ref=e315]:
+        - text: Sistema
+        - code [ref=e316]: /api
+      - generic [ref=e320]:
+        - code [ref=e321]: GET /list?dir=path
+        - text: — listagem de diretório
+      - generic [ref=e325]:
+        - code [ref=e326]: GET /info?file=path
+        - text: — metadados do arquivo
+      - generic [ref=e330]:
+        - code [ref=e331]: GET /download?file=path
+        - text: — download
+      - generic [ref=e335]:
+        - code [ref=e336]: GET /read?file=path
+        - text: — lê texto
+      - generic [ref=e340]:
+        - code [ref=e341]: POST /write
+        - text: — escreve texto
+      - generic [ref=e345]:
+        - code [ref=e346]: POST /delete
+        - text: — deleta arquivo
+      - generic [ref=e350]:
+        - code [ref=e351]: POST /mkdir
+        - text: — cria diretório
+      - generic [ref=e355]:
+        - code [ref=e356]: POST /upload
+        - text: — upload multipart
+      - generic [ref=e361]:
+        - text: Arquivos
+        - code [ref=e362]: /api/files
+      - generic [ref=e366]:
+        - code [ref=e367]: POST /scan-buses
+        - text: — varre ambos os barramentos
+      - generic [ref=e372]:
+        - text: Setup Wizard
+        - code [ref=e373]: /api/setup
+      - generic [ref=e377]:
+        - code [ref=e378]: GET /
+        - text: → index.html
+      - generic [ref=e382]:
+        - code [ref=e383]: GET /style.css
+        - text: → estilos
+      - generic [ref=e387]:
+        - code [ref=e388]: GET /core.js
+        - text: → framework SPA
+      - generic [ref=e392]:
+        - code [ref=e393]: GET /tabs/*.html
+        - text: → conteúdo das abas
+      - generic [ref=e397]:
+        - code [ref=e398]: GET /tabs/*.js
+        - text: → módulos das abas
+      - generic [ref=e403]: Arquivos Estáticos
+      - generic [ref=e407]:
+        - text: Basic Auth (opcional,
+        - code [ref=e408]: web.auth_enabled
+        - text: )
+      - generic [ref=e412]: Credenciais em config.json (LittleFS)
+      - generic [ref=e416]: Sem HTTPS (usar proxy reverso se público)
+      - generic [ref=e420]: HTTP na porta 80
+      - generic [ref=e425]: Segurança
+      - generic [ref=e430]: REST API
+  - generic [ref=e431]:
+    - link "markmapmarkmap" [ref=e432] [cursor=pointer]:
+      - /url: https://markmap.js.org/
+      - img "markmap" [ref=e433]
+      - text: markmap
+    - generic "Zoom in" [ref=e434]:
+      - img [ref=e435] [cursor=pointer]
+    - generic "Zoom out" [ref=e437]:
+      - img [ref=e438] [cursor=pointer]
+    - generic "Fit window size" [ref=e440]:
+      - img [ref=e441] [cursor=pointer]
+    - generic "Toggle recursively" [ref=e443]:
+      - img [ref=e444] [cursor=pointer]
+    - generic "Toggle dark theme" [ref=e446]:
+      - img [ref=e447] [cursor=pointer]

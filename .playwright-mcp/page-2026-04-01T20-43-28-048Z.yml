@@ -1,0 +1,153 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]:
+    - generic [ref=e3]:
+      - code [ref=e76]: mightyzap_set_goal_position(handle, pos)
+      - code [ref=e81]: mightyzap_set_goal_speed(handle, speed)
+      - code [ref=e86]: mightyzap_set_force_enable(handle, on)
+      - code [ref=e91]: mightyzap_get_present_position(handle, &pos)
+      - code [ref=e96]: mightyzap_get_present_current(handle, &cur)
+      - code [ref=e101]: mightyzap_get_present_voltage(handle, &volt)
+      - generic [ref=e106]: API de Alto Nível
+      - code [ref=e111]: mightyzap_sync_move_broadcast(group, pos)
+      - generic [ref=e115]: Envia para ID 0 (broadcast) no Barramento 2
+      - generic [ref=e119]: "Sequência: Force ON → Speed → Current → Position"
+      - generic [ref=e124]: Movimento Sincronizado
+      - generic [ref=e128]:
+        - code [ref=e129]: "0x0032"
+        - text: Force Enable (0/1)
+      - generic [ref=e133]:
+        - code [ref=e134]: "0x0034"
+        - text: Goal Position (0–4095)
+      - generic [ref=e138]:
+        - code [ref=e139]: "0x0035"
+        - text: Goal Speed (0–1023)
+      - generic [ref=e143]:
+        - code [ref=e144]: "0x0036"
+        - text: Goal Current (0–1600)
+      - generic [ref=e148]:
+        - code [ref=e149]: "0x0037"
+        - text: Present Position (read-only)
+      - generic [ref=e153]:
+        - code [ref=e154]: "0x0038"
+        - text: Present Current (read-only)
+      - generic [ref=e158]:
+        - code [ref=e159]: "0x003A"
+        - text: Voltage × 0,1 V (read-only)
+      - generic [ref=e163]:
+        - code [ref=e164]: "0x003B"
+        - text: Moving Status (0/1, read-only)
+      - generic [ref=e169]: Registros-chave (RAM)
+      - generic [ref=e174]: Camada de Aplicação — mightyZAP
+      - generic [ref=e178]:
+        - strong [ref=e179]: FC03
+        - text: Read Holding Registers
+      - generic [ref=e183]:
+        - strong [ref=e184]: FC04
+        - text: Read Input Registers
+      - generic [ref=e188]:
+        - strong [ref=e189]: FC06
+        - text: Write Single Register
+      - generic [ref=e194]: Códigos de Função
+      - generic [ref=e198]: Endereço (1 byte) + Função (1 byte) + Dados + CRC16
+      - generic [ref=e202]: "Timeout de resposta: 100 ms (padrão)"
+      - generic [ref=e207]: Framing
+      - generic [ref=e211]: 3 tentativas por padrão
+      - generic [ref=e215]:
+        - text: "Retriáveis:"
+        - code [ref=e216]: ACKNOWLEDGE
+        - text: ","
+        - code [ref=e217]: SLAVE_DEVICE_BUSY
+        - text: ","
+        - code [ref=e218]: MOTOR_MOVING
+      - generic [ref=e222]:
+        - text: "Não retriáveis:"
+        - code [ref=e223]: ILLEGAL_FUNCTION
+        - text: ","
+        - code [ref=e224]: ILLEGAL_ADDRESS
+        - text: ","
+        - code [ref=e225]: OVERLOAD
+      - generic [ref=e230]: Retry
+      - generic [ref=e234]: TX count, RX count
+      - generic [ref=e238]: CRC errors, timeouts, exceptions
+      - generic [ref=e242]:
+        - text: Acessível via
+        - code [ref=e243]: GET /api/rs485/diag
+      - generic [ref=e248]: Estatísticas
+      - generic [ref=e253]: Camada de Protocolo — Modbus RTU
+      - generic [ref=e257]: UART1 (Barramento 1) / UART2 (Barramento 2)
+      - generic [ref=e261]: Half-duplex via DE/RE pin (GPIO 18 padrão)
+      - generic [ref=e265]: "Baud: 57600 (configurável)"
+      - generic [ref=e270]: Configuração UART
+      - generic [ref=e274]: "Inter-character: 3,5 × tempo de char (mín. 5 ms)"
+      - generic [ref=e278]: "A 57600 baud: 0,6 ms nativo → 5 ms imposto"
+      - generic [ref=e283]: Temporização
+      - generic [ref=e287]:
+        - text: "Mutex por UART:"
+        - code [ref=e288]: xSemaphoreTake
+        - text: antes de TX
+      - code [ref=e293]: rs485_transaction(tx, rx, timeout_ms)
+      - generic [ref=e298]: Thread Safety
+      - generic [ref=e303]: Camada de Transporte — RS485 Driver
+      - generic [ref=e307]:
+        - code [ref=e308]: POST /api/actuator/control
+        - text: → HTTP handler
+      - generic [ref=e312]:
+        - code [ref=e313]: actuator_move_async(handle, 2000)
+        - text: → fila
+      - generic [ref=e317]:
+        - code [ref=e318]: actuator_worker
+        - text: (tarefa FreeRTOS) → dequeue
+      - generic [ref=e322]:
+        - code [ref=e323]: xSemaphoreTake(g_bus_mutex)
+        - text: → trava Barramento 1
+      - generic [ref=e327]:
+        - code [ref=e328]: mightyzap_set_goal_position(handle, 2000)
+        - text: → mightyZAP API
+      - generic [ref=e332]:
+        - code [ref=e333]: modbus_write_single_register(modbus, 1, 0x0034, 2000)
+        - text: → Modbus
+      - generic [ref=e337]:
+        - code [ref=e338]: rs485_transaction(frame, response, 100ms)
+        - text: → RS485
+      - generic [ref=e342]: Atuador recebe e ecoa o frame → confirmação
+      - generic [ref=e346]:
+        - code [ref=e347]: xSemaphoreGive(g_bus_mutex)
+        - text: → libera
+      - generic [ref=e351]:
+        - text: HTTP 200
+        - code [ref=e352]: "{success: true}"
+        - text: → cliente
+      - generic [ref=e357]: "Fluxo Completo — Mover Atuador #1 para 2000"
+      - code [ref=e362]: "POST /api/actuator/sync-move {position: 1500}"
+      - generic [ref=e366]:
+        - code [ref=e367]: mightyzap_sync_ctrl_move(group, 1500)
+        - text: → fila sync
+      - generic [ref=e371]:
+        - code [ref=e372]: sync_ctrl_task
+        - text: (tarefa FreeRTOS) → dequeue
+      - generic [ref=e376]:
+        - code [ref=e377]: xSemaphoreTake(g_bus_sync_mutex)
+        - text: → trava Barramento 2
+      - generic [ref=e381]: "Broadcast ID 0: Force ON + Speed + Current + Position"
+      - generic [ref=e385]: Todos os atuadores do grupo recebem simultaneamente
+      - generic [ref=e389]: Polling de posições até convergir ou timeout
+      - generic [ref=e393]:
+        - code [ref=e394]: xSemaphoreGive(g_bus_sync_mutex)
+        - text: → libera
+      - generic [ref=e399]: Fluxo Sincronizado — Mover Grupo para 1500
+      - generic [ref=e404]: Pilha de Comunicação
+  - generic [ref=e405]:
+    - link "markmapmarkmap" [ref=e406] [cursor=pointer]:
+      - /url: https://markmap.js.org/
+      - img "markmap" [ref=e407]
+      - text: markmap
+    - generic "Zoom in" [ref=e408]:
+      - img [ref=e409] [cursor=pointer]
+    - generic "Zoom out" [ref=e411]:
+      - img [ref=e412] [cursor=pointer]
+    - generic "Fit window size" [ref=e414]:
+      - img [ref=e415] [cursor=pointer]
+    - generic "Toggle recursively" [ref=e417]:
+      - img [ref=e418] [cursor=pointer]
+    - generic "Toggle dark theme" [ref=e420]:
+      - img [ref=e421] [cursor=pointer]

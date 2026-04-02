@@ -1,0 +1,88 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e56]:
+        - strong [ref=e57]: MCU
+        - text: ": ESP32 (dual-core, 240 MHz)"
+      - generic [ref=e61]:
+        - strong [ref=e62]: Protocolo
+        - text: ": RS485 / Modbus RTU"
+      - generic [ref=e66]:
+        - strong [ref=e67]: Atuadores
+        - text: ": mightyZAP FC_MODBUS"
+      - generic [ref=e71]:
+        - strong [ref=e72]: Sensor
+        - text: ": Baumer OX100 (opcional)"
+      - generic [ref=e76]:
+        - strong [ref=e77]: Transceptor
+        - text: ": MAX485 (half-duplex)"
+      - generic [ref=e82]: Hardware
+      - generic [ref=e86]: Aplicação Web (HTTP/REST)
+      - generic [ref=e90]: Lógica de Controle (control_loop)
+      - generic [ref=e94]: API de Atuadores (mightyzap)
+      - generic [ref=e98]: Protocolo Modbus RTU
+      - generic [ref=e102]: Driver RS485 (UART)
+      - generic [ref=e107]: Camadas
+      - generic [ref=e111]: FreeRTOS (tick 1000 Hz)
+      - generic [ref=e115]: Multitarefa preemptiva
+      - generic [ref=e119]: Semáforos e mutexes por barramento
+      - generic [ref=e124]: Sistema Operacional
+      - generic [ref=e129]: Software
+      - generic [ref=e133]: Posicionamento individual (0–4095)
+      - generic [ref=e137]: Controle de velocidade (0–1023)
+      - generic [ref=e141]: Controle de corrente (0–1600 mA)
+      - generic [ref=e145]: Movimento sincronizado (broadcast ID 0)
+      - generic [ref=e150]: Controle de Atuadores
+      - generic [ref=e154]: Leitura do sensor Baumer OX100
+      - generic [ref=e158]:
+        - text: "Equações lineares:"
+        - code [ref=e159]: pos = a × gap + b
+      - generic [ref=e163]: Atualização a cada 500 ms (configurável)
+      - generic [ref=e168]: Malha Fechada
+      - generic [ref=e172]: SPA (Single Page Application)
+      - generic [ref=e176]: "Tabs: Atuadores, Sistema, Config, Arquivos"
+      - generic [ref=e180]: API REST + Basic Auth (opcional)
+      - generic [ref=e185]: Interface Web
+      - generic [ref=e189]: WiFi STA (cliente) ou AP (ponto de acesso)
+      - generic [ref=e193]: IP dinâmico via DHCP
+      - generic [ref=e197]: HTTP na porta 80
+      - generic [ref=e202]: Conectividade
+      - generic [ref=e207]: Funcionalidades
+      - generic [ref=e211]:
+        - strong [ref=e212]: factory
+        - text: "(1,6 MB): Firmware"
+      - generic [ref=e216]:
+        - strong [ref=e217]: www
+        - text: "(256 KB): Interface web (LittleFS)"
+      - generic [ref=e221]:
+        - strong [ref=e222]: userdata
+        - text: "(64 KB): config.json (LittleFS)"
+      - generic [ref=e226]:
+        - strong [ref=e227]: coredump
+        - text: "(64 KB): Diagnóstico de pânico"
+      - generic [ref=e232]: Armazenamento Flash
+      - generic [ref=e236]: UART1
+      - generic [ref=e240]: Controle individual por ID
+      - generic [ref=e244]: IDs 1–247
+      - generic [ref=e249]: Barramento 1 — Primário
+      - generic [ref=e253]: UART2
+      - generic [ref=e257]: Broadcast para ID 0
+      - generic [ref=e261]: Grupo de sincronização
+      - generic [ref=e266]: Barramento 2 — Sincronizado
+      - generic [ref=e271]: Dois Barramentos RS485
+      - generic [ref=e276]: Bocal Dinâmico ESP32
+  - generic [ref=e277]:
+    - link "markmapmarkmap" [ref=e278] [cursor=pointer]:
+      - /url: https://markmap.js.org/
+      - img "markmap" [ref=e279]
+      - text: markmap
+    - generic "Zoom in" [ref=e280]:
+      - img [ref=e281] [cursor=pointer]
+    - generic "Zoom out" [ref=e283]:
+      - img [ref=e284] [cursor=pointer]
+    - generic "Fit window size" [ref=e286]:
+      - img [ref=e287] [cursor=pointer]
+    - generic "Toggle recursively" [ref=e289]:
+      - img [ref=e290] [cursor=pointer]
+    - generic "Toggle dark theme" [ref=e292]:
+      - img [ref=e293] [cursor=pointer]
